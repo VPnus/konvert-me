@@ -13,6 +13,7 @@ import {
 } from '@/features/overview/widgets/basic-widgets';
 import { GoalProgressWidget, GoalsWidget, WarningsWidget } from '@/features/overview/widgets/goal-widgets';
 import { QuickAddWidget } from '@/features/overview/widgets/quick-add-widget';
+import { LinksWidget, NewsWidget } from '@/features/overview/widgets/source-widgets';
 import type { WidgetDefinition } from '@/features/overview/widgets/types';
 import { ru } from '@/i18n/ru';
 
@@ -75,6 +76,22 @@ export const WIDGET_REGISTRY: readonly WidgetDefinition[] = [
     sizes: ['M', 'L'],
     defaultSize: 'M',
     Component: WarningsWidget,
+  },
+  {
+    type: 'links',
+    title: ru.widgets.links.title,
+    description: ru.widgets.links.description,
+    sizes: ['S', 'M', 'L'],
+    defaultSize: 'M',
+    Component: LinksWidget,
+  },
+  {
+    type: 'news',
+    title: ru.widgets.news.title,
+    description: ru.widgets.news.description,
+    sizes: ['M', 'L'],
+    defaultSize: 'M',
+    Component: NewsWidget,
   },
   {
     type: 'quick-add',

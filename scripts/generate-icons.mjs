@@ -21,16 +21,16 @@ const vite = await createServer({ configFile: false, server: { middlewareMode: t
 const { catMarkSvg } = await vite.ssrLoadModule('/src/components/brand/cat-mark.ts');
 await vite.close();
 
-/** Dark green tile of the installed app, with the light cat on it. */
-const TILE_BACKGROUND = '#0b1f17';
-const TILE_CAT = '#5ae0a8';
-const TILE_CARD = '#0b1f17';
+/** Black tile of the installed app, with the white cat on it. */
+const TILE_BACKGROUND = '#000000';
+const TILE_CAT = '#ffffff';
+const TILE_CARD = '#000000';
 
 /** Light theme ink for the favicon, and its dark theme counterpart. */
-const LIGHT_CAT = '#14532d';
+const LIGHT_CAT = '#000000';
 const LIGHT_CARD = '#ffffff';
-const DARK_CAT = '#5ae0a8';
-const DARK_CARD = '#0b1f17';
+const DARK_CAT = '#ffffff';
+const DARK_CARD = '#000000';
 
 const jobs = [
   {

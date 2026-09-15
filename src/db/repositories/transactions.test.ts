@@ -4,7 +4,11 @@ import { clearAllData } from '@/db/backup';
 import { db } from '@/db/db';
 import { RepositoryError, ValidationError } from '@/db/errors';
 import { createAccount, getAccountBalanceMinor } from '@/db/repositories/accounts';
-import { DEFAULT_CATEGORIES, seedDefaultCategories, listCategoriesOfKind } from '@/db/repositories/categories';
+import {
+  DEFAULT_CATEGORIES,
+  seedDefaultCategories,
+  listCategoriesOfKind,
+} from '@/db/repositories/categories';
 import { createGoal, setEnvelope } from '@/db/repositories/goals';
 import {
   createTransaction,

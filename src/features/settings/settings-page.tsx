@@ -2,6 +2,7 @@ import { AppearanceCard } from '@/features/settings/cards/appearance-card';
 import { BackupCard } from '@/features/settings/cards/backup-card';
 import { CalculationCard } from '@/features/settings/cards/calculation-card';
 import { InstallCard } from '@/features/settings/cards/install-card';
+import { SourcesCard } from '@/features/settings/cards/sources-card';
 import { StorageCard } from '@/features/settings/cards/storage-card';
 import { ru } from '@/i18n/ru';
 
@@ -17,6 +18,7 @@ export default function SettingsPage() {
       <BackupCard />
       <StorageCard />
       <InstallCard />
+      <SourcesCard />
       <AppearanceCard />
     </section>
   );

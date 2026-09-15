@@ -11,7 +11,10 @@ import type {
   Category,
   DashboardLayout,
   Envelope,
+  Feed,
+  FeedItem,
   Goal,
+  Link,
   Transaction,
 } from '@/db/models';
 
@@ -26,6 +29,9 @@ export class KonvertDatabase extends Dexie {
   declare goals: Table<Goal, string>;
   declare envelopes: Table<Envelope, string>;
   declare dashboardLayouts: Table<DashboardLayout, string>;
+  declare links: Table<Link, string>;
+  declare feeds: Table<Feed, string>;
+  declare feedItems: Table<FeedItem, string>;
 
   constructor(name: string = DATABASE_NAME) {
     super(name);
@@ -39,6 +45,14 @@ export class KonvertDatabase extends Dexie {
       goals: 'id, priority, status, kind',
       envelopes: 'id, goalId, accountId, [goalId+accountId]',
       dashboardLayouts: 'id',
+    });
+
+    // v2 adds the pinned sources and the optional news feeds. Nothing is transformed:
+    // the new tables simply start empty for everyone who already has data.
+    this.version(2).stores({
+      links: 'id, sortOrder',
+      feeds: 'id, enabled',
+      feedItems: 'id, feedId, publishedAt',
     });
   }
 }

@@ -9,7 +9,7 @@ import { z } from 'zod';
 
 import { isIsoDate, isIsoMonth } from '@/core/time';
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 const isoDate = z.string().refine(isIsoDate, { message: 'Дата должна быть в формате ГГГГ-ММ-ДД' });
 const isoMonth = z.string().refine(isIsoMonth, { message: 'Месяц должен быть в формате ГГГГ-ММ' });
@@ -168,6 +168,54 @@ export const dashboardLayoutSchema = z.object({
   items: z.array(dashboardWidgetSchema),
 });
 
+const url = z
+  .string()
+  .trim()
+  .min(1)
+  .max(2000)
+  .refine((value) => /^https:\/\//i.test(value), { message: 'Адрес должен начинаться с https://' })
+  .refine(
+    (value) => {
+      try {
+        new URL(value);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    { message: 'Это не похоже на адрес страницы' },
+  );
+
+/** A useful source the user pins by hand. Nothing is ever requested from it. */
+export const linkSchema = z.object({
+  id,
+  title: name,
+  url,
+  note,
+  sortOrder: z.number().int().nonnegative(),
+  createdAt: timestamp,
+});
+
+/** A news feed the user adds on purpose; it is only read when they allow it. */
+export const feedSchema = z.object({
+  id,
+  title: name,
+  url,
+  enabled: z.boolean(),
+  lastFetchedAt: timestamp.nullable(),
+  lastError: z.string().max(500).nullable(),
+  createdAt: timestamp,
+});
+
+export const feedItemSchema = z.object({
+  id,
+  feedId: id,
+  title: z.string().min(1).max(500),
+  url,
+  publishedAt: timestamp.nullable(),
+  fetchedAt: timestamp,
+});
+
 export const settingsSchema = z.object({
   id: z.literal('app'),
   inflationRate: rate,
@@ -177,6 +225,8 @@ export const settingsSchema = z.object({
   lastBackupAt: timestamp.nullable(),
   backupReminderDays: z.number().int().min(0).max(365),
   storagePersisted: z.boolean(),
+  /** Off by default: nothing leaves the device until the user turns this on. */
+  externalFeedsEnabled: z.boolean().default(false),
   schemaVersion: z.number().int().positive(),
 });
 
@@ -187,6 +237,9 @@ export type BudgetPlan = z.infer<typeof budgetPlanSchema>;
 export type Goal = z.infer<typeof goalSchema>;
 export type Envelope = z.infer<typeof envelopeSchema>;
 export type DashboardLayout = z.infer<typeof dashboardLayoutSchema>;
+export type Link = z.infer<typeof linkSchema>;
+export type Feed = z.infer<typeof feedSchema>;
+export type FeedItem = z.infer<typeof feedItemSchema>;
 export type AppSettings = z.infer<typeof settingsSchema>;
 export type AccountSide = Account['side'];
 export type AccountType = Account['type'];
@@ -200,6 +253,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   lastBackupAt: null,
   backupReminderDays: 30,
   storagePersisted: false,
+  externalFeedsEnabled: false,
   schemaVersion: SCHEMA_VERSION,
 };
 
@@ -213,6 +267,9 @@ export const TABLE_SCHEMAS = {
   goals: goalSchema,
   envelopes: envelopeSchema,
   dashboardLayouts: dashboardLayoutSchema,
+  links: linkSchema,
+  feeds: feedSchema,
+  feedItems: feedItemSchema,
 } as const;
 
 export type TableName = keyof typeof TABLE_SCHEMAS;

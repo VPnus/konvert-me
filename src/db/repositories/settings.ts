@@ -7,7 +7,13 @@ const SETTINGS_ID = 'app';
 
 export async function getSettings(): Promise<AppSettings> {
   const stored = await db.settings.get(SETTINGS_ID);
-  if (stored) return stored;
+
+  if (stored) {
+    // A row written by an older schema misses the newer fields; Zod fills the defaults.
+    const migrated = parseOrThrow(settingsSchema, { ...DEFAULT_SETTINGS, ...stored }, 'Настройки');
+    if (JSON.stringify(migrated) !== JSON.stringify(stored)) await db.settings.put(migrated);
+    return migrated;
+  }
 
   const fresh = { ...DEFAULT_SETTINGS, schemaVersion: SCHEMA_VERSION };
   await db.settings.put(fresh);

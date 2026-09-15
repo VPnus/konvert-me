@@ -24,6 +24,10 @@ const backupDataSchema = z.object({
   goals: z.array(TABLE_SCHEMAS.goals),
   envelopes: z.array(TABLE_SCHEMAS.envelopes),
   dashboardLayouts: z.array(TABLE_SCHEMAS.dashboardLayouts),
+  // Added in schema 2: a file written by schema 1 simply has none of them.
+  links: z.array(TABLE_SCHEMAS.links).default([]),
+  feeds: z.array(TABLE_SCHEMAS.feeds).default([]),
+  feedItems: z.array(TABLE_SCHEMAS.feedItems).default([]),
 });
 
 export const backupFileSchema = z.object({
@@ -51,23 +55,49 @@ export type BackupFile = z.infer<typeof backupFileSchema>;
 export type BackupData = z.infer<typeof backupDataSchema>;
 
 export async function collectBackup(now: number = Date.now()): Promise<BackupFile> {
-  const [settings, accounts, categories, transactions, budgetPlans, goals, envelopes, dashboardLayouts] =
-    await Promise.all([
-      db.settings.toArray(),
-      db.accounts.toArray(),
-      db.categories.toArray(),
-      db.transactions.toArray(),
-      db.budgetPlans.toArray(),
-      db.goals.toArray(),
-      db.envelopes.toArray(),
-      db.dashboardLayouts.toArray(),
-    ]);
+  const [
+    settings,
+    accounts,
+    categories,
+    transactions,
+    budgetPlans,
+    goals,
+    envelopes,
+    dashboardLayouts,
+    links,
+    feeds,
+    feedItems,
+  ] = await Promise.all([
+    db.settings.toArray(),
+    db.accounts.toArray(),
+    db.categories.toArray(),
+    db.transactions.toArray(),
+    db.budgetPlans.toArray(),
+    db.goals.toArray(),
+    db.envelopes.toArray(),
+    db.dashboardLayouts.toArray(),
+    db.links.toArray(),
+    db.feeds.toArray(),
+    db.feedItems.toArray(),
+  ]);
 
   return {
     format: BACKUP_FORMAT,
     schemaVersion: SCHEMA_VERSION,
     exportedAt: now,
-    data: { settings, accounts, categories, transactions, budgetPlans, goals, envelopes, dashboardLayouts },
+    data: {
+      settings,
+      accounts,
+      categories,
+      transactions,
+      budgetPlans,
+      goals,
+      envelopes,
+      dashboardLayouts,
+      links,
+      feeds,
+      feedItems,
+    },
   };
 }
 

@@ -9,8 +9,10 @@ import { RepositoryError } from '@/db/errors';
 import { feedItemSchema, feedSchema, type Feed, type FeedAuth, type FeedItem } from '@/db/models';
 import { getSettings } from '@/db/repositories/settings';
 import { parseOrThrow } from '@/db/validate';
+import { ru } from '@/i18n/ru';
 import { publishAppEvent } from '@/lib/broadcast';
 import { parseFeed } from '@/lib/feed-parser';
+import { hostOf } from '@/lib/feed-presets';
 import { hashString } from '@/lib/hash';
 import { stripSecrets } from '@/lib/secrets';
 
@@ -184,7 +186,7 @@ export async function refreshFeed(feed: Feed, now: number = Date.now()): Promise
   } catch (cause) {
     const raw =
       cause instanceof TypeError
-        ? 'Источник не разрешает читать себя из браузера (нет заголовков CORS). Попробуйте другой адрес ленты.'
+        ? ru.sources.corsBlocked.replace('{host}', hostOf(feed.url))
         : cause instanceof Error
           ? cause.message
           : 'Не удалось получить ленту';

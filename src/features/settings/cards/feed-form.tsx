@@ -7,6 +7,7 @@ import { Select } from '@/components/ui/select';
 import type { Feed, FeedAuth } from '@/db/models';
 import type { FeedInput } from '@/db/repositories/feeds';
 import { ru } from '@/i18n/ru';
+import { FEED_PRESETS, findFeedPreset, type FeedPreset } from '@/lib/feed-presets';
 
 interface FeedFormProps {
   readonly feed?: Feed;
@@ -32,8 +33,25 @@ export function FeedForm({ feed, onSubmit, onCancel }: FeedFormProps) {
   );
   const [itemsPath, setItemsPath] = useState(feed?.itemsPath ?? '');
   const [advanced, setAdvanced] = useState(Boolean(feed?.itemsPath));
+  const [presetId, setPresetId] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const preset = presetId ? findFeedPreset(presetId) : undefined;
+  const presetText = (item: FeedPreset) => ru.sources.presets[item.id as keyof typeof ru.sources.presets];
+
+  /** Picking a ready-made source fills in everything except the key itself. */
+  const applyPreset = (chosen: FeedPreset | undefined, id: string) => {
+    setPresetId(id);
+    if (!chosen) return;
+    setTitle(presetText(chosen).name);
+    setUrl(chosen.url);
+    setAuthKind(chosen.auth);
+    if (chosen.paramName) setParamName(chosen.paramName);
+    if (chosen.headerName) setHeaderName(chosen.headerName);
+    setItemsPath(chosen.itemsPath ?? '');
+    if (chosen.itemsPath) setAdvanced(true);
+  };
 
   /** When editing, an empty key field means "keep the key that is already stored". */
   const keptKey = existingAuth.kind === 'none' ? '' : existingAuth.key;
@@ -59,6 +77,7 @@ export function FeedForm({ feed, onSubmit, onCancel }: FeedFormProps) {
         setKey('');
         setAuthKind('none');
         setItemsPath('');
+        setPresetId('');
       } else {
         setKey('');
       }
@@ -71,6 +90,49 @@ export function FeedForm({ feed, onSubmit, onCancel }: FeedFormProps) {
 
   return (
     <form className="flex flex-col gap-3" onSubmit={(event) => void submit(event)}>
+      {feed ? null : (
+        <Field label={ru.sources.presetLabel} hint={preset ? undefined : ru.sources.presetHint}>
+          {(id) => (
+            <Select
+              id={id}
+              value={presetId}
+              data-testid="feed-preset"
+              onChange={(event) => applyPreset(findFeedPreset(event.target.value), event.target.value)}
+            >
+              <option value="">{ru.sources.presetNone}</option>
+              {FEED_PRESETS.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {presetText(item).label}
+                </option>
+              ))}
+            </Select>
+          )}
+        </Field>
+      )}
+
+      {preset ? (
+        <div className="flex flex-col gap-1 rounded-lg border border-border bg-muted/40 p-3">
+          <p className="text-xs text-muted-foreground" data-testid="feed-preset-note">
+            {presetText(preset).note}
+          </p>
+          {preset.browserBlocked ? (
+            <p className="text-xs text-warning" data-testid="feed-preset-blocked">
+              {ru.sources.presetBlocked}
+            </p>
+          ) : null}
+          {preset.keyUrl ? (
+            <a
+              href={preset.keyUrl}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="w-fit text-xs underline underline-offset-2"
+            >
+              {ru.sources.presetKeyLink}
+            </a>
+          ) : null}
+        </div>
+      ) : null}
+
       <Field label={ru.sources.feedName}>
         {(id) => (
           <Input

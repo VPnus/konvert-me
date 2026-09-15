@@ -10,6 +10,7 @@ import {
   deleteFeed,
   listFeeds,
   refreshEnabledFeeds,
+  refreshFeed,
   setFeedEnabled,
   updateFeed,
   type FeedInput,
@@ -49,14 +50,36 @@ export function SourcesCard() {
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [checked, setChecked] = useState<{ ok: boolean; text: string } | null>(null);
+
+  /**
+   * A saved feed is read once straight away: otherwise the user is left staring at a
+   * form that looks fine while the widget quietly shows nothing.
+   */
+  const checkFeed = async (feed: Feed) => {
+    if (!externalEnabled) {
+      setChecked({ ok: false, text: ru.sources.checkOffline });
+      return;
+    }
+
+    setChecked({ ok: true, text: ru.sources.checking });
+    try {
+      const count = await refreshFeed(feed);
+      setChecked({ ok: true, text: ru.sources.checkOk.replace('{count}', String(count)) });
+    } catch (cause) {
+      const reason = cause instanceof Error ? cause.message : ru.common.error;
+      setChecked({ ok: false, text: `${ru.sources.checkFailed} ${reason}` });
+    }
+  };
 
   const addFeed = async (input: FeedInput) => {
-    await createFeed(input);
+    await checkFeed(await createFeed(input));
   };
 
   const saveFeed = async (id: string, input: FeedInput) => {
-    await updateFeed(id, input);
+    const feed = await updateFeed(id, input);
     setEditingId(null);
+    await checkFeed(feed);
   };
 
   const refresh = async () => {
@@ -165,6 +188,16 @@ export function SourcesCard() {
           ) : null}
 
           <FeedForm onSubmit={addFeed} />
+
+          {checked ? (
+            <p
+              role="status"
+              className={`text-xs ${checked.ok ? 'text-muted-foreground' : 'text-destructive'}`}
+              data-testid="feed-check"
+            >
+              {checked.text}
+            </p>
+          ) : null}
 
           <Button
             type="button"

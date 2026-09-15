@@ -212,6 +212,8 @@ test.describe('news', () => {
     await page.getByTestId('feed-add').click();
     await page.getByTestId('feed-refresh').click();
 
-    await expect(page.getByText(/CORS/)).toBeVisible();
+    // the same explanation appears twice: next to the feed and under the form
+    await expect(page.getByTestId('feed-last-error')).toContainText('CORS');
+    await expect(page.getByTestId('feed-check')).toContainText('CORS');
   });
 });

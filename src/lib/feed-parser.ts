@@ -52,7 +52,17 @@ const DATE_FIELDS = [
   'updated',
 ];
 /** Where a list of records usually hides in a JSON answer. */
-const ITEM_CONTAINERS = ['items', 'articles', 'results', 'data', 'posts', 'entries', 'stories', 'hits'];
+const ITEM_CONTAINERS = [
+  'items',
+  'articles',
+  'results',
+  'data',
+  'posts',
+  'entries',
+  'stories',
+  'hits',
+  'news',
+];
 
 function readPath(raw: unknown, path: string): unknown {
   return path

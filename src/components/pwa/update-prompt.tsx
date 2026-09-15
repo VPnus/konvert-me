@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 
 import { Button } from '@/components/ui/button';
@@ -13,6 +14,14 @@ export function UpdatePrompt() {
     needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker,
   } = useRegisterSW();
+
+  // The "ready to work offline" note is good news, not a decision: it goes away by
+  // itself so that it never covers a control the user is reaching for.
+  useEffect(() => {
+    if (!offlineReady || needRefresh) return;
+    const timer = window.setTimeout(() => setOfflineReady(false), 6_000);
+    return () => window.clearTimeout(timer);
+  }, [offlineReady, needRefresh, setOfflineReady]);
 
   if (!offlineReady && !needRefresh) return null;
 

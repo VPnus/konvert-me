@@ -16,13 +16,15 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],
-      include: ['src/core/**/*.ts'],
-      exclude: ['src/core/**/*.test.ts', 'src/core/index.ts', 'src/core/types.ts'],
+      include: ['src/core/**/*.ts', 'src/db/**/*.ts', 'src/lib/crypto.ts', 'src/lib/platform.ts'],
+      exclude: ['**/*.test.ts', 'src/core/index.ts', 'src/core/types.ts', 'src/db/models.ts'],
       thresholds: {
-        statements: 95,
-        branches: 95,
-        functions: 95,
-        lines: 95,
+        // The financial core is the one place where the plan demands 95 %.
+        'src/core/**/*.ts': { statements: 95, branches: 95, functions: 95, lines: 95 },
+        statements: 80,
+        branches: 80,
+        functions: 80,
+        lines: 80,
       },
     },
   },

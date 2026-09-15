@@ -1,0 +1,70 @@
+import { useEffect, useState } from 'react';
+
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { updateSettings } from '@/db/repositories/settings';
+import { ru } from '@/i18n/ru';
+import { formatBytes, getStorageStatus, requestPersistentStorage, type StorageStatus } from '@/lib/persist';
+
+export function StorageCard() {
+  const [status, setStatus] = useState<StorageStatus | null>(null);
+  const [denied, setDenied] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    void getStorageStatus().then((value) => {
+      if (active) setStatus(value);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const request = async () => {
+    const granted = await requestPersistentStorage();
+    setDenied(!granted);
+    const next = await getStorageStatus();
+    setStatus(next);
+    await updateSettings({ storagePersisted: next.persisted });
+  };
+
+  const label = !status?.supported
+    ? ru.settings.storageUnsupported
+    : status.persisted
+      ? ru.settings.storagePersisted
+      : ru.settings.storageNotPersisted;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{ru.settings.storageTitle}</CardTitle>
+        <CardDescription>{ru.settings.storageText}</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        <p className="text-sm" data-testid="storage-status">
+          <span
+            className={`mr-2 inline-block size-2 rounded-full align-middle ${status?.persisted ? 'bg-success' : 'bg-warning'}`}
+            aria-hidden
+          />
+          {label}
+        </p>
+
+        {status?.usageBytes !== undefined ? (
+          <p className="text-sm text-muted-foreground">
+            {ru.settings.storageUsage}: {formatBytes(status.usageBytes)}
+            {status.quotaBytes ? ` из ${formatBytes(status.quotaBytes)}` : ''}
+          </p>
+        ) : null}
+
+        {status?.supported && !status.persisted ? (
+          <div className="flex flex-col items-start gap-2">
+            <Button size="sm" variant="outline" onClick={() => void request()}>
+              {ru.settings.storageRequest}
+            </Button>
+            {denied ? <p className="text-xs text-muted-foreground">{ru.settings.storageDenied}</p> : null}
+          </div>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}

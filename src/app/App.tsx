@@ -1,6 +1,8 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 
 import { AppShell } from '@/app/app-shell';
+import { DatabaseBlockedDialog } from '@/components/common/database-blocked-dialog';
+import { StorageBootstrap } from '@/components/common/storage-bootstrap';
 import { UpdatePrompt } from '@/components/pwa/update-prompt';
 import BalancePage from '@/features/balance/balance-page';
 import BudgetPage from '@/features/budget/budget-page';
@@ -28,6 +30,8 @@ export default function App() {
         </Route>
       </Routes>
       <UpdatePrompt />
+      <DatabaseBlockedDialog />
+      <StorageBootstrap />
     </>
   );
 }

@@ -3,6 +3,8 @@ import { MoreHorizontal, X } from 'lucide-react';
 import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 
+import { BackupReminder } from '@/components/common/backup-reminder';
+import { ErrorBoundary } from '@/components/common/error-boundary';
 import { CatLogo } from '@/components/brand/cat-logo';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { NAV_ITEMS, PRIMARY_NAV_ITEMS, SECONDARY_NAV_ITEMS } from '@/app/navigation';
@@ -134,7 +136,10 @@ export function AppShell() {
         </header>
 
         <main className="min-w-0 flex-1 px-4 pt-4 pb-24 md:px-8 md:py-8">
-          <Outlet />
+          <ErrorBoundary>
+            <BackupReminder />
+            <Outlet />
+          </ErrorBoundary>
         </main>
 
         <footer className="hidden px-8 pb-6 text-[11px] text-muted-foreground md:block">

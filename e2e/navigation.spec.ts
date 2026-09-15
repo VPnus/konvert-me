@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/test';
 
-const TABS = [
+const TABS: { path: string; heading: string; navLabel?: string }[] = [
   { path: '/overview', heading: 'Обзор' },
   { path: '/budget', heading: 'Бюджет' },
   { path: '/goals', heading: 'Цели' },
-  { path: '/balance', heading: 'Баланс' },
+  { path: '/balance', heading: 'Счета и долги', navLabel: 'Баланс' },
   { path: '/deductions', heading: 'Вычеты' },
   { path: '/plan', heading: 'Финплан' },
   { path: '/settings', heading: 'Настройки' },
@@ -49,7 +49,7 @@ test.describe('wide screen', () => {
     const sidebar = page.getByRole('complementary');
 
     for (const tab of TABS) {
-      await sidebar.getByRole('link', { name: tab.heading, exact: true }).click();
+      await sidebar.getByRole('link', { name: tab.navLabel ?? tab.heading, exact: true }).click();
       await expect(page).toHaveURL(new RegExp(`${tab.path}$`));
       await expect(page.getByRole('heading', { name: tab.heading, level: 1 })).toBeVisible();
     }

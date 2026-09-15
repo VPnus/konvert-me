@@ -26,6 +26,8 @@ const backupDataSchema = z.object({
   dashboardLayouts: z.array(TABLE_SCHEMAS.dashboardLayouts),
   // Added in schema 2: a file written by schema 1 simply has none of them.
   links: z.array(TABLE_SCHEMAS.links).default([]),
+  // Added in schema 3.
+  incomeSources: z.array(TABLE_SCHEMAS.incomeSources).default([]),
   feeds: z.array(TABLE_SCHEMAS.feeds).default([]),
   feedItems: z.array(TABLE_SCHEMAS.feedItems).default([]),
 });
@@ -67,6 +69,7 @@ export async function collectBackup(now: number = Date.now()): Promise<BackupFil
     links,
     feeds,
     feedItems,
+    incomeSources,
   ] = await Promise.all([
     db.settings.toArray(),
     db.accounts.toArray(),
@@ -79,6 +82,7 @@ export async function collectBackup(now: number = Date.now()): Promise<BackupFil
     db.links.toArray(),
     db.feeds.toArray(),
     db.feedItems.toArray(),
+    db.incomeSources.toArray(),
   ]);
 
   return {
@@ -97,6 +101,7 @@ export async function collectBackup(now: number = Date.now()): Promise<BackupFil
       links,
       feeds,
       feedItems,
+      incomeSources,
     },
   };
 }

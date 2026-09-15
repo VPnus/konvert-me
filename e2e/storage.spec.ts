@@ -80,6 +80,51 @@ test.describe('accounts', () => {
   });
 });
 
+test.describe('income sources', () => {
+  test('a source of income counts the days to its next payment', async ({ page }) => {
+    await skipOnboarding(page);
+    await page.goto('/balance');
+    await expect(page.getByTestId('payday-empty')).toBeVisible();
+
+    // the day is taken from the browser, whose time zone the config pins
+    const today = await page.evaluate(() => new Date().getDate());
+
+    await page.getByTestId('add-income-source').click();
+    await page.getByTestId('income-name').fill('Аванс');
+    await page.getByTestId('income-day').fill(String(today));
+    await page.getByTestId('income-amount').fill('60000');
+    await page.getByTestId('income-save').click();
+
+    await expect(page.getByTestId('payday-Аванс')).toHaveText('сегодня');
+    await expect(page.getByTestId('payday-total')).toContainText('60 000');
+
+    await page.getByTestId('add-income-source').click();
+    await page.getByTestId('income-name').fill('Зарплата');
+    await page.getByTestId('income-day').fill(String(today));
+    await page.getByTestId('income-save').click();
+
+    await expect(page.getByTestId('payday-row')).toHaveCount(2);
+    // the source without a sum does not change the total
+    await expect(page.getByTestId('payday-total')).toContainText('60 000');
+
+    await page.getByRole('button', { name: 'Удалить источник: Аванс' }).click();
+    await page.getByTestId('confirm-action').click();
+    await expect(page.getByTestId('payday-row')).toHaveCount(1);
+  });
+
+  test('a day outside a month is refused', async ({ page }) => {
+    await skipOnboarding(page);
+    await page.goto('/balance');
+
+    await page.getByTestId('add-income-source').click();
+    await page.getByTestId('income-name').fill('Премия');
+    await page.getByTestId('income-day').fill('45');
+    await page.getByTestId('income-save').click();
+
+    await expect(page.getByTestId('income-error')).toContainText('от 1 до 31');
+  });
+});
+
 test.describe('backup', () => {
   test('data → export → clear → import gives the same data back', async ({ page }) => {
     await page.goto('/balance');

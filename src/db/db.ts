@@ -14,6 +14,7 @@ import type {
   Feed,
   FeedItem,
   Goal,
+  IncomeSource,
   Link,
   Transaction,
 } from '@/db/models';
@@ -26,6 +27,7 @@ export class KonvertDatabase extends Dexie {
   declare categories: Table<Category, string>;
   declare transactions: Table<Transaction, string>;
   declare budgetPlans: Table<BudgetPlan, string>;
+  declare incomeSources: Table<IncomeSource, string>;
   declare goals: Table<Goal, string>;
   declare envelopes: Table<Envelope, string>;
   declare dashboardLayouts: Table<DashboardLayout, string>;
@@ -53,6 +55,12 @@ export class KonvertDatabase extends Dexie {
       links: 'id, sortOrder',
       feeds: 'id, enabled',
       feedItems: 'id, feedId, publishedAt',
+    });
+
+    // v3 adds the sources of income the balance screen counts the days to. Again
+    // nothing is transformed: the table simply starts empty.
+    this.version(3).stores({
+      incomeSources: 'id, sortOrder, archived',
     });
   }
 }

@@ -102,6 +102,42 @@ export function monthsOfYear(year: number): IsoMonth[] {
   );
 }
 
+function daysFromEpoch(date: IsoDate): number {
+  assertIsoDate(date);
+  return (
+    Date.UTC(Number(date.slice(0, 4)), Number(date.slice(5, 7)) - 1, Number(date.slice(8, 10))) / 86_400_000
+  );
+}
+
+/** Whole days from one calendar date to another; negative when `to` is earlier. */
+export function daysBetween(from: IsoDate, to: IsoDate): number {
+  return daysFromEpoch(to) - daysFromEpoch(from);
+}
+
+export function dayOfMonth(date: IsoDate): number {
+  assertIsoDate(date);
+  return Number(date.slice(8, 10));
+}
+
+export function daysInMonth(month: IsoMonth): number {
+  assertIsoMonth(month);
+  // Day zero of the next month is the last day of this one.
+  return new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0)).getUTCDate();
+}
+
+/**
+ * A date in a month by its day number. A day the month does not have becomes its last
+ * day: a payment due on the 31st arrives on the 30th of a thirty-day month.
+ */
+export function withDayOfMonth(month: IsoMonth, day: number): IsoDate {
+  assertIsoMonth(month);
+  if (!Number.isInteger(day) || day < 1 || day > 31) {
+    throw new TimeError(`day: ожидалось число месяца от 1 до 31, получено ${String(day)}`);
+  }
+  const clamped = Math.min(day, daysInMonth(month));
+  return `${month}-${String(clamped).padStart(2, '0')}`;
+}
+
 /** Local calendar date of an instant — never the UTC one. */
 export function todayIso(now: Date = new Date()): IsoDate {
   const year = String(now.getFullYear()).padStart(4, '0');

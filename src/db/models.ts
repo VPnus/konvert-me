@@ -9,7 +9,7 @@ import { z } from 'zod';
 
 import { isIsoDate, isIsoMonth } from '@/core/time';
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 const isoDate = z.string().refine(isIsoDate, { message: 'Дата должна быть в формате ГГГГ-ММ-ДД' });
 const isoMonth = z.string().refine(isIsoMonth, { message: 'Месяц должен быть в формате ГГГГ-ММ' });
@@ -119,6 +119,26 @@ export const transactionSchema = z
     message: 'У дохода, расхода и возврата должна быть категория',
     path: ['categoryId'],
   });
+
+/**
+ * A source of income that repeats on the same day of every month: a salary, an
+ * advance, rent from a flat. The balance screen counts the days to the next one.
+ */
+export const incomeSourceSchema = z.object({
+  id,
+  name,
+  dayOfMonth: z
+    .number()
+    .int('Число месяца — целое число')
+    .min(1, 'Число месяца — от 1 до 31')
+    .max(31, 'Число месяца — от 1 до 31'),
+  /** Optional: not every income is known in advance to the kopeck. */
+  amountMinor: nonNegativeMinor.optional(),
+  archived: z.boolean(),
+  sortOrder: z.number().int().nonnegative(),
+  note,
+  createdAt: timestamp,
+});
 
 export const budgetPlanSchema = z.object({
   id,
@@ -274,6 +294,7 @@ export type Account = z.infer<typeof accountSchema>;
 export type Category = z.infer<typeof categorySchema>;
 export type Transaction = z.infer<typeof transactionSchema>;
 export type BudgetPlan = z.infer<typeof budgetPlanSchema>;
+export type IncomeSource = z.infer<typeof incomeSourceSchema>;
 export type Goal = z.infer<typeof goalSchema>;
 export type Envelope = z.infer<typeof envelopeSchema>;
 export type DashboardLayout = z.infer<typeof dashboardLayoutSchema>;
@@ -305,6 +326,7 @@ export const TABLE_SCHEMAS = {
   categories: categorySchema,
   transactions: transactionSchema,
   budgetPlans: budgetPlanSchema,
+  incomeSources: incomeSourceSchema,
   goals: goalSchema,
   envelopes: envelopeSchema,
   dashboardLayouts: dashboardLayoutSchema,

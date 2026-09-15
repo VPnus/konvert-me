@@ -132,6 +132,21 @@ describe('backup: a broken file never reaches the database', () => {
     expect(await db.accounts.count()).toBe(2);
   });
 
+  it('takes a file from an older schema, whose newer tables are simply missing', async () => {
+    const backup = await collectBackup();
+    const data = { ...backup.data } as Record<string, unknown>;
+    delete data.incomeSources;
+    delete data.links;
+    delete data.feeds;
+    delete data.feedItems;
+
+    const older = { ...backup, schemaVersion: 1, data };
+    const parsed = await parseBackup(JSON.stringify(older));
+
+    expect(parsed.data.incomeSources).toEqual([]);
+    expect(parsed.data.links).toEqual([]);
+  });
+
   it('rejects a file from a newer schema', async () => {
     await seed();
     const backup = await collectBackup();

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { AccountForm } from '@/features/balance/account-form';
+import { PaydayCard } from '@/features/balance/payday-card';
 import { useDataVersion } from '@/hooks/use-data-version';
 import type { Account } from '@/db/models';
 import {
@@ -140,6 +141,8 @@ export default function BalancePage() {
           {ru.accounts.add}
         </Button>
       </div>
+
+      <PaydayCard />
 
       {view.accounts.length === 0 ? (
         <Card>

@@ -1,7 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Цели и конверты">
-  <rect width="64" height="64" rx="14" fill="#0b1f17" />
-  <rect x="10" y="26" width="44" height="28" rx="3" fill="none" stroke="#34d399" stroke-width="4" />
-  <path d="M12 28 L32 42 L52 28" fill="none" stroke="#34d399" stroke-width="4" stroke-linejoin="round" />
-  <path d="M19 30 L44 11" fill="none" stroke="#a7f3d0" stroke-width="4" stroke-linecap="round" />
-  <path d="M46 9 L46 21 L34 11 Z" fill="#a7f3d0" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <style>
+    .cat { fill: #14532d; }
+    .cat-stroke { stroke: #14532d; }
+    .card { fill: #ffffff; }
+    @media (prefers-color-scheme: dark) {
+      .cat { fill: #5ae0a8; }
+      .cat-stroke { stroke: #5ae0a8; }
+      .card { fill: #0b1f17; }
+    }
+  </style>
+  <g transform="translate(2 2) scale(0.9375)"><path d="M47 52.5 C 58.5 51.5 60 41 55 35.5" fill="none" class="cat-stroke" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round" /><path d="M23.5 15 L23.5 4 L33 12 Z" class="cat" /><path d="M40.5 15 L40.5 4 L31 12 Z" class="cat" /><circle cx="32" cy="22" r="11.5" class="cat" /><rect x="14" y="26" width="36" height="30" rx="12" class="cat" /><ellipse cx="23" cy="57.5" rx="5.2" ry="3" class="cat" /><ellipse cx="41" cy="57.5" rx="5.2" ry="3" class="cat" /><g transform="rotate(-4 32 42)"><rect x="19" y="30" width="26" height="24" rx="3" class="card" class="cat-stroke" stroke-width="2.4" /><circle cx="26.5" cy="39.5" r="4" class="card" class="cat-stroke" stroke-width="2.3" /><circle cx="37.5" cy="39.5" r="4" class="card" class="cat-stroke" stroke-width="2.3" /><circle cx="26.5" cy="39.5" r="1.4" class="cat" /><circle cx="37.5" cy="39.5" r="1.4" class="cat" /><circle cx="32" cy="47.5" r="1.7" class="card" class="cat-stroke" stroke-width="1.6" /></g><circle cx="18.2" cy="44" r="3.9" class="cat" /><circle cx="45.8" cy="44" r="3.9" class="cat" /></g>
 </svg>

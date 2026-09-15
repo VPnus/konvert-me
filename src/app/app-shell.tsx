@@ -3,6 +3,7 @@ import { MoreHorizontal, X } from 'lucide-react';
 import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 
+import { CatLogo } from '@/components/brand/cat-logo';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { NAV_ITEMS, PRIMARY_NAV_ITEMS, SECONDARY_NAV_ITEMS } from '@/app/navigation';
 import { ru } from '@/i18n/ru';
@@ -15,10 +16,10 @@ function Sidebar() {
   return (
     <aside className="hidden w-64 shrink-0 border-r border-border bg-card md:flex md:flex-col">
       <div className="flex items-center gap-3 px-5 py-6">
-        <img src="/favicon.svg" alt="" aria-hidden className="size-9 rounded-lg" />
+        <CatLogo className="size-10 shrink-0" />
         <div className="min-w-0">
           <p className="truncate text-base font-semibold">{ru.app.name}</p>
-          <p className="truncate text-xs text-muted-foreground">{ru.app.offlineNote}</p>
+          <p className="truncate text-xs text-muted-foreground">{ru.app.tagline}</p>
         </div>
       </div>
 
@@ -126,7 +127,7 @@ export function AppShell() {
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between gap-3 border-b border-border bg-card px-4 py-3 md:hidden">
           <div className="flex min-w-0 items-center gap-2">
-            <img src="/favicon.svg" alt="" aria-hidden className="size-7 rounded-md" />
+            <CatLogo className="size-8 shrink-0" />
             <span className="truncate text-sm font-semibold">{ru.app.name}</span>
           </div>
           <ThemeToggle />

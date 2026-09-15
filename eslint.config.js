@@ -28,6 +28,11 @@ export default tseslint.config(
     },
   },
   {
+    // Build scripts run in Node.
+    files: ['scripts/**/*.mjs'],
+    languageOptions: { globals: { ...globals.node } },
+  },
+  {
     // shadcn/ui components and the theme provider export helpers next to components on purpose.
     files: ['src/components/ui/**/*.tsx', 'src/components/theme/theme-provider.tsx'],
     rules: { 'react-refresh/only-export-components': 'off' },

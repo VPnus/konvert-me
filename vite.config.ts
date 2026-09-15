@@ -14,8 +14,8 @@ export default defineConfig({
       registerType: 'prompt',
       includeAssets: ['favicon.svg', 'favicon-64.png', 'apple-touch-icon.png'],
       manifest: {
-        name: 'Цели и конверты',
-        short_name: 'Конверты',
+        name: 'Конверкот',
+        short_name: 'Конверкот',
         description: 'Личные финансы офлайн: бюджет, цели и конверты. Данные остаются на вашем устройстве.',
         lang: 'ru-RU',
         dir: 'ltr',

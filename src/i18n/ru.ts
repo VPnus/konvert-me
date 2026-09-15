@@ -1,8 +1,9 @@
 /** Every string of the interface lives here. Plain Russian, no jargon. */
 export const ru = {
   app: {
-    name: 'Цели и конверты',
-    shortName: 'Конверты',
+    name: 'Конверкот',
+    shortName: 'Конверкот',
+    tagline: 'Бюджет, цели и конверты',
     description: 'Личные финансы офлайн: бюджет, цели и конверты. Данные остаются на вашем устройстве.',
     disclaimer:
       'Расчёты носят информационный характер и не являются индивидуальной инвестиционной рекомендацией.',

@@ -8,7 +8,7 @@ test.describe('installable and offline', () => {
     expect(manifestHref).toBeTruthy();
 
     const manifest = await (await request.get(manifestHref!)).json();
-    expect(manifest.name).toBe('Цели и конверты');
+    expect(manifest.name).toBe('Конверкот');
     expect(manifest.display).toBe('standalone');
     expect(manifest.start_url).toBe('/');
     expect(manifest.icons.map((icon: { sizes: string }) => icon.sizes)).toEqual(

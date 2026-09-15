@@ -9,6 +9,7 @@ import BudgetPage from '@/features/budget/budget-page';
 import DeductionsPage from '@/features/deductions/deductions-page';
 import GoalsPage from '@/features/goals/goals-page';
 import NotFoundPage from '@/features/not-found-page';
+import OnboardingPage from '@/features/onboarding/onboarding-page';
 import OverviewPage from '@/features/overview/overview-page';
 import PlanPage from '@/features/plan/plan-page';
 import SettingsPage from '@/features/settings/settings-page';
@@ -17,6 +18,7 @@ export default function App() {
   return (
     <>
       <Routes>
+        <Route path="/welcome" element={<OnboardingPage />} />
         <Route element={<AppShell />}>
           <Route index element={<Navigate to="/overview" replace />} />
           <Route path="/overview" element={<OverviewPage />} />

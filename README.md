@@ -35,7 +35,7 @@ npm run e2e        # Playwright (сам собирает проект и под�
 ```
 src/core       чистые функции: деньги, даты, цели, бюджет, баланс (без React и хранилища)
 src/db         Dexie: схема, миграции, репозитории (этап 2)
-src/features   экраны вкладок
+src/features   экраны вкладок; overview/widgets — виджеты дашборда и registry.ts
 src/components общие компоненты и shadcn/ui
 src/i18n       строки интерфейса на русском
 ```

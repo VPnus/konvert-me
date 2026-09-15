@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { skipOnboarding } from './helpers';
+
 test.describe('installable and offline', () => {
   test('the manifest describes an installable russian app', async ({ page, request }) => {
     await page.goto('/overview');
@@ -18,7 +20,7 @@ test.describe('installable and offline', () => {
   });
 
   test('the app still opens with the network switched off', async ({ page, context }) => {
-    await page.goto('/overview');
+    await skipOnboarding(page);
 
     await page.waitForFunction(
       async () => {

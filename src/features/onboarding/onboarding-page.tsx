@@ -1,0 +1,285 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+import { formatMinor, rublesToMinor } from '@/core/money';
+import { addMonths, currentMonth } from '@/core/time';
+import { CatLogo } from '@/components/brand/cat-logo';
+import { Button } from '@/components/ui/button';
+import { Field } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import {
+  completeOnboarding,
+  EMPTY_ANSWERS,
+  skipOnboarding,
+  type OnboardingAnswers,
+} from '@/features/onboarding/complete-onboarding';
+import { ru } from '@/i18n/ru';
+
+const STEPS = 5;
+
+type NumericKey =
+  | 'incomeRub'
+  | 'mandatoryRub'
+  | 'variableRub'
+  | 'savingsRub'
+  | 'debtBalanceRub'
+  | 'debtPaymentRub'
+  | 'goalCostRub';
+
+export default function OnboardingPage() {
+  const navigate = useNavigate();
+  const [step, setStep] = useState(1);
+  const [answers, setAnswers] = useState<OnboardingAnswers>(() => ({
+    ...EMPTY_ANSWERS,
+    // A default the user can keep: three years from now.
+    goalTargetMonth: addMonths(currentMonth(), 36),
+  }));
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const setNumber = (key: NumericKey, value: string) =>
+    setAnswers((current) => ({ ...current, [key]: Number(value.replace(',', '.')) || 0 }));
+
+  const freeCashMinor =
+    rublesToMinor(answers.incomeRub) -
+    rublesToMinor(answers.mandatoryRub) -
+    rublesToMinor(answers.variableRub);
+
+  const finish = async (skip: boolean) => {
+    setBusy(true);
+    setError(null);
+    try {
+      if (skip) await skipOnboarding();
+      else await completeOnboarding(answers);
+      navigate('/overview', { replace: true });
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : ru.common.error);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <main className="mx-auto flex min-h-dvh w-full max-w-xl flex-col gap-6 px-4 py-8">
+      <header className="flex items-center gap-3">
+        <CatLogo className="size-12 shrink-0" />
+        <div>
+          <p className="text-lg font-semibold">{ru.app.name}</p>
+          <p className="text-sm text-muted-foreground">{ru.onboarding.intro}</p>
+        </div>
+      </header>
+
+      <div className="flex items-center gap-3">
+        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+          <div
+            className="h-full rounded-full bg-primary transition-all"
+            style={{ width: `${(step / STEPS) * 100}%` }}
+          />
+        </div>
+        <span className="text-xs text-muted-foreground">
+          {ru.onboarding.step} {step} {ru.onboarding.of} {STEPS}
+        </span>
+      </div>
+
+      <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-5">
+        {step === 1 ? (
+          <>
+            <h1 className="text-xl font-semibold">{ru.onboarding.incomeTitle}</h1>
+            <p className="text-sm text-muted-foreground">{ru.onboarding.incomeText}</p>
+            <Field label={ru.onboarding.incomeLabel}>
+              {(id) => (
+                <Input
+                  id={id}
+                  inputMode="decimal"
+                  autoFocus
+                  defaultValue={answers.incomeRub || ''}
+                  data-testid="onboarding-income"
+                  onChange={(event) => setNumber('incomeRub', event.target.value)}
+                />
+              )}
+            </Field>
+          </>
+        ) : null}
+
+        {step === 2 ? (
+          <>
+            <h1 className="text-xl font-semibold">{ru.onboarding.mandatoryTitle}</h1>
+            <p className="text-sm text-muted-foreground">{ru.onboarding.mandatoryText}</p>
+            <Field label={ru.onboarding.mandatoryLabel}>
+              {(id) => (
+                <Input
+                  id={id}
+                  inputMode="decimal"
+                  autoFocus
+                  defaultValue={answers.mandatoryRub || ''}
+                  data-testid="onboarding-mandatory"
+                  onChange={(event) => setNumber('mandatoryRub', event.target.value)}
+                />
+              )}
+            </Field>
+          </>
+        ) : null}
+
+        {step === 3 ? (
+          <>
+            <h1 className="text-xl font-semibold">{ru.onboarding.variableTitle}</h1>
+            <p className="text-sm text-muted-foreground">{ru.onboarding.variableText}</p>
+            <Field label={ru.onboarding.variableLabel}>
+              {(id) => (
+                <Input
+                  id={id}
+                  inputMode="decimal"
+                  autoFocus
+                  defaultValue={answers.variableRub || ''}
+                  data-testid="onboarding-variable"
+                  onChange={(event) => setNumber('variableRub', event.target.value)}
+                />
+              )}
+            </Field>
+            <p className="text-sm" data-testid="onboarding-free-cash">
+              {ru.onboarding.freeCash}: <strong>{formatMinor(freeCashMinor, { fractionDigits: 0 })}</strong>
+            </p>
+            {freeCashMinor < 0 ? (
+              <p className="text-xs text-destructive">{ru.onboarding.freeCashNegative}</p>
+            ) : null}
+          </>
+        ) : null}
+
+        {step === 4 ? (
+          <>
+            <h1 className="text-xl font-semibold">{ru.onboarding.accountsTitle}</h1>
+            <p className="text-sm text-muted-foreground">{ru.onboarding.accountsText}</p>
+            <Field label={ru.onboarding.savingsLabel}>
+              {(id) => (
+                <Input
+                  id={id}
+                  inputMode="decimal"
+                  autoFocus
+                  defaultValue={answers.savingsRub || ''}
+                  data-testid="onboarding-savings"
+                  onChange={(event) => setNumber('savingsRub', event.target.value)}
+                />
+              )}
+            </Field>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label={ru.onboarding.debtBalanceLabel}>
+                {(id) => (
+                  <Input
+                    id={id}
+                    inputMode="decimal"
+                    defaultValue={answers.debtBalanceRub || ''}
+                    data-testid="onboarding-debt"
+                    onChange={(event) => setNumber('debtBalanceRub', event.target.value)}
+                  />
+                )}
+              </Field>
+              <Field label={ru.onboarding.debtPaymentLabel}>
+                {(id) => (
+                  <Input
+                    id={id}
+                    inputMode="decimal"
+                    defaultValue={answers.debtPaymentRub || ''}
+                    data-testid="onboarding-debt-payment"
+                    onChange={(event) => setNumber('debtPaymentRub', event.target.value)}
+                  />
+                )}
+              </Field>
+            </div>
+          </>
+        ) : null}
+
+        {step === 5 ? (
+          <>
+            <h1 className="text-xl font-semibold">{ru.onboarding.goalTitle}</h1>
+            <p className="text-sm text-muted-foreground">{ru.onboarding.goalText}</p>
+            <Field label={ru.onboarding.goalNameLabel}>
+              {(id) => (
+                <Input
+                  id={id}
+                  autoFocus
+                  placeholder={ru.onboarding.goalNamePlaceholder}
+                  defaultValue={answers.goalName}
+                  data-testid="onboarding-goal-name"
+                  onChange={(event) =>
+                    setAnswers((current) => ({ ...current, goalName: event.target.value }))
+                  }
+                />
+              )}
+            </Field>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label={ru.onboarding.goalCostLabel}>
+                {(id) => (
+                  <Input
+                    id={id}
+                    inputMode="decimal"
+                    defaultValue={answers.goalCostRub || ''}
+                    data-testid="onboarding-goal-cost"
+                    onChange={(event) => setNumber('goalCostRub', event.target.value)}
+                  />
+                )}
+              </Field>
+              <Field label={ru.onboarding.goalMonthLabel}>
+                {(id) => (
+                  <Input
+                    id={id}
+                    type="month"
+                    value={answers.goalTargetMonth ?? ''}
+                    data-testid="onboarding-goal-month"
+                    onChange={(event) =>
+                      setAnswers((current) => ({ ...current, goalTargetMonth: event.target.value }))
+                    }
+                  />
+                )}
+              </Field>
+            </div>
+            <div className="rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+              <p className="font-medium text-foreground">{ru.onboarding.summaryTitle}</p>
+              <p className="mt-1">{ru.onboarding.summaryPlan}</p>
+              <p className="mt-1">{ru.onboarding.summaryReserve}</p>
+            </div>
+          </>
+        ) : null}
+
+        {error ? (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
+        ) : null}
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={busy}
+          onClick={() => void finish(true)}
+          data-testid="onboarding-skip"
+        >
+          {ru.onboarding.skip}
+        </Button>
+
+        <div className="flex gap-2">
+          {step > 1 ? (
+            <Button
+              variant="outline"
+              onClick={() => setStep((current) => current - 1)}
+              data-testid="onboarding-back"
+            >
+              {ru.onboarding.back}
+            </Button>
+          ) : null}
+
+          {step < STEPS ? (
+            <Button onClick={() => setStep((current) => current + 1)} data-testid="onboarding-next">
+              {ru.onboarding.next}
+            </Button>
+          ) : (
+            <Button disabled={busy} onClick={() => void finish(false)} data-testid="onboarding-finish">
+              {ru.onboarding.finish}
+            </Button>
+          )}
+        </div>
+      </div>
+    </main>
+  );
+}

@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { skipOnboarding } from './helpers';
+
 const TABS: { path: string; heading: string; navLabel?: string }[] = [
   { path: '/overview', heading: 'Обзор' },
   { path: '/budget', heading: 'Бюджет' },
@@ -9,6 +11,10 @@ const TABS: { path: string; heading: string; navLabel?: string }[] = [
   { path: '/plan', heading: 'Финплан' },
   { path: '/settings', heading: 'Настройки' },
 ];
+
+test.beforeEach(async ({ page }) => {
+  await skipOnboarding(page);
+});
 
 test('the root redirects to the overview tab', async ({ page }) => {
   await page.goto('/');

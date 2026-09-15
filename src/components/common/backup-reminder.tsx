@@ -3,13 +3,13 @@ import { Link } from 'react-router-dom';
 
 import { buttonVariants } from '@/components/ui/button';
 import { isBackupDue } from '@/db/repositories/settings';
-import { useSettings } from '@/hooks/use-settings';
+import { useSettingsState } from '@/hooks/use-settings';
 import { ru } from '@/i18n/ru';
 
 /** Once every thirty days: the data lives on this device only. */
 export function BackupReminder() {
-  const settings = useSettings();
-  if (!isBackupDue(settings)) return null;
+  const { settings, loading } = useSettingsState();
+  if (loading || !isBackupDue(settings)) return null;
 
   return (
     <div

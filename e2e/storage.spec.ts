@@ -4,6 +4,8 @@ import { join } from 'node:path';
 
 import { expect, test, type Page } from '@playwright/test';
 
+import { skipOnboarding } from './helpers';
+
 async function addAccount(
   page: Page,
   values: { name: string; side: 'asset' | 'liability'; type: string; balance: string },
@@ -127,7 +129,7 @@ test.describe('backup', () => {
   });
 
   test('the reminder asks for the first backup and goes away after it', async ({ page }) => {
-    await page.goto('/overview');
+    await skipOnboarding(page);
     await expect(page.getByTestId('backup-reminder')).toBeVisible();
 
     await page.goto('/settings');

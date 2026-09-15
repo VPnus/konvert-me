@@ -1,0 +1,7 @@
+dist
+dev-dist
+coverage
+node_modules
+docs/PLAN.md
+playwright-report
+test-results

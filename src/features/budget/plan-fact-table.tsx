@@ -14,8 +14,12 @@ function money(minor: number): string {
   return formatMinor(minor, { withCurrency: false, fractionDigits: 0 });
 }
 
-function signedMoney(minor: number): string {
-  return `${minor > 0 ? '+' : ''}${money(minor)}`;
+/**
+ * What is left of the plan. A plus sign in front of an untouched plan read as if the
+ * money had arrived, so the figure is bare and only an overspend carries a minus.
+ */
+function remainingMoney(minor: number): string {
+  return money(minor);
 }
 
 interface PlanCellProps {
@@ -61,6 +65,8 @@ function PlanCell({ month, categoryId, categoryName, planMinor }: PlanCellProps)
 interface GroupRow {
   readonly key: string;
   readonly title: string;
+  /** Money already recorded is "получено" for income and "потрачено" for expenses. */
+  readonly factLabel: string;
   readonly categories: Category[];
 }
 
@@ -68,20 +74,28 @@ function groupsOf(categories: readonly Category[]): GroupRow[] {
   const pick = (test: (category: Category) => boolean): Category[] => categories.filter(test);
 
   return [
-    { key: 'income', title: ru.budget.incomeGroup, categories: pick((c) => c.kind === 'income') },
+    {
+      key: 'income',
+      title: ru.budget.incomeGroup,
+      factLabel: ru.budget.factIncome,
+      categories: pick((c) => c.kind === 'income'),
+    },
     {
       key: 'mandatory',
       title: ru.budget.mandatoryGroup,
+      factLabel: ru.budget.fact,
       categories: pick((c) => c.kind === 'expense' && c.group === 'mandatory'),
     },
     {
       key: 'variable',
       title: ru.budget.variableGroup,
+      factLabel: ru.budget.fact,
       categories: pick((c) => c.kind === 'expense' && c.group === 'variable'),
     },
     {
       key: 'other',
       title: ru.budget.otherGroup,
+      factLabel: ru.budget.fact,
       categories: pick((c) => c.kind === 'expense' && !c.group),
     },
   ];
@@ -91,14 +105,16 @@ interface PlanFactTableProps {
   readonly data: BudgetMonthData;
 }
 
-/** The month as the template of lesson 2.9 shows it: plan, fact and the deviation. */
+/** The month as the template of lesson 2.9 shows it: the plan, the fact and what is left. */
 export function PlanFactTable({ data }: PlanFactTableProps) {
   const byId = new Map(data.rows.map((row) => [row.categoryId, row]));
   const visible = data.categories.filter((category) => byId.has(category.id));
   const groups = groupsOf(visible).filter((group) => group.categories.length > 0);
 
-  const sumOf = (categories: readonly Category[], field: 'planMinor' | 'factMinor'): number =>
-    categories.reduce((total, category) => total + (byId.get(category.id)?.[field] ?? 0), 0);
+  const sumOf = (
+    categories: readonly Category[],
+    field: 'planMinor' | 'factMinor' | 'remainingMinor',
+  ): number => categories.reduce((total, category) => total + (byId.get(category.id)?.[field] ?? 0), 0);
 
   const freeFactMinor = data.fact.freeCashMinor;
   const freePlanMinor = data.plan.freeCashMinor;
@@ -113,24 +129,24 @@ export function PlanFactTable({ data }: PlanFactTableProps) {
           <col className="w-[66px] sm:w-32" />
         </colgroup>
 
-        <thead>
-          <tr className="border-b border-border text-left text-[11px] text-muted-foreground sm:text-xs">
-            <th className="py-2 pr-2 font-medium">{ru.budget.category}</th>
-            <th className="py-2 pr-1 text-right font-medium">{ru.budget.plan}, ₽</th>
-            <th className="py-2 pr-1 text-right font-medium">{ru.budget.fact}, ₽</th>
-            <th className="py-2 text-right font-medium">{ru.budget.deviation}</th>
+        {/* The visible captions live in every group, because the middle one is named
+            differently for income and for expenses; this one is for screen readers. */}
+        <thead className="sr-only">
+          <tr>
+            <th>{ru.budget.category}</th>
+            <th>{ru.budget.plan}</th>
+            <th>{ru.budget.fact}</th>
+            <th>{ru.budget.remaining}</th>
           </tr>
         </thead>
 
         {groups.map((group) => (
           <tbody key={group.key} data-testid={`group-${group.key}`}>
-            <tr className="border-b border-border/60">
-              <th
-                colSpan={4}
-                className="pt-4 pb-1 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
-              >
-                {group.title}
-              </th>
+            <tr className="border-b border-border/60 text-[11px] text-muted-foreground">
+              <th className="pt-5 pb-1 text-left font-semibold uppercase tracking-wide">{group.title}</th>
+              <th className="pt-5 pr-1 pb-1 text-right font-medium">{ru.budget.plan}, ₽</th>
+              <th className="pt-5 pr-1 pb-1 text-right font-medium">{group.factLabel}, ₽</th>
+              <th className="pt-5 pb-1 text-right font-medium">{ru.budget.remaining}, ₽</th>
             </tr>
 
             {group.categories.map((category) => {
@@ -156,11 +172,11 @@ export function PlanFactTable({ data }: PlanFactTableProps) {
                     {money(row.factMinor)}
                   </td>
                   <td
-                    className={`py-1 text-right tabular-nums ${row.deviationMinor < 0 ? 'text-destructive' : 'text-muted-foreground'}`}
-                    data-testid={`deviation-${category.id}`}
-                    title={row.deviationMinor < 0 ? ru.budget.deviationBad : ru.budget.deviationGood}
+                    className={`py-1 text-right tabular-nums ${row.remainingMinor < 0 ? 'text-destructive' : 'text-muted-foreground'}`}
+                    data-testid={`remaining-${category.id}`}
+                    title={row.remainingMinor < 0 ? ru.budget.overspent : undefined}
                   >
-                    {signedMoney(row.deviationMinor)}
+                    {remainingMoney(row.remainingMinor)}
                   </td>
                 </tr>
               );
@@ -174,7 +190,11 @@ export function PlanFactTable({ data }: PlanFactTableProps) {
               <td className="py-1.5 pr-1 text-right tabular-nums">
                 {money(sumOf(group.categories, 'factMinor'))}
               </td>
-              <td className="py-1.5" />
+              <td
+                className={`py-1.5 text-right tabular-nums ${sumOf(group.categories, 'remainingMinor') < 0 ? 'text-destructive' : ''}`}
+              >
+                {remainingMoney(sumOf(group.categories, 'remainingMinor'))}
+              </td>
             </tr>
           </tbody>
         ))}
@@ -187,7 +207,7 @@ export function PlanFactTable({ data }: PlanFactTableProps) {
               {money(data.fact.incomeMinor)}
             </td>
             <td className="py-2 text-right tabular-nums text-muted-foreground">
-              {signedMoney(data.fact.incomeMinor - data.plan.incomeMinor)}
+              {remainingMoney(data.plan.incomeMinor - data.fact.incomeMinor)}
             </td>
           </tr>
           <tr className="border-b border-border">
@@ -198,8 +218,9 @@ export function PlanFactTable({ data }: PlanFactTableProps) {
             </td>
             <td
               className={`py-2 text-right tabular-nums ${data.plan.expenseMinor - data.fact.expenseMinor < 0 ? 'text-destructive' : 'text-muted-foreground'}`}
+              data-testid="total-remaining"
             >
-              {signedMoney(data.plan.expenseMinor - data.fact.expenseMinor)}
+              {remainingMoney(data.plan.expenseMinor - data.fact.expenseMinor)}
             </td>
           </tr>
           <tr>
@@ -211,16 +232,13 @@ export function PlanFactTable({ data }: PlanFactTableProps) {
             >
               {money(freeFactMinor)}
             </td>
-            <td
-              className={`py-2 text-right font-semibold tabular-nums ${freeFactMinor - freePlanMinor < 0 ? 'text-destructive' : 'text-muted-foreground'}`}
-            >
-              {signedMoney(freeFactMinor - freePlanMinor)}
-            </td>
+            <td className="py-2" />
           </tr>
         </tfoot>
       </table>
 
-      <p className="pt-3 text-xs text-muted-foreground">{ru.budget.freeCashHint}</p>
+      <p className="pt-3 text-xs text-muted-foreground">{ru.budget.legend}</p>
+      <p className="pt-1 text-xs text-muted-foreground">{ru.budget.freeCashHint}</p>
     </div>
   );
 }

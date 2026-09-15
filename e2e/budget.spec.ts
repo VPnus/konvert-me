@@ -100,8 +100,8 @@ test.describe('budget', () => {
     await page.getByTestId('plan-groceries').fill('20000');
     await page.getByTestId('plan-groceries').blur();
 
-    // spent 2 000 more than planned
-    await expect(page.getByTestId('deviation-groceries')).toHaveText(/[-−]\s?2\s?000/);
+    // spent 2 000 more than planned, so the plan is 2 000 in the red
+    await expect(page.getByTestId('remaining-groceries')).toHaveText(/[-−]\s?2\s?000/);
 
     await page.getByTestId('period-next').click();
     await expect(page.getByTestId('plan-groceries')).toHaveValue('');

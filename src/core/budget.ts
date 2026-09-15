@@ -183,6 +183,12 @@ export interface PlanFactRow {
   readonly factMinor: number;
   /** Positive means the month went better than planned: less spent or more earned. */
   readonly deviationMinor: number;
+  /**
+   * What is left of the plan: plan - fact, whatever the category is. For an expense
+   * that is how much may still be spent, for an income how much is still expected;
+   * below zero the plan has been passed. One rule, so a screen can print it as it is.
+   */
+  readonly remainingMinor: number;
 }
 
 export interface PlanVsFactOptions {
@@ -217,6 +223,7 @@ export function planVsFact(
       planMinor,
       factMinor,
       deviationMinor: category.kind === 'income' ? factMinor - planMinor : planMinor - factMinor,
+      remainingMinor: planMinor - factMinor,
     });
   }
 

@@ -183,14 +183,23 @@ describe('budget: plan versus fact', () => {
         planMinor: r(150_000),
         factMinor: r(150_000),
         deviationMinor: 0,
+        remainingMinor: 0,
       },
-      { categoryId: 'rent', kind: 'expense', planMinor: r(40_000), factMinor: r(40_000), deviationMinor: 0 },
+      {
+        categoryId: 'rent',
+        kind: 'expense',
+        planMinor: r(40_000),
+        factMinor: r(40_000),
+        deviationMinor: 0,
+        remainingMinor: 0,
+      },
       {
         categoryId: 'food',
         kind: 'expense',
         planMinor: r(25_000),
         factMinor: r(18_000),
         deviationMinor: r(7_000),
+        remainingMinor: r(7_000),
       },
     ]);
   });
@@ -322,5 +331,37 @@ describe('budget: the totals of stage 4 match a hand calculation', () => {
     const rows = planVsFact([], [], '2026-09', fullCategories, { includeEmpty: true });
     expect(rows).toHaveLength(fullCategories.length);
     expect(rows.every((row) => row.planMinor === 0 && row.factMinor === 0)).toBe(true);
+  });
+});
+
+describe('budget: what is left of the plan', () => {
+  const rows = () =>
+    planVsFact(
+      [
+        { month: '2026-09', categoryId: 'salary', amountMinor: r(150_000) },
+        { month: '2026-09', categoryId: 'rent', amountMinor: r(40_000) },
+        { month: '2026-09', categoryId: 'food', amountMinor: r(15_000) },
+      ],
+      september,
+      '2026-09',
+      categories,
+    );
+
+  it('counts plan minus fact for an income and for an expense alike', () => {
+    const byId = new Map(rows().map((row) => [row.categoryId, row]));
+
+    // the salary came in full: nothing is still expected
+    expect(byId.get('salary')?.remainingMinor).toBe(0);
+    // the rent is paid to the kopeck: nothing is left to spend
+    expect(byId.get('rent')?.remainingMinor).toBe(0);
+    // 15 000 planned, 18 000 spent: the plan is passed by 3 000
+    expect(byId.get('food')?.remainingMinor).toBe(-r(3_000));
+  });
+
+  it('never disagrees with the deviation about which side the month is on', () => {
+    for (const row of rows()) {
+      const better = row.kind === 'income' ? row.remainingMinor <= 0 : row.remainingMinor >= 0;
+      expect(better).toBe(row.deviationMinor >= 0);
+    }
   });
 });

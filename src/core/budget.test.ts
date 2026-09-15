@@ -20,7 +20,9 @@ const categories: CoreCategory[] = [
   { id: 'food', kind: 'expense', group: 'variable' },
 ];
 
-const tx = (partial: Partial<CoreTransaction> & Pick<CoreTransaction, 'date' | 'kind' | 'amountMinor'>): CoreTransaction => ({
+const tx = (
+  partial: Partial<CoreTransaction> & Pick<CoreTransaction, 'date' | 'kind' | 'amountMinor'>,
+): CoreTransaction => ({
   accountId: 'debit',
   ...partial,
 });
@@ -32,7 +34,13 @@ const september: CoreTransaction[] = [
   tx({ date: '2026-09-08', kind: 'refund', amountMinor: r(2_000), categoryId: 'food' }),
   tx({ date: '2026-09-09', kind: 'transfer', amountMinor: r(30_000), toAccountId: 'savings' }),
   tx({ date: '2026-09-10', kind: 'adjustment', amountMinor: r(1_000), direction: 'increase' }),
-  tx({ date: '2026-09-11', kind: 'revaluation', amountMinor: r(500_000), accountId: 'flat', direction: 'increase' }),
+  tx({
+    date: '2026-09-11',
+    kind: 'revaluation',
+    amountMinor: r(500_000),
+    accountId: 'flat',
+    direction: 'increase',
+  }),
   tx({ date: '2026-10-01', kind: 'expense', amountMinor: r(9_999), categoryId: 'food' }),
 ];
 
@@ -91,7 +99,15 @@ describe('budget: month totals (formula 7)', () => {
 
   it('counts a card purchase as an expense even though it grows a debt', () => {
     const totals = monthTotals(
-      [tx({ date: '2026-09-02', kind: 'expense', amountMinor: r(5_000), categoryId: 'food', accountId: 'card' })],
+      [
+        tx({
+          date: '2026-09-02',
+          kind: 'expense',
+          amountMinor: r(5_000),
+          categoryId: 'food',
+          accountId: 'card',
+        }),
+      ],
       '2026-09',
     );
     expect(totals.expenseMinor).toBe(r(5_000));
@@ -99,7 +115,15 @@ describe('budget: month totals (formula 7)', () => {
 
   it('counts repaying a card as a transfer, not an expense', () => {
     const totals = monthTotals(
-      [tx({ date: '2026-09-20', kind: 'transfer', amountMinor: r(5_000), accountId: 'debit', toAccountId: 'card' })],
+      [
+        tx({
+          date: '2026-09-20',
+          kind: 'transfer',
+          amountMinor: r(5_000),
+          accountId: 'debit',
+          toAccountId: 'card',
+        }),
+      ],
       '2026-09',
     );
     expect(totals.expenseMinor).toBe(0);
@@ -151,9 +175,21 @@ describe('budget: plan versus fact', () => {
   it('reports the deviation per category', () => {
     const rows = planVsFact(plans, september, '2026-09', categories);
     expect(rows).toEqual([
-      { categoryId: 'salary', kind: 'income', planMinor: r(150_000), factMinor: r(150_000), deviationMinor: 0 },
+      {
+        categoryId: 'salary',
+        kind: 'income',
+        planMinor: r(150_000),
+        factMinor: r(150_000),
+        deviationMinor: 0,
+      },
       { categoryId: 'rent', kind: 'expense', planMinor: r(40_000), factMinor: r(40_000), deviationMinor: 0 },
-      { categoryId: 'food', kind: 'expense', planMinor: r(25_000), factMinor: r(18_000), deviationMinor: r(7_000) },
+      {
+        categoryId: 'food',
+        kind: 'expense',
+        planMinor: r(25_000),
+        factMinor: r(18_000),
+        deviationMinor: r(7_000),
+      },
     ]);
   });
 

@@ -24,10 +24,7 @@ export interface MonthTotals {
 const EMPTY_TOTALS: MonthTotals = { incomeMinor: 0, expenseMinor: 0, freeCashMinor: 0 };
 
 /** Formula 7: income - (expenses - refunds). */
-export function monthTotals(
-  transactions: readonly CoreTransaction[],
-  month: IsoMonth,
-): MonthTotals {
+export function monthTotals(transactions: readonly CoreTransaction[], month: IsoMonth): MonthTotals {
   let incomeMinor = 0;
   let expenseMinor = 0;
 

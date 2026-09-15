@@ -64,7 +64,13 @@ const mortgage: CoreAccount = {
 describe('balance: an account balance is derived, never stored', () => {
   it('adds income and subtracts expenses on an asset', () => {
     const txs: CoreTransaction[] = [
-      { date: '2026-02-01', kind: 'income', amountMinor: r(50_000), accountId: 'debit', categoryId: 'salary' },
+      {
+        date: '2026-02-01',
+        kind: 'income',
+        amountMinor: r(50_000),
+        accountId: 'debit',
+        categoryId: 'salary',
+      },
       { date: '2026-02-02', kind: 'expense', amountMinor: r(20_000), accountId: 'debit', categoryId: 'food' },
       { date: '2026-02-03', kind: 'refund', amountMinor: r(2_000), accountId: 'debit', categoryId: 'food' },
     ];
@@ -73,7 +79,13 @@ describe('balance: an account balance is derived, never stored', () => {
 
   it('moves money between accounts on a transfer', () => {
     const txs: CoreTransaction[] = [
-      { date: '2026-02-04', kind: 'transfer', amountMinor: r(30_000), accountId: 'debit', toAccountId: 'savings' },
+      {
+        date: '2026-02-04',
+        kind: 'transfer',
+        amountMinor: r(30_000),
+        accountId: 'debit',
+        toAccountId: 'savings',
+      },
     ];
     expect(accountBalanceMinor(debit, txs)).toBe(r(70_000));
     expect(accountBalanceMinor(savings, txs)).toBe(r(330_000));
@@ -82,7 +94,13 @@ describe('balance: an account balance is derived, never stored', () => {
   it('grows a card debt on a purchase and shrinks it on repayment', () => {
     const txs: CoreTransaction[] = [
       { date: '2026-02-05', kind: 'expense', amountMinor: r(7_000), accountId: 'card', categoryId: 'food' },
-      { date: '2026-02-20', kind: 'transfer', amountMinor: r(10_000), accountId: 'debit', toAccountId: 'card' },
+      {
+        date: '2026-02-20',
+        kind: 'transfer',
+        amountMinor: r(10_000),
+        accountId: 'debit',
+        toAccountId: 'card',
+      },
     ];
     expect(accountBalanceMinor(card, txs)).toBe(r(17_000));
     expect(accountBalanceMinor(debit, txs)).toBe(r(90_000));
@@ -90,8 +108,20 @@ describe('balance: an account balance is derived, never stored', () => {
 
   it('applies adjustments and revaluations in the stated direction', () => {
     const txs: CoreTransaction[] = [
-      { date: '2026-03-01', kind: 'adjustment', amountMinor: r(500), accountId: 'debit', direction: 'decrease' },
-      { date: '2026-03-02', kind: 'revaluation', amountMinor: r(400_000), accountId: 'flat', direction: 'increase' },
+      {
+        date: '2026-03-01',
+        kind: 'adjustment',
+        amountMinor: r(500),
+        accountId: 'debit',
+        direction: 'decrease',
+      },
+      {
+        date: '2026-03-02',
+        kind: 'revaluation',
+        amountMinor: r(400_000),
+        accountId: 'flat',
+        direction: 'increase',
+      },
     ];
     expect(accountBalanceMinor(debit, txs)).toBe(r(99_500));
     expect(accountBalanceMinor(flat, txs)).toBe(r(5_400_000));
@@ -99,8 +129,20 @@ describe('balance: an account balance is derived, never stored', () => {
 
   it('can be taken as of a date', () => {
     const txs: CoreTransaction[] = [
-      { date: '2026-02-01', kind: 'income', amountMinor: r(50_000), accountId: 'debit', categoryId: 'salary' },
-      { date: '2026-03-01', kind: 'income', amountMinor: r(50_000), accountId: 'debit', categoryId: 'salary' },
+      {
+        date: '2026-02-01',
+        kind: 'income',
+        amountMinor: r(50_000),
+        accountId: 'debit',
+        categoryId: 'salary',
+      },
+      {
+        date: '2026-03-01',
+        kind: 'income',
+        amountMinor: r(50_000),
+        accountId: 'debit',
+        categoryId: 'salary',
+      },
     ];
     expect(accountBalanceMinor(debit, txs, { asOf: '2026-02-15' })).toBe(r(150_000));
   });
@@ -114,28 +156,52 @@ describe('balance: an account balance is derived, never stored', () => {
 
   it('applies an adjustment to a debt in the stated direction', () => {
     const txs: CoreTransaction[] = [
-      { date: '2026-03-01', kind: 'adjustment', amountMinor: r(1_000), accountId: 'card', direction: 'increase' },
+      {
+        date: '2026-03-01',
+        kind: 'adjustment',
+        amountMinor: r(1_000),
+        accountId: 'card',
+        direction: 'increase',
+      },
     ];
     expect(accountBalanceMinor(card, txs)).toBe(r(21_000));
   });
 
   it('ignores an adjustment addressed to another account', () => {
     const txs: CoreTransaction[] = [
-      { date: '2026-03-01', kind: 'adjustment', amountMinor: r(1_000), accountId: 'savings', direction: 'increase' },
+      {
+        date: '2026-03-01',
+        kind: 'adjustment',
+        amountMinor: r(1_000),
+        accountId: 'savings',
+        direction: 'increase',
+      },
     ];
     expect(accountBalanceMinor(debit, txs)).toBe(r(100_000));
   });
 
   it('ignores a transfer between two other accounts', () => {
     const txs: CoreTransaction[] = [
-      { date: '2026-03-01', kind: 'transfer', amountMinor: r(1_000), accountId: 'savings', toAccountId: 'card' },
+      {
+        date: '2026-03-01',
+        kind: 'transfer',
+        amountMinor: r(1_000),
+        accountId: 'savings',
+        toAccountId: 'card',
+      },
     ];
     expect(accountBalanceMinor(debit, txs)).toBe(r(100_000));
   });
 
   it('ignores transactions of other accounts', () => {
     const txs: CoreTransaction[] = [
-      { date: '2026-02-01', kind: 'expense', amountMinor: r(1_000), accountId: 'savings', categoryId: 'food' },
+      {
+        date: '2026-02-01',
+        kind: 'expense',
+        amountMinor: r(1_000),
+        accountId: 'savings',
+        categoryId: 'food',
+      },
     ];
     expect(accountBalanceMinor(debit, txs)).toBe(r(100_000));
   });
@@ -205,8 +271,20 @@ describe('balance: average monthly expenses', () => {
     { date: '2026-06-10', kind: 'expense', amountMinor: r(60_000), accountId: 'debit', categoryId: 'food' },
     { date: '2026-07-10', kind: 'expense', amountMinor: r(80_000), accountId: 'debit', categoryId: 'food' },
     { date: '2026-08-10', kind: 'expense', amountMinor: r(70_000), accountId: 'debit', categoryId: 'food' },
-    { date: '2026-09-10', kind: 'expense', amountMinor: r(1_000_000), accountId: 'debit', categoryId: 'food' },
-    { date: '2026-05-10', kind: 'expense', amountMinor: r(1_000_000), accountId: 'debit', categoryId: 'food' },
+    {
+      date: '2026-09-10',
+      kind: 'expense',
+      amountMinor: r(1_000_000),
+      accountId: 'debit',
+      categoryId: 'food',
+    },
+    {
+      date: '2026-05-10',
+      kind: 'expense',
+      amountMinor: r(1_000_000),
+      accountId: 'debit',
+      categoryId: 'food',
+    },
   ];
 
   it('averages the three last complete months and ignores the current one', () => {
@@ -234,16 +312,30 @@ describe('balance: average monthly expenses', () => {
 
   it('ignores income when averaging expenses', () => {
     const withIncome: CoreTransaction[] = [
-      { date: '2026-08-01', kind: 'income', amountMinor: r(300_000), accountId: 'debit', categoryId: 'salary' },
+      {
+        date: '2026-08-01',
+        kind: 'income',
+        amountMinor: r(300_000),
+        accountId: 'debit',
+        categoryId: 'salary',
+      },
     ];
     expect(averageMonthlyExpenses({ transactions: withIncome, currentMonth: '2026-09' }).source).toBe('none');
   });
 
   it('ignores transfers when averaging expenses', () => {
     const withTransfer: CoreTransaction[] = [
-      { date: '2026-08-01', kind: 'transfer', amountMinor: r(300_000), accountId: 'debit', toAccountId: 'savings' },
+      {
+        date: '2026-08-01',
+        kind: 'transfer',
+        amountMinor: r(300_000),
+        accountId: 'debit',
+        toAccountId: 'savings',
+      },
     ];
-    expect(averageMonthlyExpenses({ transactions: withTransfer, currentMonth: '2026-09' }).source).toBe('none');
+    expect(averageMonthlyExpenses({ transactions: withTransfer, currentMonth: '2026-09' }).source).toBe(
+      'none',
+    );
   });
 
   it('reports that there is no data instead of returning zero', () => {
@@ -268,7 +360,9 @@ describe('balance: average monthly expenses', () => {
       { date: '2026-08-10', kind: 'expense', amountMinor: r(90_000), accountId: 'debit', categoryId: 'food' },
       { date: '2026-08-11', kind: 'refund', amountMinor: r(30_000), accountId: 'debit', categoryId: 'food' },
     ];
-    expect(averageMonthlyExpenses({ transactions: withRefund, currentMonth: '2026-09' }).valueMinor).toBe(r(20_000));
+    expect(averageMonthlyExpenses({ transactions: withRefund, currentMonth: '2026-09' }).valueMinor).toBe(
+      r(20_000),
+    );
   });
 });
 

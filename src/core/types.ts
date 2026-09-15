@@ -8,13 +8,7 @@
 
 import type { IsoDate, IsoMonth } from './time';
 
-export type TransactionKind =
-  | 'income'
-  | 'expense'
-  | 'refund'
-  | 'transfer'
-  | 'adjustment'
-  | 'revaluation';
+export type TransactionKind = 'income' | 'expense' | 'refund' | 'transfer' | 'adjustment' | 'revaluation';
 
 /** Which way a manual correction or a revaluation moves the balance of its account. */
 export type BalanceDirection = 'increase' | 'decrease';

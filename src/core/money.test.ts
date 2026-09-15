@@ -13,7 +13,7 @@ import {
   sumMinor,
 } from './money';
 
-const nbsp = /[  \s]/g;
+const nbsp = /[\u00a0\u202f\s]/g;
 const normalize = (value: string): string => value.replace(nbsp, ' ');
 
 describe('money: validation', () => {

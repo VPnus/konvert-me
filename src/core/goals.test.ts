@@ -339,8 +339,20 @@ describe('goals: distribution of free cash (formula 8)', () => {
   it('reports the deficit of every underfunded goal', () => {
     const result = allocateFreeCash(requests, r(25_000));
     expect(result.allocations).toEqual([
-      { goalId: 'reserve', priority: 0, requiredMinor: r(10_000), allocatedMinor: r(10_000), deficitMinor: 0 },
-      { goalId: 'car', priority: 1, requiredMinor: r(20_000), allocatedMinor: r(15_000), deficitMinor: r(5_000) },
+      {
+        goalId: 'reserve',
+        priority: 0,
+        requiredMinor: r(10_000),
+        allocatedMinor: r(10_000),
+        deficitMinor: 0,
+      },
+      {
+        goalId: 'car',
+        priority: 1,
+        requiredMinor: r(20_000),
+        allocatedMinor: r(15_000),
+        deficitMinor: r(5_000),
+      },
       { goalId: 'flat', priority: 2, requiredMinor: r(40_000), allocatedMinor: 0, deficitMinor: r(40_000) },
     ]);
     expect(result.totalDeficitMinor).toBe(r(45_000));

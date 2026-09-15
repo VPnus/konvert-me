@@ -29,11 +29,7 @@ export function futureValueMinor(costMinor: number, inflationRate: number, month
 }
 
 export function goalFutureValueMinor(goal: GoalMath): number {
-  return futureValueMinor(
-    goal.costMinor,
-    goal.inflationRate,
-    monthsBetween(goal.costAsOf, goal.targetMonth),
-  );
+  return futureValueMinor(goal.costMinor, goal.inflationRate, monthsBetween(goal.costAsOf, goal.targetMonth));
 }
 
 /** Formula 3. */
@@ -144,7 +140,8 @@ export function monthsToGoal(params: MonthsToGoalParams): number | null {
 
   for (let n = 1; n <= maxMonths; n += 1) {
     const growth = i === 0 ? 1 : Math.pow(1 + i, n);
-    const accumulated = savedMinor * growth + (i === 0 ? paymentMinor * n : (paymentMinor * (growth - 1)) / i);
+    const accumulated =
+      savedMinor * growth + (i === 0 ? paymentMinor * n : (paymentMinor * (growth - 1)) / i);
     const needed = costMinor * Math.pow(1 + inflationRate, (elapsed + n) / 12);
     if (accumulated >= needed) return n;
   }
@@ -186,9 +183,7 @@ export function allocateFreeCash(
   requests: readonly AllocationRequest[],
   availableMinor: number,
 ): AllocationResult {
-  const ordered = [...requests].sort(
-    (a, b) => a.priority - b.priority || a.goalId.localeCompare(b.goalId),
-  );
+  const ordered = [...requests].sort((a, b) => a.priority - b.priority || a.goalId.localeCompare(b.goalId));
 
   let rest = Math.max(availableMinor, 0);
   let totalDeficitMinor = 0;

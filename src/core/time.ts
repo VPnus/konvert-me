@@ -96,7 +96,10 @@ export function monthsOfYear(year: number): IsoMonth[] {
   if (!Number.isInteger(year)) {
     throw new TimeError(`year: ожидался целый год, получено ${String(year)}`);
   }
-  return Array.from({ length: 12 }, (_, index) => `${String(year).padStart(4, '0')}-${String(index + 1).padStart(2, '0')}`);
+  return Array.from(
+    { length: 12 },
+    (_, index) => `${String(year).padStart(4, '0')}-${String(index + 1).padStart(2, '0')}`,
+  );
 }
 
 /** Local calendar date of an instant — never the UTC one. */

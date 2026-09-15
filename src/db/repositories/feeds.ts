@@ -6,11 +6,13 @@
 
 import { db } from '@/db/db';
 import { RepositoryError } from '@/db/errors';
-import { feedItemSchema, feedSchema, type Feed, type FeedItem } from '@/db/models';
+import { feedItemSchema, feedSchema, type Feed, type FeedAuth, type FeedItem } from '@/db/models';
 import { getSettings } from '@/db/repositories/settings';
 import { parseOrThrow } from '@/db/validate';
 import { publishAppEvent } from '@/lib/broadcast';
 import { parseFeed } from '@/lib/feed-parser';
+import { hashString } from '@/lib/hash';
+import { stripSecrets } from '@/lib/secrets';
 
 export const FEED_REFRESH_INTERVAL_MS = 30 * 60 * 1000;
 const MAX_ITEMS_PER_FEED = 30;
@@ -26,7 +28,40 @@ export async function listFeeds(): Promise<Feed[]> {
   return (await db.feeds.toArray()).sort((a, b) => a.createdAt - b.createdAt);
 }
 
-export async function createFeed(input: { title: string; url: string }): Promise<Feed> {
+export interface FeedInput {
+  title: string;
+  url: string;
+  auth?: FeedAuth;
+  itemsPath?: string;
+}
+
+/**
+ * Builds the request of a feed: the key the user typed goes either into the address,
+ * into a header of their choosing, or into an Authorization: Bearer header.
+ */
+export function buildFeedRequest(feed: Feed): { url: string; headers: Record<string, string> } {
+  const headers: Record<string, string> = {
+    Accept: 'application/rss+xml, application/atom+xml, application/feed+json, application/json',
+  };
+
+  const auth = feed.auth ?? { kind: 'none' };
+  if (auth.kind === 'header') headers[auth.headerName] = auth.key;
+  if (auth.kind === 'bearer') headers.Authorization = `Bearer ${auth.key}`;
+
+  if (auth.kind !== 'query') return { url: feed.url, headers };
+
+  const url = new URL(feed.url);
+  url.searchParams.set(auth.paramName, auth.key);
+  return { url: url.toString(), headers };
+}
+
+/** Every secret of a feed, so that none of them leaks into a message. */
+export function secretsOf(feed: Feed): string[] {
+  const auth = feed.auth ?? { kind: 'none' };
+  return auth.kind === 'none' ? [] : [auth.key];
+}
+
+export async function createFeed(input: FeedInput): Promise<Feed> {
   const feed = parseOrThrow(
     feedSchema,
     {
@@ -34,6 +69,8 @@ export async function createFeed(input: { title: string; url: string }): Promise
       title: input.title,
       url: input.url,
       enabled: true,
+      auth: input.auth ?? { kind: 'none' },
+      itemsPath: input.itemsPath || undefined,
       lastFetchedAt: null,
       lastError: null,
       createdAt: Date.now(),
@@ -44,6 +81,28 @@ export async function createFeed(input: { title: string; url: string }): Promise
   await db.feeds.add(feed);
   publishAppEvent({ type: 'data-changed' });
   return feed;
+}
+
+export async function updateFeed(id: string, patch: Partial<FeedInput>): Promise<Feed> {
+  const current = await db.feeds.get(id);
+  if (!current) throw new RepositoryError('Лента не найдена');
+
+  const next = parseOrThrow(
+    feedSchema,
+    {
+      ...current,
+      ...patch,
+      itemsPath: (patch.itemsPath ?? current.itemsPath) || undefined,
+      id: current.id,
+      // A new address or key deserves a fresh attempt, so the old error is dropped.
+      lastError: null,
+    },
+    'Лента',
+  );
+
+  await db.feeds.put(next);
+  publishAppEvent({ type: 'data-changed' });
+  return next;
 }
 
 export async function setFeedEnabled(id: string, enabled: boolean): Promise<Feed> {
@@ -76,24 +135,34 @@ export async function refreshFeed(feed: Feed, now: number = Date.now()): Promise
   const settings = await getSettings();
   if (!settings.externalFeedsEnabled) throw new ExternalSourcesDisabledError();
 
+  const request = buildFeedRequest(feed);
+
   try {
-    const response = await fetch(feed.url, {
-      // No cookies, no credentials: the request carries nothing about the user.
+    const response = await fetch(request.url, {
+      // No cookies, no credentials: the request carries nothing but the key the user gave.
       credentials: 'omit',
       referrerPolicy: 'no-referrer',
-      headers: {
-        Accept: 'application/rss+xml, application/atom+xml, application/feed+json, application/json',
-      },
+      headers: request.headers,
     });
 
-    if (!response.ok) throw new Error(`Источник ответил ошибкой ${response.status}`);
+    if (!response.ok) {
+      const hint =
+        response.status === 401 || response.status === 403
+          ? ' Похоже, ключ не подошёл или у него нет доступа.'
+          : '';
+      throw new Error(`Источник ответил ошибкой ${response.status}.${hint}`);
+    }
 
-    const parsed = parseFeed(await response.text(), response.headers.get('content-type') ?? '');
+    const parsed = parseFeed(await response.text(), {
+      contentType: response.headers.get('content-type') ?? '',
+      itemsPath: feed.itemsPath,
+    });
     const items = parsed.items.slice(0, MAX_ITEMS_PER_FEED).map((item) =>
       parseOrThrow(
         feedItemSchema,
         {
-          id: `${feed.id}:${item.url}`,
+          // A short stable key: the same article keeps its place between reads.
+          id: `${feed.id}:${hashString(item.url)}`,
           feedId: feed.id,
           title: item.title.slice(0, 500),
           url: item.url,
@@ -113,14 +182,17 @@ export async function refreshFeed(feed: Feed, now: number = Date.now()): Promise
     publishAppEvent({ type: 'data-changed' });
     return items.length;
   } catch (cause) {
-    const message =
+    const raw =
       cause instanceof TypeError
         ? 'Источник не разрешает читать себя из браузера (нет заголовков CORS). Попробуйте другой адрес ленты.'
         : cause instanceof Error
           ? cause.message
           : 'Не удалось получить ленту';
 
-    await db.feeds.put({ ...feed, lastError: message.slice(0, 500) });
+    // A key must never end up in a stored message or on the screen.
+    const message = stripSecrets(raw, secretsOf(feed)).slice(0, 500);
+
+    await db.feeds.put({ ...feed, lastError: message });
     publishAppEvent({ type: 'data-changed' });
     throw new RepositoryError(message);
   }

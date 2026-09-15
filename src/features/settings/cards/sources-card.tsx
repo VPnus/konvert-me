@@ -1,22 +1,38 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { RefreshCw, Trash2 } from 'lucide-react';
+import { Pencil, RefreshCw, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Field } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
+import type { Feed } from '@/db/models';
 import {
   createFeed,
   deleteFeed,
   listFeeds,
   refreshEnabledFeeds,
   setFeedEnabled,
+  updateFeed,
+  type FeedInput,
 } from '@/db/repositories/feeds';
 import { updateSettings } from '@/db/repositories/settings';
+import { FeedForm } from '@/features/settings/cards/feed-form';
 import { useDataVersion } from '@/hooks/use-data-version';
 import { useSettings } from '@/hooks/use-settings';
 import { ru } from '@/i18n/ru';
+import { maskSecret, maskUrl } from '@/lib/secrets';
+
+function authLabel(feed: Feed): string {
+  const auth = feed.auth ?? { kind: 'none' };
+  if (auth.kind === 'none') return ru.sources.keyNone;
+  if (auth.kind === 'query') return `${ru.sources.keyStored} · ${auth.paramName}=${maskSecret(auth.key)}`;
+  if (auth.kind === 'header') return `${ru.sources.keyStored} · ${auth.headerName}: ${maskSecret(auth.key)}`;
+  return `${ru.sources.keyStored} · Bearer ${maskSecret(auth.key)}`;
+}
+
+function formatMoment(timestamp: number | null): string {
+  if (timestamp === null) return ru.widgets.news.never;
+  return new Intl.DateTimeFormat('ru-RU', { dateStyle: 'short', timeStyle: 'short' }).format(timestamp);
+}
 
 /**
  * The single switch that lets the app talk to the outside world, and the feeds it may
@@ -31,26 +47,20 @@ export function SourcesCard() {
   const [pendingEnabled, setPendingEnabled] = useState<boolean | null>(null);
   const externalEnabled = pendingEnabled ?? settings.externalFeedsEnabled;
 
-  const [title, setTitle] = useState('');
-  const [url, setUrl] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const addFeed = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setError(null);
-    try {
-      await createFeed({ title, url });
-      setTitle('');
-      setUrl('');
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : ru.common.error);
-    }
+  const addFeed = async (input: FeedInput) => {
+    await createFeed(input);
+  };
+
+  const saveFeed = async (id: string, input: FeedInput) => {
+    await updateFeed(id, input);
+    setEditingId(null);
   };
 
   const refresh = async () => {
     setBusy(true);
-    setError(null);
     try {
       await refreshEnabledFeeds();
     } finally {
@@ -87,105 +97,90 @@ export function SourcesCard() {
           {feeds.length > 0 ? (
             <ul className="flex flex-col gap-2">
               {feeds.map((feed) => (
-                <li
-                  key={feed.id}
-                  className="flex items-center justify-between gap-2 rounded-lg border border-border p-3"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{feed.title}</p>
-                    <p className="truncate text-xs text-muted-foreground">{feed.url}</p>
-                    <p className="text-xs text-muted-foreground" data-testid="feed-updated">
-                      {ru.widgets.news.updated}:{' '}
-                      {feed.lastFetchedAt
-                        ? new Intl.DateTimeFormat('ru-RU', { dateStyle: 'short', timeStyle: 'short' }).format(
-                            feed.lastFetchedAt,
-                          )
-                        : ru.widgets.news.never}
-                    </p>
-                    {feed.lastError ? (
-                      <p className="mt-1 text-xs text-destructive">
-                        {ru.sources.feedError}: {feed.lastError}
+                <li key={feed.id} className="flex flex-col gap-2 rounded-lg border border-border p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{feed.title}</p>
+                      <p className="truncate text-xs text-muted-foreground" data-testid="feed-url-shown">
+                        {maskUrl(feed.url)}
                       </p>
-                    ) : null}
+                      <p className="truncate text-xs text-muted-foreground" data-testid="feed-auth">
+                        {authLabel(feed)}
+                      </p>
+                      <p className="text-xs text-muted-foreground" data-testid="feed-updated">
+                        {ru.widgets.news.updated}: {formatMoment(feed.lastFetchedAt)}
+                      </p>
+                      {feed.lastError ? (
+                        <p className="mt-1 text-xs text-destructive" data-testid="feed-last-error">
+                          {ru.sources.feedError}: {feed.lastError}
+                        </p>
+                      ) : null}
+                    </div>
+
+                    <div className="flex shrink-0 items-center gap-2">
+                      <label className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <input
+                          type="checkbox"
+                          checked={feed.enabled}
+                          className="size-4 accent-[var(--color-primary)]"
+                          aria-label={feed.enabled ? ru.sources.feedOn : ru.sources.feedOff}
+                          onChange={(event) => void setFeedEnabled(feed.id, event.target.checked)}
+                        />
+                        {feed.enabled ? ru.sources.feedOn : ru.sources.feedOff}
+                      </label>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="size-8"
+                        aria-label={`${ru.sources.feedEdit}: ${feed.title}`}
+                        data-testid={`feed-edit-${feed.title}`}
+                        onClick={() => setEditingId(editingId === feed.id ? null : feed.id)}
+                      >
+                        <Pencil className="size-4" aria-hidden />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="size-8"
+                        aria-label={`${ru.sources.feedRemove}: ${feed.title}`}
+                        onClick={() => void deleteFeed(feed.id)}
+                      >
+                        <Trash2 className="size-4" aria-hidden />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <label className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <input
-                        type="checkbox"
-                        checked={feed.enabled}
-                        className="size-4 accent-[var(--color-primary)]"
-                        aria-label={feed.enabled ? ru.sources.feedOn : ru.sources.feedOff}
-                        onChange={(event) => void setFeedEnabled(feed.id, event.target.checked)}
+
+                  {editingId === feed.id ? (
+                    <div className="border-t border-border pt-3">
+                      <FeedForm
+                        feed={feed}
+                        onSubmit={(input) => saveFeed(feed.id, input)}
+                        onCancel={() => setEditingId(null)}
                       />
-                      {feed.enabled ? ru.sources.feedOn : ru.sources.feedOff}
-                    </label>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="size-8"
-                      aria-label={`${ru.sources.feedRemove}: ${feed.title}`}
-                      onClick={() => void deleteFeed(feed.id)}
-                    >
-                      <Trash2 className="size-4" aria-hidden />
-                    </Button>
-                  </div>
+                    </div>
+                  ) : null}
                 </li>
               ))}
             </ul>
           ) : null}
 
-          <form className="flex flex-col gap-3" onSubmit={(event) => void addFeed(event)}>
-            <Field label={ru.sources.feedName}>
-              {(id) => (
-                <Input
-                  id={id}
-                  value={title}
-                  required
-                  data-testid="feed-title"
-                  onChange={(event) => setTitle(event.target.value)}
-                />
-              )}
-            </Field>
+          <FeedForm onSubmit={addFeed} />
 
-            <Field label={ru.sources.feedUrl} hint={ru.sources.feedUrlHint}>
-              {(id) => (
-                <Input
-                  id={id}
-                  value={url}
-                  required
-                  type="url"
-                  placeholder="https://hnrss.org/frontpage"
-                  data-testid="feed-url"
-                  onChange={(event) => setUrl(event.target.value)}
-                />
-              )}
-            </Field>
-
-            {error ? (
-              <p role="alert" className="text-sm text-destructive" data-testid="feed-error">
-                {error}
-              </p>
-            ) : null}
-
-            <div className="flex flex-wrap gap-2">
-              <Button type="submit" size="sm" data-testid="feed-add">
-                {ru.sources.feedAdd}
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={!externalEnabled || feeds.length === 0 || busy}
-                onClick={() => void refresh()}
-                data-testid="feed-refresh"
-              >
-                <RefreshCw className="size-4" aria-hidden />
-                {ru.sources.refreshAll}
-              </Button>
-            </div>
-          </form>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="w-fit"
+            disabled={!externalEnabled || feeds.length === 0 || busy}
+            onClick={() => void refresh()}
+            data-testid="feed-refresh"
+          >
+            <RefreshCw className="size-4" aria-hidden />
+            {ru.sources.refreshAll}
+          </Button>
 
           <p className="text-xs text-muted-foreground">{ru.sources.corsNote}</p>
+          <p className="text-xs text-muted-foreground">{ru.sources.apiNote}</p>
         </div>
       </CardContent>
     </Card>

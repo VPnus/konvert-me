@@ -35,20 +35,103 @@ function isHttpUrl(value: string): boolean {
   return /^https?:\/\//i.test(value);
 }
 
-function parseJsonFeed(raw: unknown): ParsedFeed {
-  const feed = raw as { title?: string; items?: { title?: string; url?: string; date_published?: string }[] };
-  if (!Array.isArray(feed.items)) throw new FeedParseError('В JSON-ленте нет списка записей');
+type JsonRecord = Record<string, unknown>;
 
-  return {
-    title: feed.title?.trim() ?? '',
-    items: feed.items
-      .filter((item) => item.url && isHttpUrl(item.url))
-      .map((item) => ({
-        title: item.title?.trim() || (item.url as string),
-        url: item.url as string,
-        publishedAt: toTimestamp(item.date_published),
-      })),
-  };
+/** Field names the common news APIs use, in the order they are tried. */
+const URL_FIELDS = ['url', 'link', 'webUrl', 'web_url', 'canonical_url', 'permalink'];
+const TITLE_FIELDS = ['title', 'headline', 'name', 'webTitle'];
+const DATE_FIELDS = [
+  'date_published',
+  'publishedAt',
+  'published_at',
+  'published',
+  'pubDate',
+  'created_at',
+  'webPublicationDate',
+  'date',
+  'updated',
+];
+/** Where a list of records usually hides in a JSON answer. */
+const ITEM_CONTAINERS = ['items', 'articles', 'results', 'data', 'posts', 'entries', 'stories', 'hits'];
+
+function readPath(raw: unknown, path: string): unknown {
+  return path
+    .split('.')
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .reduce<unknown>((value, part) => {
+      if (value === null || typeof value !== 'object') return undefined;
+      return (value as JsonRecord)[part];
+    }, raw);
+}
+
+function firstString(record: JsonRecord, fields: readonly string[]): string {
+  for (const field of fields) {
+    const value = record[field];
+    if (typeof value === 'string' && value.trim()) return value.trim();
+    // A few APIs nest the address, e.g. { link: { href: "…" } }.
+    if (value && typeof value === 'object') {
+      const nested = (value as JsonRecord).href ?? (value as JsonRecord).url;
+      if (typeof nested === 'string' && nested.trim()) return nested.trim();
+    }
+  }
+  return '';
+}
+
+function findItems(raw: unknown, itemsPath?: string): unknown[] {
+  if (itemsPath) {
+    const explicit = readPath(raw, itemsPath);
+    if (!Array.isArray(explicit)) {
+      throw new FeedParseError(`По пути «${itemsPath}» в ответе нет списка записей`);
+    }
+    return explicit;
+  }
+
+  if (Array.isArray(raw)) return raw;
+
+  if (raw && typeof raw === 'object') {
+    for (const container of ITEM_CONTAINERS) {
+      const value = (raw as JsonRecord)[container];
+      if (Array.isArray(value)) return value;
+    }
+    // One level deeper: { data: { articles: [...] } }
+    for (const value of Object.values(raw as JsonRecord)) {
+      if (value && typeof value === 'object' && !Array.isArray(value)) {
+        for (const container of ITEM_CONTAINERS) {
+          const nested = (value as JsonRecord)[container];
+          if (Array.isArray(nested)) return nested;
+        }
+      }
+    }
+  }
+
+  throw new FeedParseError(
+    'В ответе не нашёлся список записей. Укажите путь к нему, например «data.articles».',
+  );
+}
+
+function parseJsonFeed(raw: unknown, itemsPath?: string): ParsedFeed {
+  const records = findItems(raw, itemsPath);
+  const title =
+    raw && typeof raw === 'object' && typeof (raw as JsonRecord).title === 'string'
+      ? ((raw as JsonRecord).title as string).trim()
+      : '';
+
+  const items = records
+    .filter((record): record is JsonRecord => Boolean(record) && typeof record === 'object')
+    .map((record) => ({
+      title: firstString(record, TITLE_FIELDS),
+      url: firstString(record, URL_FIELDS),
+      publishedAt: toTimestamp(firstString(record, DATE_FIELDS)),
+    }))
+    .filter((item) => isHttpUrl(item.url))
+    .map((item) => ({ ...item, title: item.title || item.url }));
+
+  if (items.length === 0) {
+    throw new FeedParseError('В ответе нет ни одной записи с адресом статьи');
+  }
+
+  return { title, items };
 }
 
 function parseXmlFeed(text: string): ParsedFeed {
@@ -96,18 +179,27 @@ function parseXmlFeed(text: string): ParsedFeed {
   throw new FeedParseError('В ленте нет ни одной записи');
 }
 
-export function parseFeed(text: string, contentType = ''): ParsedFeed {
+export interface ParseFeedOptions {
+  readonly contentType?: string;
+  /** Path to the list of records in a JSON answer, e.g. "data.articles". */
+  readonly itemsPath?: string;
+}
+
+export function parseFeed(text: string, options: ParseFeedOptions | string = {}): ParsedFeed {
+  const { contentType = '', itemsPath } = typeof options === 'string' ? { contentType: options } : options;
+
   const trimmed = text.trim();
   if (!trimmed) throw new FeedParseError('Лента пришла пустой');
 
-  const looksJson = contentType.includes('json') || trimmed.startsWith('{');
+  const looksJson = contentType.includes('json') || trimmed.startsWith('{') || trimmed.startsWith('[');
   if (looksJson) {
+    let raw: unknown;
     try {
-      return parseJsonFeed(JSON.parse(trimmed));
-    } catch (error) {
-      if (error instanceof FeedParseError) throw error;
-      throw new FeedParseError('Не удалось разобрать JSON-ленту');
+      raw = JSON.parse(trimmed);
+    } catch {
+      throw new FeedParseError('Не удалось разобрать JSON-ответ');
     }
+    return parseJsonFeed(raw, itemsPath);
   }
 
   return parseXmlFeed(trimmed);

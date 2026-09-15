@@ -110,6 +110,97 @@ test.describe('news', () => {
     await expect(page.getByTestId('widget-news')).toContainText('Как считать финансовый резерв');
   });
 
+  test('an API with a key is read, and the key is never shown in full', async ({ page }) => {
+    const seen: string[] = [];
+    await page.route('https://api.example.com/**', async (route) => {
+      seen.push(route.request().url());
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          articles: [
+            {
+              title: 'Статья из платного API',
+              url: 'https://example.com/paid-article',
+              publishedAt: '2026-09-15T08:00:00Z',
+            },
+          ],
+        }),
+      });
+    });
+
+    await skipOnboarding(page);
+    await page.goto('/settings');
+    await page.getByTestId('external-sources-toggle').check();
+
+    await page.getByTestId('feed-title').fill('Платный API');
+    await page.getByTestId('feed-url').fill('https://api.example.com/v2/top-headlines?country=ru');
+    await page.getByTestId('feed-auth-kind').selectOption('query');
+    await page.getByTestId('feed-param-name').fill('apiKey');
+    await page.getByTestId('feed-key').fill('super-secret-value');
+    await page.getByTestId('feed-add').click();
+
+    // the stored key is shown masked, never in full
+    await expect(page.getByTestId('feed-auth')).toContainText('apiKey=');
+    await expect(page.getByTestId('feed-auth')).toContainText('alue');
+    await expect(page.getByTestId('feed-auth')).not.toContainText('super-secret-value');
+
+    await page.getByTestId('feed-refresh').click();
+    await expect(page.getByTestId('feed-updated')).not.toContainText('ещё не обновлялось');
+
+    expect(seen.some((url) => url.includes('apiKey=super-secret-value'))).toBe(true);
+    expect(seen.some((url) => url.includes('country=ru'))).toBe(true);
+
+    await page.goto('/overview');
+    await page.getByTestId('customize-dashboard').click();
+    await page.getByTestId('add-widget').click();
+    await page.getByTestId('catalog-add-news').click();
+    await page.getByTestId('customize-dashboard').click();
+
+    await expect(page.getByTestId('widget-news')).toContainText('Статья из платного API');
+  });
+
+  test('a key can be changed later without retyping the address', async ({ page }) => {
+    const seen: string[] = [];
+    await page.route('https://api.example.com/**', async (route) => {
+      seen.push(route.request().url());
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ articles: [{ title: 'Статья', url: 'https://example.com/a' }] }),
+      });
+    });
+
+    await skipOnboarding(page);
+    await page.goto('/settings');
+    await page.getByTestId('external-sources-toggle').check();
+    await page.getByTestId('feed-title').fill('API');
+    await page.getByTestId('feed-url').fill('https://api.example.com/news');
+    await page.getByTestId('feed-auth-kind').selectOption('bearer');
+    await page.getByTestId('feed-key').fill('old-key-value');
+    await page.getByTestId('feed-add').click();
+
+    await page.getByTestId('feed-edit-API').click();
+    await page.getByTestId('feed-key').last().fill('new-key-value');
+    await page.getByTestId('feed-save').click();
+
+    await page.getByTestId('feed-refresh').click();
+    await expect(page.getByTestId('feed-updated')).not.toContainText('ещё не обновлялось');
+    expect(seen.length).toBeGreaterThan(0);
+  });
+
+  test('a key with cyrillic letters is refused for a header, with a plain reason', async ({ page }) => {
+    await skipOnboarding(page);
+    await page.goto('/settings');
+    await page.getByTestId('feed-title').fill('API');
+    await page.getByTestId('feed-url').fill('https://api.example.com/news');
+    await page.getByTestId('feed-auth-kind').selectOption('bearer');
+    await page.getByTestId('feed-key').fill('ключ-по-русски');
+    await page.getByTestId('feed-add').click();
+
+    await expect(page.getByTestId('feed-error')).toContainText('латиниц');
+  });
+
   test('a source that refuses the browser shows a plain explanation', async ({ page }) => {
     await page.route('https://example.com/rss', (route) => route.abort('failed'));
 

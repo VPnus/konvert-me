@@ -4,6 +4,7 @@ import { clearAllData } from '@/db/backup';
 import { db } from '@/db/db';
 import { ValidationError } from '@/db/errors';
 import {
+  buildFeedRequest,
   createFeed,
   deleteFeed,
   ExternalSourcesDisabledError,
@@ -14,6 +15,7 @@ import {
   refreshFeed,
 } from '@/db/repositories/feeds';
 import { createLink, deleteLink, listLinks, reorderLinks, updateLink } from '@/db/repositories/links';
+import { updateFeed } from '@/db/repositories/feeds';
 import { updateSettings } from '@/db/repositories/settings';
 
 const RSS = `<?xml version="1.0"?><rss version="2.0"><channel>
@@ -65,6 +67,155 @@ describe('pinned sources', () => {
       ValidationError,
     );
     await expect(createLink({ title: 'Плохая', url: 'не адрес' })).rejects.toBeInstanceOf(ValidationError);
+  });
+});
+
+const NEWS_API = JSON.stringify({
+  articles: [
+    { title: 'Статья из API', url: 'https://example.com/api-article', publishedAt: '2026-09-15T08:00:00Z' },
+  ],
+});
+
+describe('the key of a source', () => {
+  it('puts a key into the address when that is what the source wants', async () => {
+    const feed = await createFeed({
+      title: 'API',
+      url: 'https://api.example.com/news?q=finance',
+      auth: { kind: 'query', paramName: 'apiKey', key: 'super-secret-value' },
+    });
+
+    const request = buildFeedRequest(feed);
+    expect(request.url).toBe('https://api.example.com/news?q=finance&apiKey=super-secret-value');
+    expect(request.headers.Authorization).toBeUndefined();
+  });
+
+  it('puts a key into a header of the chosen name', async () => {
+    const feed = await createFeed({
+      title: 'API',
+      url: 'https://api.example.com/news',
+      auth: { kind: 'header', headerName: 'X-Api-Key', key: 'super-secret-value' },
+    });
+
+    const request = buildFeedRequest(feed);
+    expect(request.url).toBe('https://api.example.com/news');
+    expect(request.headers['X-Api-Key']).toBe('super-secret-value');
+  });
+
+  it('sends a bearer token', async () => {
+    const feed = await createFeed({
+      title: 'API',
+      url: 'https://api.example.com/news',
+      auth: { kind: 'bearer', key: 'super-secret-value' },
+    });
+
+    expect(buildFeedRequest(feed).headers.Authorization).toBe('Bearer super-secret-value');
+  });
+
+  it('refuses a key that cannot travel in a header', async () => {
+    await expect(
+      createFeed({
+        title: 'API',
+        url: 'https://api.example.com/news',
+        auth: { kind: 'bearer', key: 'ключ-по-русски' },
+      }),
+    ).rejects.toThrow(/латиниц/i);
+
+    // the same key is fine in the address, where it is percent-encoded
+    const feed = await createFeed({
+      title: 'API',
+      url: 'https://api.example.com/news',
+      auth: { kind: 'query', paramName: 'key', key: 'ключ-по-русски' },
+    });
+    expect(buildFeedRequest(feed).url).toContain(encodeURIComponent('ключ-по-русски'));
+  });
+
+  it('refuses a header name with spaces and an empty key', async () => {
+    await expect(
+      createFeed({
+        title: 'API',
+        url: 'https://api.example.com/news',
+        auth: { kind: 'header', headerName: 'Плохой заголовок', key: 'value' },
+      }),
+    ).rejects.toBeInstanceOf(ValidationError);
+
+    await expect(
+      createFeed({
+        title: 'API',
+        url: 'https://api.example.com/news',
+        auth: { kind: 'bearer', key: '' },
+      }),
+    ).rejects.toBeInstanceOf(ValidationError);
+  });
+
+  it('reads an API answer with a key and never stores the key in an error', async () => {
+    await updateSettings({ externalFeedsEnabled: true });
+    const feed = await createFeed({
+      title: 'API',
+      url: 'https://api.example.com/news',
+      auth: { kind: 'query', paramName: 'apiKey', key: 'super-secret-value' },
+    });
+
+    const fetchMock = mockFetch(NEWS_API, { contentType: 'application/json' });
+    vi.stubGlobal('fetch', fetchMock);
+    expect(await refreshFeed(feed)).toBe(1);
+    expect(fetchMock.mock.calls[0][0]).toContain('apiKey=super-secret-value');
+    expect((await listFeedItems())[0].title).toBe('Статья из API');
+
+    // now the source starts refusing, and the message must not carry the key
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockRejectedValue(new Error('403 for https://api.example.com/news?apiKey=super-secret-value')),
+    );
+    await expect(refreshFeed((await listFeeds())[0])).rejects.toThrow();
+
+    const stored = (await listFeeds())[0];
+    expect(stored.lastError).not.toContain('super-secret-value');
+    expect(stored.lastError).toContain('•');
+  });
+
+  it('explains a 401 as a key problem', async () => {
+    await updateSettings({ externalFeedsEnabled: true });
+    const feed = await createFeed({
+      title: 'API',
+      url: 'https://api.example.com/news',
+      auth: { kind: 'bearer', key: 'wrong-key' },
+    });
+    vi.stubGlobal('fetch', mockFetch('', { ok: false, status: 401 }));
+
+    await expect(refreshFeed(feed)).rejects.toThrow(/ключ/i);
+  });
+
+  it('keeps the stored key when only the address is changed', async () => {
+    const feed = await createFeed({
+      title: 'API',
+      url: 'https://api.example.com/news',
+      auth: { kind: 'query', paramName: 'apiKey', key: 'super-secret-value' },
+    });
+
+    const updated = await updateFeed(feed.id, { url: 'https://api.example.com/v2/news' });
+
+    expect(updated.url).toBe('https://api.example.com/v2/news');
+    expect(updated.auth).toEqual({ kind: 'query', paramName: 'apiKey', key: 'super-secret-value' });
+  });
+
+  it('follows the path to the records when the answer is unusual', async () => {
+    await updateSettings({ externalFeedsEnabled: true });
+    const feed = await createFeed({
+      title: 'API',
+      url: 'https://api.example.com/news',
+      itemsPath: 'payload.list',
+    });
+
+    vi.stubGlobal(
+      'fetch',
+      mockFetch(
+        JSON.stringify({ payload: { list: [{ title: 'Из глубины', url: 'https://example.com/deep' }] } }),
+        { contentType: 'application/json' },
+      ),
+    );
+
+    expect(await refreshFeed(feed)).toBe(1);
+    expect((await listFeedItems())[0].title).toBe('Из глубины');
   });
 });
 

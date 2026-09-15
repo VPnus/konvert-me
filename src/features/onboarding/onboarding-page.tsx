@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { formatMinor, rublesToMinor } from '@/core/money';
+import { parseNumericInput } from '@/lib/numeric-input';
 import { addMonths, currentMonth } from '@/core/time';
 import { CatLogo } from '@/components/brand/cat-logo';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { NumberInput } from '@/components/ui/number-input';
 import {
   completeOnboarding,
   EMPTY_ANSWERS,
@@ -37,8 +39,21 @@ export default function OnboardingPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const setNumber = (key: NumericKey, value: string) =>
-    setAnswers((current) => ({ ...current, [key]: Number(value.replace(',', '.')) || 0 }));
+  // The fields keep their own text so a half-typed "12," is not thrown away.
+  const [numbers, setNumbers] = useState<Record<NumericKey, string>>({
+    incomeRub: '',
+    mandatoryRub: '',
+    variableRub: '',
+    savingsRub: '',
+    debtBalanceRub: '',
+    debtPaymentRub: '',
+    goalCostRub: '',
+  });
+
+  const setNumber = (key: NumericKey, value: string) => {
+    setNumbers((current) => ({ ...current, [key]: value }));
+    setAnswers((current) => ({ ...current, [key]: parseNumericInput(value) }));
+  };
 
   const freeCashMinor =
     rublesToMinor(answers.incomeRub) -
@@ -88,13 +103,12 @@ export default function OnboardingPage() {
             <p className="text-sm text-muted-foreground">{ru.onboarding.incomeText}</p>
             <Field label={ru.onboarding.incomeLabel}>
               {(id) => (
-                <Input
+                <NumberInput
                   id={id}
-                  inputMode="decimal"
                   autoFocus
-                  defaultValue={answers.incomeRub || ''}
+                  value={numbers.incomeRub}
                   data-testid="onboarding-income"
-                  onChange={(event) => setNumber('incomeRub', event.target.value)}
+                  onValueChange={(value) => setNumber('incomeRub', value)}
                 />
               )}
             </Field>
@@ -107,13 +121,12 @@ export default function OnboardingPage() {
             <p className="text-sm text-muted-foreground">{ru.onboarding.mandatoryText}</p>
             <Field label={ru.onboarding.mandatoryLabel}>
               {(id) => (
-                <Input
+                <NumberInput
                   id={id}
-                  inputMode="decimal"
                   autoFocus
-                  defaultValue={answers.mandatoryRub || ''}
+                  value={numbers.mandatoryRub}
                   data-testid="onboarding-mandatory"
-                  onChange={(event) => setNumber('mandatoryRub', event.target.value)}
+                  onValueChange={(value) => setNumber('mandatoryRub', value)}
                 />
               )}
             </Field>
@@ -126,13 +139,12 @@ export default function OnboardingPage() {
             <p className="text-sm text-muted-foreground">{ru.onboarding.variableText}</p>
             <Field label={ru.onboarding.variableLabel}>
               {(id) => (
-                <Input
+                <NumberInput
                   id={id}
-                  inputMode="decimal"
                   autoFocus
-                  defaultValue={answers.variableRub || ''}
+                  value={numbers.variableRub}
                   data-testid="onboarding-variable"
-                  onChange={(event) => setNumber('variableRub', event.target.value)}
+                  onValueChange={(value) => setNumber('variableRub', value)}
                 />
               )}
             </Field>
@@ -151,36 +163,35 @@ export default function OnboardingPage() {
             <p className="text-sm text-muted-foreground">{ru.onboarding.accountsText}</p>
             <Field label={ru.onboarding.savingsLabel}>
               {(id) => (
-                <Input
+                <NumberInput
                   id={id}
-                  inputMode="decimal"
                   autoFocus
-                  defaultValue={answers.savingsRub || ''}
+                  value={numbers.savingsRub}
                   data-testid="onboarding-savings"
-                  onChange={(event) => setNumber('savingsRub', event.target.value)}
+                  onValueChange={(value) => setNumber('savingsRub', value)}
                 />
               )}
             </Field>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label={ru.onboarding.debtBalanceLabel}>
                 {(id) => (
-                  <Input
+                  <NumberInput
                     id={id}
-                    inputMode="decimal"
-                    defaultValue={answers.debtBalanceRub || ''}
+                    autoFocus
+                    value={numbers.debtBalanceRub}
                     data-testid="onboarding-debt"
-                    onChange={(event) => setNumber('debtBalanceRub', event.target.value)}
+                    onValueChange={(value) => setNumber('debtBalanceRub', value)}
                   />
                 )}
               </Field>
               <Field label={ru.onboarding.debtPaymentLabel}>
                 {(id) => (
-                  <Input
+                  <NumberInput
                     id={id}
-                    inputMode="decimal"
-                    defaultValue={answers.debtPaymentRub || ''}
+                    autoFocus
+                    value={numbers.debtPaymentRub}
                     data-testid="onboarding-debt-payment"
-                    onChange={(event) => setNumber('debtPaymentRub', event.target.value)}
+                    onValueChange={(value) => setNumber('debtPaymentRub', value)}
                   />
                 )}
               </Field>
@@ -209,12 +220,12 @@ export default function OnboardingPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label={ru.onboarding.goalCostLabel}>
                 {(id) => (
-                  <Input
+                  <NumberInput
                     id={id}
-                    inputMode="decimal"
-                    defaultValue={answers.goalCostRub || ''}
+                    autoFocus
+                    value={numbers.goalCostRub}
                     data-testid="onboarding-goal-cost"
-                    onChange={(event) => setNumber('goalCostRub', event.target.value)}
+                    onValueChange={(value) => setNumber('goalCostRub', value)}
                   />
                 )}
               </Field>

@@ -57,7 +57,12 @@ export const accountSchema = z
     maturityDate: isoDate.optional(),
     monthlyPaymentMinor: nonNegativeMinor.optional(),
     /** Day of the month the payment is due; the "soon" feed of stage 6 uses it. */
-    paymentDay: z.number().int().min(1).max(31).optional(),
+    paymentDay: z
+      .number()
+      .int('Число месяца — целое число')
+      .min(1, 'Число месяца — от 1 до 31')
+      .max(31, 'Число месяца — от 1 до 31')
+      .optional(),
     endDate: isoDate.optional(),
     creditLimitMinor: nonNegativeMinor.optional(),
     gracePeriodEnd: isoDate.optional(),
@@ -196,12 +201,47 @@ export const linkSchema = z.object({
   createdAt: timestamp,
 });
 
+const secret = z.string().min(1).max(512);
+/** A key that travels in a header must be plain ASCII: browsers refuse anything else. */
+const headerSafeSecret = secret.regex(/^[\x20-\x7e]+$/, {
+  message: 'Ключ в заголовке может состоять только из латиницы, цифр и знаков препинания',
+});
+const headerName = z
+  .string()
+  .trim()
+  .min(1)
+  .max(64)
+  .regex(/^[A-Za-z0-9-]+$/, { message: 'В имени заголовка допустимы латиница, цифры и дефис' });
+
+/**
+ * How the source is authorised. The key is typed by the user and stays on the device;
+ * it is only ever sent to the host of the feed itself.
+ */
+export const feedAuthSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('none') }),
+  z.object({
+    kind: z.literal('query'),
+    paramName: z
+      .string()
+      .trim()
+      .min(1)
+      .max(64)
+      .regex(/^[A-Za-z0-9_.-]+$/, { message: 'В имени параметра допустимы латиница, цифры, _ . -' }),
+    key: secret,
+  }),
+  z.object({ kind: z.literal('header'), headerName, key: headerSafeSecret }),
+  z.object({ kind: z.literal('bearer'), key: headerSafeSecret }),
+]);
+
 /** A news feed the user adds on purpose; it is only read when they allow it. */
 export const feedSchema = z.object({
   id,
   title: name,
   url,
   enabled: z.boolean(),
+  auth: feedAuthSchema.default({ kind: 'none' }),
+  /** Where the records live in a JSON answer, e.g. "data.articles". Guessed when empty. */
+  itemsPath: z.string().trim().max(200).optional(),
   lastFetchedAt: timestamp.nullable(),
   lastError: z.string().max(500).nullable(),
   createdAt: timestamp,
@@ -239,6 +279,7 @@ export type Envelope = z.infer<typeof envelopeSchema>;
 export type DashboardLayout = z.infer<typeof dashboardLayoutSchema>;
 export type Link = z.infer<typeof linkSchema>;
 export type Feed = z.infer<typeof feedSchema>;
+export type FeedAuth = z.infer<typeof feedAuthSchema>;
 export type FeedItem = z.infer<typeof feedItemSchema>;
 export type AppSettings = z.infer<typeof settingsSchema>;
 export type AccountSide = Account['side'];

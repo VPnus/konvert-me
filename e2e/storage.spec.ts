@@ -48,6 +48,22 @@ test.describe('accounts', () => {
     await expect(page.getByTestId('account-name')).toBeVisible();
   });
 
+  test('a field for a number refuses letters', async ({ page }) => {
+    await page.goto('/balance');
+    await page.getByTestId('add-account').click();
+
+    const balance = page.getByTestId('account-balance');
+    await balance.fill('');
+    await balance.pressSequentially('12абв34,5x6');
+    await expect(balance).toHaveValue('1234,56');
+
+    await page.getByTestId('account-side').selectOption('liability');
+    const day = page.getByTestId('account-payment-day');
+    // two digits at most, letters and separators never appear
+    await day.pressSequentially('1a5,7');
+    await expect(day).toHaveValue('15');
+  });
+
   test('an account can be archived and deleted', async ({ page }) => {
     await page.goto('/balance');
     await addAccount(page, { name: 'Наличные', side: 'asset', type: 'cash', balance: '5000' });

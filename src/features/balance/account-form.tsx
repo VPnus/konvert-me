@@ -2,10 +2,12 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { useState } from 'react';
 
 import { minorToRubles, rublesToMinor } from '@/core/money';
+import { parseNumericInput } from '@/lib/numeric-input';
 import { todayIso } from '@/core/time';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { NumberInput } from '@/components/ui/number-input';
 import { Select } from '@/components/ui/select';
 import { ASSET_TYPES, LIABILITY_TYPES, type Account, type AccountType } from '@/db/models';
 import { createAccount, isLiquidByDefault, updateAccount } from '@/db/repositories/accounts';
@@ -75,12 +77,12 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
       name: state.name,
       side: state.side,
       type: state.type,
-      openingBalanceMinor: rublesToMinor(Number(state.balance.replace(',', '.')) || 0),
+      openingBalanceMinor: rublesToMinor(parseNumericInput(state.balance)),
       openingDate: state.openingDate,
       isLiquid: state.side === 'asset' ? state.isLiquid : false,
       monthlyPaymentMinor:
         state.side === 'liability' && state.monthlyPayment
-          ? rublesToMinor(Number(state.monthlyPayment.replace(',', '.')))
+          ? rublesToMinor(parseNumericInput(state.monthlyPayment))
           : undefined,
       paymentDay: state.side === 'liability' && state.paymentDay ? Number(state.paymentDay) : undefined,
     };
@@ -163,13 +165,12 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label={state.side === 'asset' ? ru.accounts.openingBalance : ru.accounts.debtBalance}>
                 {(id) => (
-                  <Input
+                  <NumberInput
                     id={id}
-                    inputMode="decimal"
                     value={state.balance}
                     required
                     data-testid="account-balance"
-                    onChange={(event) => patch({ balance: event.target.value })}
+                    onValueChange={(balance) => patch({ balance })}
                   />
                 )}
               </Field>
@@ -203,28 +204,25 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label={`${ru.accounts.monthlyPayment} (${ru.common.optional})`}>
                   {(id) => (
-                    <Input
+                    <NumberInput
                       id={id}
-                      inputMode="decimal"
                       value={state.monthlyPayment}
                       data-testid="account-payment"
-                      onChange={(event) => patch({ monthlyPayment: event.target.value })}
+                      onValueChange={(monthlyPayment) => patch({ monthlyPayment })}
                     />
                   )}
                 </Field>
 
                 <Field label={ru.accounts.paymentDay} hint={ru.accounts.paymentDayHint}>
                   {(id) => (
-                    <Input
+                    <NumberInput
                       id={id}
-                      type="number"
-                      inputMode="numeric"
-                      min="1"
-                      max="31"
+                      integer
+                      maxLength={2}
                       value={state.paymentDay}
                       placeholder={ru.accounts.paymentDayNone}
                       data-testid="account-payment-day"
-                      onChange={(event) => patch({ paymentDay: event.target.value })}
+                      onValueChange={(paymentDay) => patch({ paymentDay })}
                     />
                   )}
                 </Field>

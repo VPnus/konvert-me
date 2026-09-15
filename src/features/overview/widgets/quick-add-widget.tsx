@@ -2,9 +2,10 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useState } from 'react';
 
 import { rublesToMinor } from '@/core/money';
+import { parseNumericInput } from '@/lib/numeric-input';
 import { todayIso } from '@/core/time';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { NumberInput } from '@/components/ui/number-input';
 import { Select } from '@/components/ui/select';
 import { listCategories } from '@/db/repositories/categories';
 import { createTransaction } from '@/db/repositories/transactions';
@@ -47,7 +48,7 @@ export function QuickAddWidget({ data }: WidgetProps) {
     try {
       await createTransaction({
         date: todayIso(),
-        amountMinor: rublesToMinor(Number(amount.replace(',', '.'))),
+        amountMinor: rublesToMinor(parseNumericInput(amount)),
         kind,
         accountId: chosenAccount,
         categoryId: chosenCategory,
@@ -90,14 +91,13 @@ export function QuickAddWidget({ data }: WidgetProps) {
           </Button>
         </div>
 
-        <Input
-          inputMode="decimal"
+        <NumberInput
           required
           value={amount}
           aria-label={ru.widgets.quickAdd.amount}
           placeholder={ru.widgets.quickAdd.amount}
           data-testid="quick-amount"
-          onChange={(event) => setAmount(event.target.value)}
+          onValueChange={setAmount}
         />
 
         <Select

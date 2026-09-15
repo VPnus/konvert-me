@@ -36,6 +36,32 @@ const JSON_FEED = JSON.stringify({
   ],
 });
 
+const NEWS_API = JSON.stringify({
+  status: 'ok',
+  totalResults: 2,
+  articles: [
+    {
+      source: { id: null, name: 'Example' },
+      title: 'Ставку снова подняли',
+      url: 'https://example.com/rate',
+      publishedAt: '2026-09-15T08:30:00Z',
+    },
+    { title: 'Без адреса', url: '' },
+  ],
+});
+
+const NESTED = JSON.stringify({
+  data: {
+    articles: [
+      { headline: 'Вложенная статья', link: 'https://example.com/nested', published_at: '2026-09-14' },
+    ],
+  },
+});
+
+const BARE_ARRAY = JSON.stringify([
+  { title: 'Просто массив', url: 'https://example.com/array', date: '2026-09-13T00:00:00Z' },
+]);
+
 describe('feed parser', () => {
   it('reads an RSS 2.0 feed', () => {
     const feed = parseFeed(RSS);
@@ -70,6 +96,39 @@ describe('feed parser', () => {
   it('survives a record without a date', () => {
     const feed = parseFeed(RSS.replace(/<pubDate>[^<]*<\/pubDate>/, ''));
     expect(feed.items[0].publishedAt).toBeNull();
+  });
+
+  it('reads a NewsAPI-style answer and drops records without an address', () => {
+    const feed = parseFeed(NEWS_API, { contentType: 'application/json' });
+    expect(feed.items).toHaveLength(1);
+    expect(feed.items[0]).toEqual({
+      title: 'Ставку снова подняли',
+      url: 'https://example.com/rate',
+      publishedAt: Date.parse('2026-09-15T08:30:00Z'),
+    });
+  });
+
+  it('finds a list one level deeper and understands other field names', () => {
+    const feed = parseFeed(NESTED, { contentType: 'application/json' });
+    expect(feed.items[0].title).toBe('Вложенная статья');
+    expect(feed.items[0].url).toBe('https://example.com/nested');
+  });
+
+  it('follows an explicit path to the list', () => {
+    const feed = parseFeed(NESTED, { contentType: 'application/json', itemsPath: 'data.articles' });
+    expect(feed.items).toHaveLength(1);
+    expect(() => parseFeed(NESTED, { contentType: 'application/json', itemsPath: 'data.nope' })).toThrow(
+      /data.nope/,
+    );
+  });
+
+  it('reads a bare array of records', () => {
+    const feed = parseFeed(BARE_ARRAY, { contentType: 'application/json' });
+    expect(feed.items[0].url).toBe('https://example.com/array');
+  });
+
+  it('says what to do when the list is nowhere to be found', () => {
+    expect(() => parseFeed('{"status":"ok"}', { contentType: 'application/json' })).toThrow(/путь/i);
   });
 
   it('refuses what is not a feed', () => {

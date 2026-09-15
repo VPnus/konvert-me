@@ -82,6 +82,8 @@ test.describe('backup', () => {
 
     await page.getByTestId('wipe-data').click();
     await page.getByTestId('confirm-action').click();
+    // The dialog closes only when the wipe is really done — no race with the next step.
+    await expect(page.getByTestId('confirm-action')).toBeHidden();
 
     await page.goto('/balance');
     await expect(page.getByText('Счетов пока нет.', { exact: false })).toBeVisible();
@@ -112,6 +114,8 @@ test.describe('backup', () => {
 
     await page.getByTestId('wipe-data').click();
     await page.getByTestId('confirm-action').click();
+    // The dialog closes only when the wipe is really done — no race with the next step.
+    await expect(page.getByTestId('confirm-action')).toBeHidden();
 
     await page.getByTestId('backup-import').setInputFiles(file);
     await expect(page.getByTestId('import-password')).toBeVisible();

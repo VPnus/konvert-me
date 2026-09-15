@@ -1,4 +1,3 @@
-import { AppearanceCard } from '@/features/settings/cards/appearance-card';
 import { BackupCard } from '@/features/settings/cards/backup-card';
 import { CalculationCard } from '@/features/settings/cards/calculation-card';
 import { InstallCard } from '@/features/settings/cards/install-card';
@@ -19,7 +18,6 @@ export default function SettingsPage() {
       <StorageCard />
       <InstallCard />
       <SourcesCard />
-      <AppearanceCard />
     </section>
   );
 }

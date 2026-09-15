@@ -47,38 +47,27 @@ test('the theme toggle switches between dark and light and survives a reload', a
   await expect(html).not.toHaveClass(/dark/);
 });
 
-test.describe('wide screen', () => {
-  test.skip(({ viewport }) => (viewport?.width ?? 0) < 768, 'the sidebar only exists on a wide screen');
+test('the tab bar above the page walks through every tab', async ({ page }) => {
+  await page.goto('/overview');
+  const tabs = page.getByTestId('tab-bar');
 
-  test('the sidebar navigates between tabs', async ({ page }) => {
-    await page.goto('/overview');
-    const sidebar = page.getByRole('complementary');
-
-    for (const tab of TABS) {
-      await sidebar.getByRole('link', { name: tab.navLabel ?? tab.heading, exact: true }).click();
-      await expect(page).toHaveURL(new RegExp(`${tab.path}$`));
-      await expect(page.getByRole('heading', { name: tab.heading, level: 1 })).toBeVisible();
-    }
-  });
+  for (const tab of TABS) {
+    // On a narrow screen only the open tab keeps its name, so the tabs are found by
+    // the title their links carry at every width.
+    await tabs.locator(`a[title="${tab.navLabel ?? tab.heading}"]`).click();
+    await expect(page).toHaveURL(new RegExp(`${tab.path}$`));
+    await expect(page.getByRole('heading', { name: tab.heading, level: 1 })).toBeVisible();
+  }
 });
 
 test.describe('narrow screen, 375 px', () => {
-  test.skip(({ viewport }) => (viewport?.width ?? 0) >= 768, 'the bottom bar only exists on a narrow screen');
+  test.skip(({ viewport }) => (viewport?.width ?? 0) >= 768, 'this is about the phone layout');
 
-  test('the bottom bar navigates and "Ещё" opens the remaining tabs', async ({ page }) => {
+  test('the tab bar fits the width and nothing is pinned to the bottom', async ({ page }) => {
     await page.goto('/overview');
-    const bottomBar = page.locator('nav.fixed');
 
-    await bottomBar.getByRole('link', { name: 'Цели' }).click();
-    await expect(page).toHaveURL(/\/goals$/);
-
-    await page.getByTestId('nav-more').click();
-    const sheet = page.getByRole('dialog');
-    await expect(sheet).toBeVisible();
-
-    await sheet.getByRole('link', { name: 'Настройки' }).click();
-    await expect(page).toHaveURL(/\/settings$/);
-    await expect(page.getByRole('heading', { name: 'Настройки', level: 1 })).toBeVisible();
+    await expect(page.getByTestId('tab-bar').getByRole('link')).toHaveCount(TABS.length);
+    await expect(page.locator('nav.fixed')).toHaveCount(0);
   });
 
   test('no horizontal scrolling at 375 px', async ({ page }) => {

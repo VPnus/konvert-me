@@ -35,7 +35,7 @@ export function UpdatePrompt() {
       role="status"
       aria-live="polite"
       data-testid="pwa-prompt"
-      className="fixed inset-x-4 bottom-24 z-50 mx-auto max-w-md rounded-xl border border-border bg-card p-4 shadow-lg md:bottom-6"
+      className="fixed inset-x-4 bottom-6 z-50 mx-auto max-w-md rounded-xl border border-border bg-card p-4 shadow-lg"
     >
       {needRefresh ? (
         <div className="flex flex-col gap-3">

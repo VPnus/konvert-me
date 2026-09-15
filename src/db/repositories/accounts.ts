@@ -23,6 +23,7 @@ export interface AccountInput {
   rate?: number;
   maturityDate?: string;
   monthlyPaymentMinor?: number;
+  paymentDay?: number;
   endDate?: string;
   creditLimitMinor?: number;
   gracePeriodEnd?: string;

@@ -25,6 +25,7 @@ interface FormState {
   openingDate: string;
   isLiquid: boolean;
   monthlyPayment: string;
+  paymentDay: string;
 }
 
 function initialState(account?: Account): FormState {
@@ -37,6 +38,7 @@ function initialState(account?: Account): FormState {
       openingDate: account.openingDate,
       isLiquid: account.isLiquid,
       monthlyPayment: account.monthlyPaymentMinor ? String(minorToRubles(account.monthlyPaymentMinor)) : '',
+      paymentDay: account.paymentDay ? String(account.paymentDay) : '',
     };
   }
 
@@ -48,6 +50,7 @@ function initialState(account?: Account): FormState {
     openingDate: todayIso(),
     isLiquid: true,
     monthlyPayment: '',
+    paymentDay: '',
   };
 }
 
@@ -79,6 +82,7 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
         state.side === 'liability' && state.monthlyPayment
           ? rublesToMinor(Number(state.monthlyPayment.replace(',', '.')))
           : undefined,
+      paymentDay: state.side === 'liability' && state.paymentDay ? Number(state.paymentDay) : undefined,
     };
 
     try {
@@ -196,17 +200,35 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
                 {ru.accounts.isLiquid}
               </label>
             ) : (
-              <Field label={`${ru.accounts.monthlyPayment} (${ru.common.optional})`}>
-                {(id) => (
-                  <Input
-                    id={id}
-                    inputMode="decimal"
-                    value={state.monthlyPayment}
-                    data-testid="account-payment"
-                    onChange={(event) => patch({ monthlyPayment: event.target.value })}
-                  />
-                )}
-              </Field>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label={`${ru.accounts.monthlyPayment} (${ru.common.optional})`}>
+                  {(id) => (
+                    <Input
+                      id={id}
+                      inputMode="decimal"
+                      value={state.monthlyPayment}
+                      data-testid="account-payment"
+                      onChange={(event) => patch({ monthlyPayment: event.target.value })}
+                    />
+                  )}
+                </Field>
+
+                <Field label={ru.accounts.paymentDay} hint={ru.accounts.paymentDayHint}>
+                  {(id) => (
+                    <Input
+                      id={id}
+                      type="number"
+                      inputMode="numeric"
+                      min="1"
+                      max="31"
+                      value={state.paymentDay}
+                      placeholder={ru.accounts.paymentDayNone}
+                      data-testid="account-payment-day"
+                      onChange={(event) => patch({ paymentDay: event.target.value })}
+                    />
+                  )}
+                </Field>
+              </div>
             )}
 
             {error ? (

@@ -46,7 +46,10 @@ function AccountRow({
             </span>
           ) : null}
         </p>
-        <p className="truncate text-xs text-muted-foreground">{ru.accounts.types[account.type]}</p>
+        <p className="truncate text-xs text-muted-foreground">
+          {ru.accounts.types[account.type]}
+          {account.paymentDay ? ` · платёж ${account.paymentDay} числа` : ''}
+        </p>
       </div>
 
       <div className="flex shrink-0 items-center gap-1">

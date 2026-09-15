@@ -80,6 +80,28 @@ describe('accounts: creation', () => {
     ).rejects.toBeInstanceOf(ValidationError);
   });
 
+  it('keeps the payment day of a debt and checks its range', async () => {
+    const credit = await createAccount({
+      name: 'Кредитка',
+      side: 'liability',
+      type: 'credit_card',
+      openingBalanceMinor: 79_828 * RUB,
+      monthlyPaymentMinor: 13_300 * RUB,
+      paymentDay: 15,
+    });
+    expect(credit.paymentDay).toBe(15);
+
+    await expect(
+      createAccount({
+        name: 'Кредитка',
+        side: 'liability',
+        type: 'credit_card',
+        openingBalanceMinor: 0,
+        paymentDay: 32,
+      }),
+    ).rejects.toBeInstanceOf(ValidationError);
+  });
+
   it('refuses an impossible opening date', async () => {
     await expect(
       createAccount({

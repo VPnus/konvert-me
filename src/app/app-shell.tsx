@@ -18,9 +18,9 @@ function Sidebar() {
   return (
     <aside className="hidden w-64 shrink-0 border-r border-border bg-card md:flex md:flex-col">
       <div className="flex items-center gap-3 px-5 py-6">
-        <CatLogo className="size-10 shrink-0" />
+        <CatLogo className="size-14 shrink-0" />
         <div className="min-w-0">
-          <p className="truncate text-base font-semibold">{ru.app.name}</p>
+          <p className="truncate text-lg font-semibold">{ru.app.name}</p>
           <p className="truncate text-xs text-muted-foreground">{ru.app.tagline}</p>
         </div>
       </div>
@@ -129,8 +129,8 @@ export function AppShell() {
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between gap-3 border-b border-border bg-card px-4 py-3 md:hidden">
           <div className="flex min-w-0 items-center gap-2">
-            <CatLogo className="size-8 shrink-0" />
-            <span className="truncate text-sm font-semibold">{ru.app.name}</span>
+            <CatLogo className="size-10 shrink-0" />
+            <span className="truncate text-base font-semibold">{ru.app.name}</span>
           </div>
           <ThemeToggle />
         </header>

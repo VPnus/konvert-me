@@ -56,6 +56,8 @@ export const accountSchema = z
     rate: rate.optional(),
     maturityDate: isoDate.optional(),
     monthlyPaymentMinor: nonNegativeMinor.optional(),
+    /** Day of the month the payment is due; the "soon" feed of stage 6 uses it. */
+    paymentDay: z.number().int().min(1).max(31).optional(),
     endDate: isoDate.optional(),
     creditLimitMinor: nonNegativeMinor.optional(),
     gracePeriodEnd: isoDate.optional(),

@@ -8,6 +8,8 @@
  */
 :root {
   --radius: 0.75rem;
+  /* How long the colours take to cross over when the theme is switched. */
+  --theme-transition: 240ms;
 
   --background: oklch(1 0 0);
   --foreground: oklch(0.15 0 0);
@@ -113,5 +115,50 @@
   :focus-visible {
     outline: 2px solid var(--color-ring);
     outline-offset: 2px;
+  }
+
+  /*
+   * While the theme is being switched, every element-level transition is switched off.
+   * Buttons, links and fields each carry their own `transition-colors`, and a hundred
+   * of them repainting at once on the main thread is what makes a theme switch stutter.
+   * The smooth part is done once, for the whole page, by the cross-fade below.
+   */
+  html.theme-switching *,
+  html.theme-switching *::before,
+  html.theme-switching *::after {
+    transition: none !important;
+  }
+
+  /* Browsers without a cross-fade still ease the one thing that fills the screen. */
+  html.theme-switching,
+  html.theme-switching body {
+    transition:
+      background-color var(--theme-transition) ease,
+      color var(--theme-transition) ease !important;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html.theme-switching,
+    html.theme-switching body {
+      transition: none !important;
+    }
+  }
+}
+
+/*
+ * Switching the theme is one cross-fade of the whole page: the browser animates a
+ * snapshot of it on the compositor. Transitioning every element by hand turned a
+ * screen with a long table into a slideshow.
+ */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--theme-transition);
+  animation-timing-function: ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
   }
 }

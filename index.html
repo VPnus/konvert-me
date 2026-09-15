@@ -14,6 +14,22 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>Конверкот</title>
+    <script>
+      // The theme is applied before the first paint, otherwise a light-theme user sees
+      // a dark page flash by while the application boots.
+      (function () {
+        try {
+          var stored = localStorage.getItem('konvert-me.theme');
+          var dark = stored !== 'light';
+          document.documentElement.classList.toggle('dark', dark);
+          document
+            .querySelector('meta[name="theme-color"]')
+            .setAttribute('content', dark ? '#000000' : '#ffffff');
+        } catch (error) {
+          // blocked storage: the dark theme of the markup stays
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

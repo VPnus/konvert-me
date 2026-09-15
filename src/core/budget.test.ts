@@ -3,10 +3,12 @@ import { describe, expect, it } from 'vitest';
 import {
   affectsCashFlow,
   expensesByCategory,
+  expensesByGroup,
   freeCashMinor,
   monthTotals,
   planTotals,
   planVsFact,
+  yearPlanTotals,
   yearTotals,
 } from './budget';
 import type { CoreCategory, CoreTransaction } from './types';
@@ -207,5 +209,118 @@ describe('budget: plan versus fact', () => {
       categories,
     );
     expect(rows).toEqual([]);
+  });
+});
+
+/**
+ * The acceptance test of stage 4: a month with transfers, a refund and a purchase on a
+ * credit card, checked against numbers computed by hand.
+ *
+ * Income   120 000 + 15 000                                   = 135 000
+ * Expenses  35 000 + (18 500 - 1 200) + 24 990                =  77 290
+ * Free     135 000 - 77 290                                   =  57 710
+ */
+describe('budget: the totals of stage 4 match a hand calculation', () => {
+  const fullCategories: CoreCategory[] = [
+    { id: 'salary', kind: 'income' },
+    { id: 'side', kind: 'income' },
+    { id: 'rent', kind: 'expense', group: 'mandatory' },
+    { id: 'food', kind: 'expense', group: 'variable' },
+    { id: 'tech', kind: 'expense', group: 'variable' },
+  ];
+
+  const set: CoreTransaction[] = [
+    tx({ date: '2026-09-05', kind: 'income', amountMinor: r(120_000), categoryId: 'salary' }),
+    tx({ date: '2026-09-18', kind: 'income', amountMinor: r(15_000), categoryId: 'side', accountId: 'cash' }),
+    tx({ date: '2026-09-06', kind: 'expense', amountMinor: r(35_000), categoryId: 'rent' }),
+    tx({ date: '2026-09-07', kind: 'expense', amountMinor: r(18_500), categoryId: 'food' }),
+    tx({ date: '2026-09-12', kind: 'refund', amountMinor: r(1_200), categoryId: 'food' }),
+    // bought with a credit card: an expense of the month that also grows a debt
+    tx({
+      date: '2026-09-14',
+      kind: 'expense',
+      amountMinor: r(24_990),
+      categoryId: 'tech',
+      accountId: 'card',
+    }),
+    // a contribution to a goal and a card repayment: money moves, the budget does not
+    tx({ date: '2026-09-20', kind: 'transfer', amountMinor: r(30_000), toAccountId: 'savings' }),
+    tx({ date: '2026-09-25', kind: 'transfer', amountMinor: r(12_000), toAccountId: 'card' }),
+    tx({ date: '2026-09-30', kind: 'adjustment', amountMinor: r(500), accountId: 'cash' }),
+    // october, so that the year is more than one month
+    tx({ date: '2026-10-05', kind: 'income', amountMinor: r(120_000), categoryId: 'salary' }),
+    tx({ date: '2026-10-09', kind: 'expense', amountMinor: r(20_000), categoryId: 'food' }),
+  ];
+
+  const plans = [
+    { month: '2026-09', categoryId: 'salary', amountMinor: r(120_000) },
+    { month: '2026-09', categoryId: 'side', amountMinor: r(10_000) },
+    { month: '2026-09', categoryId: 'rent', amountMinor: r(35_000) },
+    { month: '2026-09', categoryId: 'food', amountMinor: r(20_000) },
+  ];
+
+  it('totals the month exactly as the hand calculation does', () => {
+    expect(monthTotals(set, '2026-09')).toEqual({
+      incomeMinor: r(135_000),
+      expenseMinor: r(77_290),
+      freeCashMinor: r(57_710),
+    });
+  });
+
+  it('splits the expenses into mandatory and variable', () => {
+    expect(expensesByGroup(set, '2026-09', fullCategories)).toEqual({
+      mandatoryMinor: r(35_000),
+      variableMinor: r(42_290),
+      ungroupedMinor: 0,
+    });
+  });
+
+  it('puts an expense without a category outside both groups', () => {
+    const groups = expensesByGroup(
+      [tx({ date: '2026-09-03', kind: 'expense', amountMinor: r(700) })],
+      '2026-09',
+      fullCategories,
+    );
+    expect(groups).toEqual({ mandatoryMinor: 0, variableMinor: 0, ungroupedMinor: r(700) });
+  });
+
+  it('sums the year from the months', () => {
+    const year = yearTotals(set, 2026);
+    expect(year.incomeMinor).toBe(r(255_000));
+    expect(year.expenseMinor).toBe(r(97_290));
+    expect(year.freeCashMinor).toBe(r(157_710));
+    expect(year.byMonth['2026-09'].freeCashMinor).toBe(r(57_710));
+    expect(year.byMonth['2026-10'].freeCashMinor).toBe(r(100_000));
+  });
+
+  it('sums the plan of the year the same way', () => {
+    const year = yearPlanTotals(plans, 2026, fullCategories);
+    expect(year.incomeMinor).toBe(r(130_000));
+    expect(year.expenseMinor).toBe(r(55_000));
+    expect(year.freeCashMinor).toBe(r(75_000));
+    expect(year.byMonth['2026-09'].freeCashMinor).toBe(r(75_000));
+    expect(year.byMonth['2026-10'].incomeMinor).toBe(0);
+  });
+
+  it('keeps the deviations of the categories equal to the deviation of the month', () => {
+    const rows = planVsFact(plans, set, '2026-09', fullCategories);
+    expect(rows.map((row) => [row.categoryId, row.deviationMinor])).toEqual([
+      ['salary', 0],
+      ['side', r(5_000)],
+      ['rent', 0],
+      ['food', r(2_700)],
+      ['tech', -r(24_990)],
+    ]);
+
+    const sum = rows.reduce((total, row) => total + row.deviationMinor, 0);
+    const fact = monthTotals(set, '2026-09').freeCashMinor;
+    const plan = planTotals(plans, '2026-09', fullCategories).freeCashMinor;
+    expect(sum).toBe(fact - plan);
+  });
+
+  it('keeps a row for an untouched category when the screen asks for one', () => {
+    const rows = planVsFact([], [], '2026-09', fullCategories, { includeEmpty: true });
+    expect(rows).toHaveLength(fullCategories.length);
+    expect(rows.every((row) => row.planMinor === 0 && row.factMinor === 0)).toBe(true);
   });
 });

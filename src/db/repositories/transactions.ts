@@ -3,7 +3,7 @@
  * expense, so transfers stay out of income and expenses (formula 7).
  */
 
-import { monthOfDate, type IsoMonth } from '@/core/time';
+import { monthOfDate, yearOfMonth, type IsoMonth } from '@/core/time';
 import { db } from '@/db/db';
 import { RepositoryError } from '@/db/errors';
 import { transactionSchema, type Transaction } from '@/db/models';
@@ -22,6 +22,37 @@ export interface TransactionInput {
   note?: string;
 }
 
+/** Both sides of an operation: money leaving one account can break its envelopes. */
+function accountsOf(...transactions: (Transaction | undefined)[]): string[] {
+  const ids = new Set<string>();
+  for (const transaction of transactions) {
+    if (!transaction) continue;
+    ids.add(transaction.accountId);
+    if (transaction.toAccountId) ids.add(transaction.toAccountId);
+  }
+  return [...ids];
+}
+
+async function assertAccountsExist(transaction: Transaction): Promise<void> {
+  const accounts = await db.accounts.bulkGet(accountsOf(transaction));
+  if (accounts.some((account) => account === undefined)) {
+    throw new RepositoryError('Счёт операции не найден');
+  }
+}
+
+/** Runs a change and puts the previous rows back if it breaks the envelopes. */
+async function keepEnvelopesIntact(
+  accountIds: readonly string[],
+  rollback: () => Promise<unknown>,
+): Promise<void> {
+  try {
+    for (const accountId of accountIds) await assertEnvelopesFit(accountId);
+  } catch (error) {
+    await rollback();
+    throw error;
+  }
+}
+
 export async function createTransaction(input: TransactionInput): Promise<Transaction> {
   const transaction = parseOrThrow(
     transactionSchema,
@@ -29,40 +60,115 @@ export async function createTransaction(input: TransactionInput): Promise<Transa
     'Операция',
   );
 
-  const accounts = await db.accounts.bulkGet(
-    [transaction.accountId, transaction.toAccountId].filter((id): id is string => Boolean(id)),
-  );
-  if (accounts.some((account) => account === undefined)) {
-    throw new RepositoryError('Счёт операции не найден');
-  }
-
+  await assertAccountsExist(transaction);
   await db.transactions.add(transaction);
 
-  // Money that left an account may no longer cover the envelopes standing on it.
-  try {
-    await assertEnvelopesFit(transaction.accountId);
-  } catch (error) {
-    await db.transactions.delete(transaction.id);
-    throw error;
-  }
+  await keepEnvelopesIntact(accountsOf(transaction), () => db.transactions.delete(transaction.id));
 
   publishAppEvent({ type: 'data-changed' });
   return transaction;
 }
 
+export async function getTransaction(id: string): Promise<Transaction | undefined> {
+  return db.transactions.get(id);
+}
+
+export async function updateTransaction(id: string, patch: Partial<TransactionInput>): Promise<Transaction> {
+  const current = await db.transactions.get(id);
+  if (!current) throw new RepositoryError('Операция не найдена');
+
+  const next = parseOrThrow(
+    transactionSchema,
+    {
+      ...current,
+      ...patch,
+      // A kind that carries no counterparty or category must not keep the old one.
+      toAccountId:
+        patch.kind && patch.kind !== 'transfer' ? undefined : (patch.toAccountId ?? current.toAccountId),
+      categoryId:
+        patch.kind && !['income', 'expense', 'refund'].includes(patch.kind)
+          ? undefined
+          : (patch.categoryId ?? current.categoryId),
+      id: current.id,
+      createdAt: current.createdAt,
+    },
+    'Операция',
+  );
+
+  await assertAccountsExist(next);
+  await db.transactions.put(next);
+
+  // Both the old and the new accounts are checked: money may have moved between them.
+  await keepEnvelopesIntact(accountsOf(current, next), () => db.transactions.put(current));
+
+  publishAppEvent({ type: 'data-changed' });
+  return next;
+}
+
 export async function deleteTransaction(id: string): Promise<void> {
+  const current = await db.transactions.get(id);
+  if (!current) return;
+
   await db.transactions.delete(id);
+
+  // Removing an income can leave the envelopes of its account without cover.
+  await keepEnvelopesIntact(accountsOf(current), () => db.transactions.add(current));
+
   publishAppEvent({ type: 'data-changed' });
 }
 
-export async function listTransactionsOfMonth(month: IsoMonth): Promise<Transaction[]> {
+export interface TransactionFilter {
+  readonly month?: IsoMonth;
+  readonly year?: number;
+  readonly kinds?: readonly Transaction['kind'][];
+  readonly categoryId?: string;
+  /** Matches either side of a transfer. */
+  readonly accountId?: string;
+  /** Free text: a word of the note or a piece of the amount. */
+  readonly query?: string;
+  readonly limit?: number;
+}
+
+function matchesQuery(transaction: Transaction, query: string): boolean {
+  const needle = query.trim().toLocaleLowerCase('ru');
+  if (!needle) return true;
+  if (transaction.note?.toLocaleLowerCase('ru').includes(needle)) return true;
+  if (transaction.date.includes(needle)) return true;
+  // "1500" finds 1 500,00 ₽ — the amount as it is typed, not as it is formatted.
+  return String(transaction.amountMinor / 100).includes(needle);
+}
+
+/** Newest first, which is the order both the list and the dashboard want. */
+function byDateDesc(a: Transaction, b: Transaction): number {
+  return b.date.localeCompare(a.date) || b.createdAt - a.createdAt;
+}
+
+export async function listTransactions(filter: TransactionFilter = {}): Promise<Transaction[]> {
   const all = await db.transactions.toArray();
-  return all
-    .filter((transaction) => monthOfDate(transaction.date) === month)
-    .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt);
+
+  const found = all.filter((transaction) => {
+    if (filter.month && monthOfDate(transaction.date) !== filter.month) return false;
+    if (filter.year !== undefined && yearOfMonth(monthOfDate(transaction.date)) !== filter.year) return false;
+    if (filter.kinds && filter.kinds.length > 0 && !filter.kinds.includes(transaction.kind)) return false;
+    if (filter.categoryId && transaction.categoryId !== filter.categoryId) return false;
+    if (
+      filter.accountId &&
+      transaction.accountId !== filter.accountId &&
+      transaction.toAccountId !== filter.accountId
+    ) {
+      return false;
+    }
+    return filter.query ? matchesQuery(transaction, filter.query) : true;
+  });
+
+  found.sort(byDateDesc);
+  return filter.limit === undefined ? found : found.slice(0, filter.limit);
+}
+
+export async function listTransactionsOfMonth(month: IsoMonth): Promise<Transaction[]> {
+  return listTransactions({ month });
 }
 
 export async function listRecentTransactions(limit = 10): Promise<Transaction[]> {
-  const all = await db.transactions.toArray();
-  return all.sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt).slice(0, limit);
+  return listTransactions({ limit });
 }

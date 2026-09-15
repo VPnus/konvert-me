@@ -14,7 +14,9 @@ import {
   createTransaction,
   deleteTransaction,
   listRecentTransactions,
+  listTransactions,
   listTransactionsOfMonth,
+  updateTransaction,
 } from '@/db/repositories/transactions';
 
 const RUB = 100;
@@ -148,5 +150,210 @@ describe('transactions', () => {
     await deleteTransaction(transaction.id);
     expect(await db.transactions.count()).toBe(0);
     expect(await getAccountBalanceMinor(account.id)).toBe(10_000 * RUB);
+  });
+});
+
+describe('transactions: editing', () => {
+  async function setUp() {
+    await seedDefaultCategories();
+    const card = await createAccount({
+      name: 'Карта',
+      side: 'asset',
+      type: 'debit',
+      openingBalanceMinor: 50_000 * RUB,
+      openingDate: '2026-09-01',
+    });
+    const savings = await createAccount({
+      name: 'Накопительный',
+      side: 'asset',
+      type: 'savings',
+      openingBalanceMinor: 0,
+      openingDate: '2026-09-01',
+    });
+    return { card, savings };
+  }
+
+  it('changes the amount, the category and the account of an operation', async () => {
+    const { card, savings } = await setUp();
+    const transaction = await createTransaction({
+      date: '2026-09-10',
+      amountMinor: 1_000 * RUB,
+      kind: 'expense',
+      accountId: card.id,
+      categoryId: 'groceries',
+    });
+
+    const updated = await updateTransaction(transaction.id, {
+      amountMinor: 1_500 * RUB,
+      categoryId: 'cafe',
+      accountId: savings.id,
+      note: 'ужин',
+    });
+
+    expect(updated.amountMinor).toBe(1_500 * RUB);
+    expect(updated.categoryId).toBe('cafe');
+    expect(updated.createdAt).toBe(transaction.createdAt);
+    expect(await getAccountBalanceMinor(card.id)).toBe(50_000 * RUB);
+    expect(await getAccountBalanceMinor(savings.id)).toBe(-1_500 * RUB);
+  });
+
+  it('drops the category when an expense becomes a transfer', async () => {
+    const { card, savings } = await setUp();
+    const transaction = await createTransaction({
+      date: '2026-09-10',
+      amountMinor: 2_000 * RUB,
+      kind: 'expense',
+      accountId: card.id,
+      categoryId: 'groceries',
+    });
+
+    const updated = await updateTransaction(transaction.id, {
+      kind: 'transfer',
+      toAccountId: savings.id,
+    });
+
+    expect(updated.categoryId).toBeUndefined();
+    expect(await getAccountBalanceMinor(savings.id)).toBe(2_000 * RUB);
+  });
+
+  it('refuses an edit that would break the envelopes and keeps the old row', async () => {
+    const { card } = await setUp();
+    const transaction = await createTransaction({
+      date: '2026-09-10',
+      amountMinor: 1_000 * RUB,
+      kind: 'expense',
+      accountId: card.id,
+      categoryId: 'groceries',
+    });
+    const goal = await createGoal({
+      name: 'Отпуск',
+      kind: 'purchase',
+      costMinor: 100,
+      costAsOf: '2026-09',
+      targetMonth: '2027-06',
+    });
+    await setEnvelope(goal.id, card.id, 49_000 * RUB);
+
+    await expect(updateTransaction(transaction.id, { amountMinor: 30_000 * RUB })).rejects.toThrow(
+      /конверт/i,
+    );
+
+    expect((await db.transactions.get(transaction.id))?.amountMinor).toBe(1_000 * RUB);
+    expect(await getAccountBalanceMinor(card.id)).toBe(49_000 * RUB);
+  });
+
+  it('refuses to delete an income the envelopes still lean on', async () => {
+    const { card } = await setUp();
+    const income = await createTransaction({
+      date: '2026-09-05',
+      amountMinor: 20_000 * RUB,
+      kind: 'income',
+      accountId: card.id,
+      categoryId: 'salary',
+    });
+    const goal = await createGoal({
+      name: 'Машина',
+      kind: 'purchase',
+      costMinor: 100,
+      costAsOf: '2026-09',
+      targetMonth: '2028-01',
+    });
+    await setEnvelope(goal.id, card.id, 65_000 * RUB);
+
+    await expect(deleteTransaction(income.id)).rejects.toThrow(/конверт/i);
+    expect(await db.transactions.count()).toBe(1);
+    expect(await getAccountBalanceMinor(card.id)).toBe(70_000 * RUB);
+  });
+
+  it('reports a missing operation instead of writing a new one', async () => {
+    await expect(updateTransaction('нет-такой', { amountMinor: 100 })).rejects.toBeInstanceOf(
+      RepositoryError,
+    );
+    // deleting what is not there is quietly fine
+    await expect(deleteTransaction('нет-такой')).resolves.toBeUndefined();
+  });
+});
+
+describe('transactions: search and filters', () => {
+  async function fill() {
+    await seedDefaultCategories();
+    const card = await createAccount({
+      name: 'Карта',
+      side: 'asset',
+      type: 'debit',
+      openingBalanceMinor: 100_000 * RUB,
+      openingDate: '2026-09-01',
+    });
+    const savings = await createAccount({
+      name: 'Накопительный',
+      side: 'asset',
+      type: 'savings',
+      openingBalanceMinor: 0,
+      openingDate: '2026-09-01',
+    });
+
+    await createTransaction({
+      date: '2026-09-05',
+      amountMinor: 120_000 * RUB,
+      kind: 'income',
+      accountId: card.id,
+      categoryId: 'salary',
+      note: 'Зарплата за август',
+    });
+    await createTransaction({
+      date: '2026-09-07',
+      amountMinor: 1_500 * RUB,
+      kind: 'expense',
+      accountId: card.id,
+      categoryId: 'groceries',
+      note: 'Продукты на неделю',
+    });
+    await createTransaction({
+      date: '2026-09-20',
+      amountMinor: 30_000 * RUB,
+      kind: 'transfer',
+      accountId: card.id,
+      toAccountId: savings.id,
+    });
+    await createTransaction({
+      date: '2026-10-02',
+      amountMinor: 900 * RUB,
+      kind: 'expense',
+      accountId: card.id,
+      categoryId: 'cafe',
+    });
+
+    return { card, savings };
+  }
+
+  it('filters by month, kind, category and account', async () => {
+    const { savings } = await fill();
+
+    expect(await listTransactions({ month: '2026-09' })).toHaveLength(3);
+    expect(await listTransactions({ month: '2026-09', kinds: ['expense'] })).toHaveLength(1);
+    expect(await listTransactions({ categoryId: 'cafe' })).toHaveLength(1);
+    expect(await listTransactions({ year: 2026 })).toHaveLength(4);
+    expect(await listTransactions({ year: 2025 })).toHaveLength(0);
+
+    // the receiving side of a transfer counts as that account's operation too
+    expect(await listTransactions({ accountId: savings.id })).toHaveLength(1);
+  });
+
+  it('finds an operation by a word of the note or by the amount', async () => {
+    await fill();
+
+    expect(await listTransactions({ query: 'продукты' })).toHaveLength(1);
+    expect(await listTransactions({ query: 'ЗАРПЛАТА' })).toHaveLength(1);
+    expect(await listTransactions({ query: '1500' })).toHaveLength(1);
+    expect(await listTransactions({ query: '   ' })).toHaveLength(4);
+    expect(await listTransactions({ query: 'ничего такого' })).toHaveLength(0);
+  });
+
+  it('returns the newest first and honours the limit', async () => {
+    await fill();
+    const recent = await listTransactions({ limit: 2 });
+    expect(recent).toHaveLength(2);
+    expect(recent[0].date).toBe('2026-10-02');
+    expect(recent[1].date).toBe('2026-09-20');
   });
 });

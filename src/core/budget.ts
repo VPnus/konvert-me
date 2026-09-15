@@ -100,6 +100,62 @@ export function incomeByCategory(
   return totalsByCategory(transactions, month, 'income');
 }
 
+/** The plan of every month of a year, with the year totals — the mirror of yearTotals. */
+export function yearPlanTotals(
+  plans: readonly CoreBudgetPlanLine[],
+  year: number,
+  categories: readonly CoreCategory[],
+): YearTotals {
+  const byMonth: Record<IsoMonth, MonthTotals> = {};
+  let incomeMinor = 0;
+  let expenseMinor = 0;
+
+  for (const month of monthsOfYear(year)) {
+    const totals = planTotals(plans, month, categories);
+    byMonth[month] = totals;
+    incomeMinor += totals.incomeMinor;
+    expenseMinor += totals.expenseMinor;
+  }
+
+  return { incomeMinor, expenseMinor, freeCashMinor: incomeMinor - expenseMinor, byMonth };
+}
+
+export interface GroupTotals {
+  readonly mandatoryMinor: number;
+  readonly variableMinor: number;
+  /** Expenses of a category that has no group, and expenses with no category at all. */
+  readonly ungroupedMinor: number;
+}
+
+/**
+ * Expenses of a month split into mandatory and variable, as the template of lesson 2.9
+ * does it. Refunds are already subtracted; transfers never appear here.
+ */
+export function expensesByGroup(
+  transactions: readonly CoreTransaction[],
+  month: IsoMonth,
+  categories: readonly CoreCategory[],
+): GroupTotals {
+  const groupOf = new Map(categories.map((category) => [category.id, category.group]));
+  let mandatoryMinor = 0;
+  let variableMinor = 0;
+  let ungroupedMinor = 0;
+
+  for (const transaction of transactions) {
+    if (!affectsCashFlow(transaction.kind) || transaction.kind === 'income') continue;
+    if (monthOfDate(transaction.date) !== month) continue;
+
+    const signed = transaction.kind === 'refund' ? -transaction.amountMinor : transaction.amountMinor;
+    const group = transaction.categoryId ? groupOf.get(transaction.categoryId) : undefined;
+
+    if (group === 'mandatory') mandatoryMinor += signed;
+    else if (group === 'variable') variableMinor += signed;
+    else ungroupedMinor += signed;
+  }
+
+  return { mandatoryMinor, variableMinor, ungroupedMinor };
+}
+
 export function planTotals(
   plans: readonly CoreBudgetPlanLine[],
   month: IsoMonth,
@@ -129,11 +185,17 @@ export interface PlanFactRow {
   readonly deviationMinor: number;
 }
 
+export interface PlanVsFactOptions {
+  /** Keep a row for a category with neither a plan nor a fact, so a plan can be typed in. */
+  readonly includeEmpty?: boolean;
+}
+
 export function planVsFact(
   plans: readonly CoreBudgetPlanLine[],
   transactions: readonly CoreTransaction[],
   month: IsoMonth,
   categories: readonly CoreCategory[],
+  options: PlanVsFactOptions = {},
 ): PlanFactRow[] {
   const income = incomeByCategory(transactions, month);
   const expense = expensesByCategory(transactions, month);
@@ -148,7 +210,7 @@ export function planVsFact(
   for (const category of categories) {
     const planMinor = planned.get(category.id) ?? 0;
     const factMinor = (category.kind === 'income' ? income.get(category.id) : expense.get(category.id)) ?? 0;
-    if (planMinor === 0 && factMinor === 0) continue;
+    if (planMinor === 0 && factMinor === 0 && !options.includeEmpty) continue;
     rows.push({
       categoryId: category.id,
       kind: category.kind,

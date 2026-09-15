@@ -166,6 +166,10 @@ export async function assertEnvelopesFit(accountId: string): Promise<void> {
   ]);
 
   const reserved = envelopes.reduce((total, envelope) => total + envelope.amountMinor, 0);
+  // Nothing is reserved on this account, so there is nothing to protect: an ordinary
+  // overdraft is the user's business and must not be refused as an envelope problem.
+  if (reserved === 0) return;
+
   if (!envelopesFitAccount(balance, reserved)) {
     throw new RepositoryError(
       'Сумма конвертов на счёте больше его остатка. Уменьшите конверты или пополните счёт.',

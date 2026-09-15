@@ -1,4 +1,4 @@
-import { addMonths, type IsoMonth } from '@/core/time';
+import { addMonths, monthsOfYear, type IsoMonth } from '@/core/time';
 import { db } from '@/db/db';
 import { budgetPlanSchema, type BudgetPlan } from '@/db/models';
 import { parseOrThrow } from '@/db/validate';
@@ -8,9 +8,29 @@ export async function listPlansOfMonth(month: IsoMonth): Promise<BudgetPlan[]> {
   return db.budgetPlans.where('month').equals(month).toArray();
 }
 
-/** One line per category and month: writing the same pair twice replaces the line. */
-export async function setPlan(month: IsoMonth, categoryId: string, amountMinor: number): Promise<BudgetPlan> {
+export async function listPlansOfYear(year: number): Promise<BudgetPlan[]> {
+  return db.budgetPlans.where('month').anyOf(monthsOfYear(year)).toArray();
+}
+
+/**
+ * One line per category and month: writing the same pair twice replaces the line, and
+ * a plan of zero removes it — an empty cell and a zero mean the same thing.
+ */
+export async function setPlan(
+  month: IsoMonth,
+  categoryId: string,
+  amountMinor: number,
+): Promise<BudgetPlan | null> {
   const existing = await db.budgetPlans.where('[month+categoryId]').equals([month, categoryId]).first();
+
+  if (amountMinor === 0) {
+    if (existing) {
+      await db.budgetPlans.delete(existing.id);
+      publishAppEvent({ type: 'data-changed' });
+    }
+    return null;
+  }
+
   const line = parseOrThrow(
     budgetPlanSchema,
     { id: existing?.id ?? crypto.randomUUID(), month, categoryId, amountMinor },

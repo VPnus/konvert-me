@@ -13,11 +13,18 @@ import {
   setAccountArchived,
   updateAccount,
 } from '@/db/repositories/accounts';
+import { seedDefaultCategories } from '@/db/repositories/categories';
+import { createTransaction } from '@/db/repositories/transactions';
 
 const RUB = 100;
 
 beforeEach(async () => {
-  await Promise.all([db.accounts.clear(), db.transactions.clear(), db.envelopes.clear()]);
+  await Promise.all([
+    db.accounts.clear(),
+    db.transactions.clear(),
+    db.envelopes.clear(),
+    db.categories.clear(),
+  ]);
 });
 
 describe('accounts: creation', () => {
@@ -300,5 +307,28 @@ describe('accounts: the envelopes of an account never exceed its balance', () =>
     ]);
 
     await expect(assertEnvelopesFit(account.id)).rejects.toThrow(/конверт/i);
+  });
+});
+
+describe('accounts: an account without envelopes', () => {
+  it('may go negative — that is an overdraft, not a broken envelope', async () => {
+    await seedDefaultCategories();
+    const account = await createAccount({
+      name: 'Карта',
+      side: 'asset',
+      type: 'debit',
+      openingBalanceMinor: 1_000 * 100,
+      openingDate: '2026-09-01',
+    });
+
+    await createTransaction({
+      date: '2026-09-10',
+      amountMinor: 1_500 * 100,
+      kind: 'expense',
+      accountId: account.id,
+      categoryId: 'groceries',
+    });
+
+    expect(await getAccountBalanceMinor(account.id)).toBe(-500 * 100);
   });
 });

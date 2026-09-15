@@ -22,9 +22,12 @@ export default defineConfig({
   ],
   webServer: {
     // The service worker only exists in a real build, so e2e runs against the preview.
-    command: `npm run build && npx vite preview --port ${PORT} --strictPort`,
+    // The host is pinned: on a CI runner plain "localhost" can resolve to IPv6 only.
+    command: `npm run build && npx vite preview --host 127.0.0.1 --port ${PORT} --strictPort`,
     url: BASE_URL,
     reuseExistingServer: !process.env.CI,
-    timeout: 180_000,
+    timeout: 300_000,
+    stdout: 'pipe',
+    stderr: 'pipe',
   },
 });

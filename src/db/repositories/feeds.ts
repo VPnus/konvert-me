@@ -57,6 +57,22 @@ export function buildFeedRequest(feed: Feed): { url: string; headers: Record<str
   return { url: url.toString(), headers };
 }
 
+/**
+ * What a refusal usually means, in plain words. 426 is how the news APIs say
+ * "not from a browser on this plan" — the answer never reaches the page anyway.
+ */
+function statusHint(status: number): string {
+  if (status === 401 || status === 403) return ' Похоже, ключ не подошёл или у него нет доступа.';
+  if (status === 426) {
+    return (
+      ' Источник не обслуживает запросы из браузера на этом тарифе.' +
+      ' Ключ тут ни при чём: нужен либо другой источник, либо свой сервер-посредник.'
+    );
+  }
+  if (status === 429) return ' Слишком много запросов — источник просит подождать.';
+  return '';
+}
+
 /** Every secret of a feed, so that none of them leaks into a message. */
 export function secretsOf(feed: Feed): string[] {
   const auth = feed.auth ?? { kind: 'none' };
@@ -148,11 +164,7 @@ export async function refreshFeed(feed: Feed, now: number = Date.now()): Promise
     });
 
     if (!response.ok) {
-      const hint =
-        response.status === 401 || response.status === 403
-          ? ' Похоже, ключ не подошёл или у него нет доступа.'
-          : '';
-      throw new Error(`Источник ответил ошибкой ${response.status}.${hint}`);
+      throw new Error(`Источник ответил ошибкой ${response.status}.${statusHint(response.status)}`);
     }
 
     const parsed = parseFeed(await response.text(), {

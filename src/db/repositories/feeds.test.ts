@@ -185,6 +185,18 @@ describe('the key of a source', () => {
     await expect(refreshFeed(feed)).rejects.toThrow(/ключ/i);
   });
 
+  it('explains a 426 as a source that refuses browsers', async () => {
+    await updateSettings({ externalFeedsEnabled: true });
+    const feed = await createFeed({
+      title: 'API',
+      url: 'https://newsapi.example.org/v2/everything',
+      auth: { kind: 'query', paramName: 'apiKey', key: 'valid-key' },
+    });
+    vi.stubGlobal('fetch', mockFetch('', { ok: false, status: 426 }));
+
+    await expect(refreshFeed(feed)).rejects.toThrow(/из браузера/i);
+  });
+
   it('keeps the stored key when only the address is changed', async () => {
     const feed = await createFeed({
       title: 'API',

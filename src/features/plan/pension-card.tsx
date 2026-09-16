@@ -60,7 +60,8 @@ function initialForm(
     birthMonth: '',
     retirementAge: DEFAULT_RETIREMENT_AGE,
     lifeAge: DEFAULT_LIFE_AGE,
-    expenses: averageExpensesMinor > 0 ? String(Math.round(minorToRubles(averageExpensesMinor))) : '',
+    // An average of three months is rarely whole kopecks: round it before it becomes rubles.
+    expenses: averageExpensesMinor > 0 ? String(Math.round(averageExpensesMinor / 100)) : '',
     replacement: DEFAULT_REPLACEMENT_PERCENT,
     statePension: '0',
     returnRate: rateText(settings.defaultReturnRate),

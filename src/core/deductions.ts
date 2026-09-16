@@ -170,3 +170,85 @@ export function carryPropertyDeduction(deductionMinor: number, years: readonly T
     };
   });
 }
+
+/** Contributions to an investment account and other long-term savings, up to the yearly limit. */
+export function longTermSavingsDeductionMinor(
+  contributionsMinor: number,
+  rules: Pick<YearRules, 'longTermSavingsLimitMinor'>,
+): Minor {
+  assertNonNegativeMinor(contributionsMinor, 'longTermSavingsMinor');
+  return Math.min(contributionsMinor, rules.longTermSavingsLimitMinor.value);
+}
+
+/** What a person claims for one year, in the terms of the law. */
+export interface DeductionClaim {
+  /** Income before tax, taxed on the progressive scale. */
+  readonly incomeMinor: number;
+  readonly social: SocialSpending;
+  /** Contributions to an investment account and other long-term savings. */
+  readonly longTermSavingsMinor: number;
+  /** A home, as this year's return states it: what earlier returns took is taken off. */
+  readonly property?: PropertyClaim & { readonly usedBeforeMinor: number };
+}
+
+export interface DeductionSummary {
+  readonly taxPaidMinor: Minor;
+  readonly socialDeductionMinor: Minor;
+  readonly socialRefundMinor: Minor;
+  readonly longTermSavingsDeductionMinor: Minor;
+  readonly longTermSavingsRefundMinor: Minor;
+  readonly property?: {
+    /** What was left of the home's deduction when the year began. */
+    readonly availableMinor: Minor;
+    readonly usedMinor: Minor;
+    readonly refundMinor: Minor;
+    /** What moves on to the returns of the years after. */
+    readonly leftMinor: Minor;
+  };
+  /** Everything the year gives back — never more than the tax it paid. */
+  readonly refundMinor: Minor;
+}
+
+/**
+ * One year of deductions, the way a return is counted. The deductions that die with the
+ * year — social ones and long-term savings — are spent first; the home takes what income
+ * is left, and its rest moves on. Each part's refund is what it takes off the tax after
+ * the parts before it, so the parts add up to the whole.
+ */
+export function summarizeDeductionYear(claim: DeductionClaim, rules: YearRules): DeductionSummary {
+  const bands = rules.incomeTaxBands.value;
+  const social = socialDeductionMinor(claim.social, rules);
+  const savings = longTermSavingsDeductionMinor(claim.longTermSavingsMinor, rules);
+
+  const socialRefund = refundMinor(claim.incomeMinor, social, bands);
+  const afterSocial = Math.max(0, claim.incomeMinor - social);
+  const savingsRefund = refundMinor(afterSocial, savings, bands);
+
+  let property: DeductionSummary['property'];
+  if (claim.property) {
+    assertNonNegativeMinor(claim.property.usedBeforeMinor, 'usedBeforeMinor');
+    const available = Math.max(
+      0,
+      propertyDeductionMinor(claim.property, rules) - claim.property.usedBeforeMinor,
+    );
+    const [year] = carryPropertyDeduction(available, [
+      { year: rules.year, incomeMinor: claim.incomeMinor, otherDeductionsMinor: social + savings, bands },
+    ]);
+    property = {
+      availableMinor: available,
+      usedMinor: year.usedMinor,
+      refundMinor: year.refundMinor,
+      leftMinor: year.leftMinor,
+    };
+  }
+
+  return {
+    taxPaidMinor: incomeTaxMinor(claim.incomeMinor, bands),
+    socialDeductionMinor: social,
+    socialRefundMinor: socialRefund,
+    longTermSavingsDeductionMinor: savings,
+    longTermSavingsRefundMinor: savingsRefund,
+    property,
+    refundMinor: socialRefund + savingsRefund + (property?.refundMinor ?? 0),
+  };
+}

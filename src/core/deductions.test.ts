@@ -4,9 +4,12 @@ import {
   carryPropertyDeduction,
   claimableYears,
   incomeTaxMinor,
+  longTermSavingsDeductionMinor,
   propertyDeductionMinor,
   refundMinor,
   socialDeductionMinor,
+  summarizeDeductionYear,
+  type DeductionClaim,
   type SocialSpending,
 } from './deductions';
 import { RULES_2023 } from './rules/2023';
@@ -285,5 +288,129 @@ describe('carrying the property deduction over the years', () => {
 
   it('refuses a negative income instead of treating it as none', () => {
     expect(() => carryPropertyDeduction(r(100_000), [year(2025, -1)])).toThrow();
+  });
+});
+
+describe('long-term savings', () => {
+  it('stops the contributions of a year at 400 000', () => {
+    expect(longTermSavingsDeductionMinor(r(500_000), RULES_2026)).toBe(r(400_000));
+    expect(longTermSavingsDeductionMinor(r(120_000), RULES_2026)).toBe(r(120_000));
+  });
+
+  it('refuses a negative contribution', () => {
+    expect(() => longTermSavingsDeductionMinor(-1, RULES_2026)).toThrow();
+  });
+});
+
+describe('a year of deductions summed up', () => {
+  const claim = (patch: Partial<DeductionClaim>): DeductionClaim => ({
+    incomeMinor: r(1_200_000),
+    social: noSpending,
+    longTermSavingsMinor: 0,
+    ...patch,
+  });
+  const home = (purchase: number, usedBefore = 0) => ({
+    purchaseMinor: r(purchase),
+    mortgageInterestMinor: 0,
+    loanBefore2014: false,
+    usedBeforeMinor: r(usedBefore),
+  });
+
+  it('gives the tax service example: 300 000 of schooling on 100 000 a month returns 19 500', () => {
+    const summary = summarizeDeductionYear(
+      claim({ social: { ...noSpending, commonMinor: r(300_000) } }),
+      RULES_2026,
+    );
+
+    expect(summary).toMatchObject({
+      taxPaidMinor: r(156_000),
+      socialDeductionMinor: r(150_000),
+      socialRefundMinor: r(19_500),
+      refundMinor: r(19_500),
+    });
+    expect(summary.property).toBeUndefined();
+  });
+
+  it('gives the scale example: a home of 2 million on 3,5 million returns 282 000 in 2025', () => {
+    const summary = summarizeDeductionYear(
+      claim({ incomeMinor: r(3_500_000), property: home(2_000_000) }),
+      RULES_2025,
+    );
+
+    expect(summary.taxPaidMinor).toBe(r(477_000));
+    expect(summary.property).toEqual({
+      availableMinor: r(2_000_000),
+      usedMinor: r(2_000_000),
+      refundMinor: r(282_000),
+      leftMinor: 0,
+    });
+    expect(summary.refundMinor).toBe(r(282_000));
+  });
+
+  it('returns 52 000 for 400 000 put into long-term savings at 13 %', () => {
+    // a source on the investment account: 13 % of 400 000 is 52 000 a year
+    const summary = summarizeDeductionYear(claim({ longTermSavingsMinor: r(500_000) }), RULES_2026);
+
+    expect(summary.longTermSavingsDeductionMinor).toBe(r(400_000));
+    expect(summary.longTermSavingsRefundMinor).toBe(r(52_000));
+  });
+
+  it('spends the deductions that die with the year first, and never gives back more than was paid', () => {
+    // rule of the law: no order is set; social and savings do not carry over, a home does
+    const summary = summarizeDeductionYear(
+      claim({
+        social: { ...noSpending, commonMinor: r(150_000) },
+        longTermSavingsMinor: r(400_000),
+        property: home(2_000_000),
+      }),
+      RULES_2026,
+    );
+
+    expect(summary.socialRefundMinor).toBe(r(19_500));
+    expect(summary.longTermSavingsRefundMinor).toBe(r(52_000));
+    expect(summary.property).toEqual({
+      availableMinor: r(2_000_000),
+      usedMinor: r(650_000),
+      refundMinor: r(84_500),
+      leftMinor: r(1_350_000),
+    });
+    expect(summary.refundMinor).toBe(summary.taxPaidMinor);
+  });
+
+  it('takes off what earlier returns already took of the home', () => {
+    // rule of the law: 2 million once in a life; 1,2 million of it was used before
+    const summary = summarizeDeductionYear(
+      claim({ incomeMinor: r(600_000), property: home(3_000_000, 1_200_000) }),
+      RULES_2026,
+    );
+
+    expect(summary.property).toEqual({
+      availableMinor: r(800_000),
+      usedMinor: r(600_000),
+      refundMinor: r(78_000),
+      leftMinor: r(200_000),
+    });
+  });
+
+  it('has nothing left of a home whose deduction was taken in full before', () => {
+    const summary = summarizeDeductionYear(claim({ property: home(2_000_000, 2_500_000) }), RULES_2026);
+
+    expect(summary.property).toEqual({ availableMinor: 0, usedMinor: 0, refundMinor: 0, leftMinor: 0 });
+    expect(summary.refundMinor).toBe(0);
+  });
+
+  it('counts an old year by its own limits', () => {
+    // tax service: 120 000 for spending before 2024
+    const summary = summarizeDeductionYear(
+      claim({ social: { ...noSpending, commonMinor: r(300_000) } }),
+      RULES_2023,
+    );
+
+    expect(summary.socialDeductionMinor).toBe(r(120_000));
+    expect(summary.refundMinor).toBe(r(15_600));
+  });
+
+  it('refuses a negative amount of what earlier returns took', () => {
+    expect(() => summarizeDeductionYear(claim({ property: home(2_000_000, -1) }), RULES_2026)).toThrow();
   });
 });

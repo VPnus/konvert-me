@@ -12,6 +12,7 @@ import {
   realReturnRate,
   remainingMonths,
   returnBeatsInflation,
+  goalProjection,
 } from './goals';
 
 const RUB = 100;
@@ -383,5 +384,141 @@ describe('goals: distribution of free cash (formula 8)', () => {
     const result = allocateFreeCash([], r(1_000));
     expect(result.allocations).toEqual([]);
     expect(result.leftoverMinor).toBe(r(1_000));
+  });
+});
+
+describe('goals: the line of a goal month by month (for the chart)', () => {
+  // The flat of lesson 2.4: C = 3 000 000 as of the month it is priced in, 60 months,
+  // r = 14 %, π = 8 %, S = 500 000, contribution 39 505,47.
+  const flat = {
+    costMinor: 3_000_000 * 100,
+    costAsOf: '2026-09',
+    targetMonth: '2031-09',
+    returnRate: 0.14,
+    inflationRate: 0.08,
+  };
+
+  it('starts at what is saved today and ends at the future value', () => {
+    const points = goalProjection({
+      ...flat,
+      currentMonth: '2026-09',
+      savedMinor: 500_000 * 100,
+      contributionMinor: 39_505.47 * 100,
+    });
+
+    expect(points).toHaveLength(61);
+    expect(points[0]).toMatchObject({ offset: 0, month: '2026-09', savedMinor: 500_000 * 100 });
+    expect(points[0].targetMinor).toBeCloseTo(3_000_000 * 100, 2);
+
+    const last = points[points.length - 1];
+    expect(last.month).toBe('2031-09');
+    // both lines meet at the end: that is what the contribution was computed for
+    expect(last.targetMinor / 100).toBeCloseTo(4_407_984.23, 2);
+    expect(last.savedMinor / 100).toBeCloseTo(4_407_984.23, 0);
+  });
+
+  it('adds the contributions without interest when the return is zero', () => {
+    const points = goalProjection({
+      costMinor: 120_000 * 100,
+      costAsOf: '2026-09',
+      targetMonth: '2027-09',
+      returnRate: 0,
+      inflationRate: 0,
+      currentMonth: '2026-09',
+      savedMinor: 0,
+      contributionMinor: 10_000 * 100,
+    });
+
+    expect(points[12].savedMinor).toBe(120_000 * 100);
+    expect(points[12].targetMinor).toBe(120_000 * 100);
+    expect(points[6].savedMinor).toBe(60_000 * 100);
+  });
+
+  it('draws as many months as it is asked to, and nothing for a date in the past', () => {
+    expect(
+      goalProjection({
+        ...flat,
+        currentMonth: '2026-09',
+        savedMinor: 0,
+        contributionMinor: 1_000 * 100,
+        months: 3,
+      }),
+    ).toHaveLength(4);
+
+    expect(
+      goalProjection({ ...flat, currentMonth: '2031-09', savedMinor: 0, contributionMinor: 100 }),
+    ).toEqual([]);
+  });
+});
+
+describe('goals: the two formulas agree with each other', () => {
+  // Formula 4 answers "how much per month for n months"; formula 5 answers "how many
+  // months at that contribution". Asked in turn they must name the same n.
+  const cases = [
+    { costMinor: 4_000_000 * 100, months: 36, returnRate: 0.1, inflationRate: 0.08, savedMinor: 0 },
+    {
+      costMinor: 3_000_000 * 100,
+      months: 60,
+      returnRate: 0.14,
+      inflationRate: 0.08,
+      savedMinor: 500_000 * 100,
+    },
+    { costMinor: 120_000 * 100, months: 12, returnRate: 0, inflationRate: 0, savedMinor: 0 },
+  ];
+
+  for (const [index, sample] of cases.entries()) {
+    it(`agrees on case ${index + 1}`, () => {
+      const target = futureValueMinor(sample.costMinor, sample.inflationRate, sample.months);
+      const paymentMinor = monthlyContribution({
+        futureValueMinor: target,
+        savedMinor: sample.savedMinor,
+        returnRate: sample.returnRate,
+        months: sample.months,
+      });
+
+      expect(
+        monthsToGoal({
+          costMinor: sample.costMinor,
+          costAsOf: '2026-09',
+          currentMonth: '2026-09',
+          savedMinor: sample.savedMinor,
+          paymentMinor,
+          returnRate: sample.returnRate,
+          inflationRate: sample.inflationRate,
+        }),
+      ).toBe(sample.months);
+    });
+  }
+});
+
+describe('goals: a month without a contribution', () => {
+  const goal = {
+    costMinor: 600_000 * 100,
+    costAsOf: '2026-09',
+    targetMonth: '2027-09',
+    returnRate: 0.1,
+    inflationRate: 0.08,
+  };
+
+  it('asks for more next month, because the term got shorter and nothing was put aside', () => {
+    const september = contributionPlan(goal, { currentMonth: '2026-09', savedMinor: 0 });
+    const october = contributionPlan(goal, { currentMonth: '2026-10', savedMinor: 0 });
+
+    expect(september.months).toBe(12);
+    expect(october.months).toBe(11);
+    expect(october.contributionMinor).toBeGreaterThan(september.contributionMinor);
+  });
+
+  it('asks for less when the contribution was actually made', () => {
+    const september = contributionPlan(goal, { currentMonth: '2026-09', savedMinor: 0 });
+    const paid = contributionPlan(goal, {
+      currentMonth: '2026-10',
+      savedMinor: september.contributionMinor,
+    });
+    const skipped = contributionPlan(goal, { currentMonth: '2026-10', savedMinor: 0 });
+
+    expect(paid.contributionMinor).toBeLessThan(skipped.contributionMinor);
+    // and staying on plan keeps the contribution where it was, give or take a rouble
+    expect(paid.contributionMinor).toBeCloseTo(september.contributionMinor, -2);
   });
 });

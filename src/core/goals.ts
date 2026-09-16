@@ -6,9 +6,16 @@
  */
 
 import type { IsoMonth } from './time';
-import { monthsBetween } from './time';
+import { addMonths, monthsBetween } from './time';
 
 export const MAX_GOAL_MONTHS = 1200;
+
+/**
+ * Half a kopeck. Money is whole kopecks, so a shortfall smaller than this is not a
+ * shortfall — without it the term of formula 5 answers "37 months" for a contribution
+ * that formula 4 computed for exactly 36.
+ */
+const MONEY_EPSILON = 0.5;
 
 export interface GoalMath {
   readonly costMinor: number;
@@ -143,7 +150,7 @@ export function monthsToGoal(params: MonthsToGoalParams): number | null {
     const accumulated =
       savedMinor * growth + (i === 0 ? paymentMinor * n : (paymentMinor * (growth - 1)) / i);
     const needed = costMinor * Math.pow(1 + inflationRate, (elapsed + n) / 12);
-    if (accumulated >= needed) return n;
+    if (accumulated >= needed - MONEY_EPSILON) return n;
   }
   return null;
 }
@@ -156,6 +163,50 @@ export function realReturnRate(returnRate: number, inflationRate: number): numbe
 /** Warning of formula 6: twelve monthly periods of i must beat the yearly inflation. */
 export function returnBeatsInflation(returnRate: number, inflationRate: number): boolean {
   return Math.pow(1 + monthlyRate(returnRate), 12) > 1 + inflationRate;
+}
+
+export interface GoalProjectionParams extends GoalMath {
+  readonly currentMonth: IsoMonth;
+  readonly savedMinor: number;
+  readonly contributionMinor: number;
+  /** How many months to draw; defaults to the months left until the target. */
+  readonly months?: number;
+}
+
+export interface ProjectionPoint {
+  /** Months from the current one: 0 is today. */
+  readonly offset: number;
+  readonly month: IsoMonth;
+  /** Savings with the interest they earn along the way. */
+  readonly savedMinor: number;
+  /** What the goal costs by then: the price keeps inflating while it is saved for. */
+  readonly targetMinor: number;
+}
+
+/**
+ * The line of a goal, month by month: what will be put aside against what it will
+ * cost. The same arithmetic as formulas 4 and 5, only kept at every step instead of
+ * the last one, so a screen can draw it.
+ */
+export function goalProjection(params: GoalProjectionParams): ProjectionPoint[] {
+  const { costMinor, costAsOf, currentMonth: from, savedMinor, contributionMinor } = params;
+  const months = params.months ?? remainingMonths(from, params.targetMonth);
+  if (months <= 0) return [];
+
+  const i = monthlyRate(params.returnRate);
+  const elapsed = monthsBetween(costAsOf, from);
+
+  return Array.from({ length: months + 1 }, (_, offset) => {
+    const growth = i === 0 ? 1 : Math.pow(1 + i, offset);
+    const contributed = i === 0 ? contributionMinor * offset : (contributionMinor * (growth - 1)) / i;
+
+    return {
+      offset,
+      month: addMonths(from, offset),
+      savedMinor: savedMinor * growth + contributed,
+      targetMinor: costMinor * Math.pow(1 + params.inflationRate, (elapsed + offset) / 12),
+    };
+  });
 }
 
 export interface AllocationRequest {

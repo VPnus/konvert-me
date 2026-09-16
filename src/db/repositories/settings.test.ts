@@ -34,6 +34,15 @@ describe('settings', () => {
     await expect(updateSettings({ reserveTargetMonths: 6.5 })).rejects.toBeInstanceOf(ValidationError);
   });
 
+  it('keeps both of two updates made at the same time', async () => {
+    // The onboarding skip and the storage bootstrap both write the settings on /welcome.
+    await Promise.all([updateSettings({ onboardingDone: true }), updateSettings({ storagePersisted: true })]);
+
+    const settings = await getSettings();
+    expect(settings.onboardingDone).toBe(true);
+    expect(settings.storagePersisted).toBe(true);
+  });
+
   it('remembers the date of the last backup', async () => {
     const settings = await markBackupDone(1_700_000_000_000);
     expect(settings.lastBackupAt).toBe(1_700_000_000_000);

@@ -21,9 +21,13 @@ export async function getSettings(): Promise<AppSettings> {
 }
 
 export async function updateSettings(patch: Partial<Omit<AppSettings, 'id'>>): Promise<AppSettings> {
-  const current = await getSettings();
-  const next = parseOrThrow(settingsSchema, { ...current, ...patch, id: SETTINGS_ID }, 'Настройки');
-  await db.settings.put(next);
+  // Read and write in one transaction: two updates at once must not write over each other.
+  const next = await db.transaction('rw', db.settings, async () => {
+    const current = await getSettings();
+    const merged = parseOrThrow(settingsSchema, { ...current, ...patch, id: SETTINGS_ID }, 'Настройки');
+    await db.settings.put(merged);
+    return merged;
+  });
   publishAppEvent({ type: 'settings-changed' });
   return next;
 }

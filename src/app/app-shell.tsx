@@ -7,6 +7,7 @@ import { CatLogo } from '@/components/brand/cat-logo';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { NAV_ITEMS } from '@/app/navigation';
 import { DeductionReminderBanner } from '@/features/deductions/deduction-reminder';
+import { PlanReviewReminderBanner } from '@/features/plan/review-reminder';
 import { ru } from '@/i18n/ru';
 import { cn } from '@/lib/utils';
 
@@ -81,6 +82,7 @@ export function AppShell() {
           <DataRiskBanner />
           <BackupReminder />
           <DeductionReminderBanner />
+          <PlanReviewReminderBanner />
           <Outlet />
         </ErrorBoundary>
       </main>

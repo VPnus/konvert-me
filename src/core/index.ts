@@ -5,5 +5,6 @@ export * from './education';
 export * from './goals';
 export * from './money';
 export * from './pension';
+export * from './portfolio';
 export * from './time';
 export * from './types';

@@ -213,7 +213,7 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
                 )}
               </Field>
 
-              <Field label={ru.accounts.openingDate}>
+              <Field label={ru.accounts.openingDate} hint={ru.accounts.openingDateHint}>
                 {(id) => (
                   <Input
                     id={id}

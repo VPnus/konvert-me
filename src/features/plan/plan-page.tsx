@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import type { ReactNode } from 'react';
+import { FileDown } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
@@ -39,6 +40,7 @@ export default function PlanPage() {
   const dataVersion = useDataVersion();
   const data = useLiveQuery(() => loadPlan(), [dataVersion]);
   const [params, setParams] = useSearchParams();
+  const [pdfState, setPdfState] = useState<'idle' | 'busy' | string>('idle');
   const step = stepOf(params.get('step'));
   const Step = STEPS[step - 1];
   const go = (next: number) => {
@@ -46,12 +48,41 @@ export default function PlanPage() {
     window.scrollTo({ top: 0 });
   };
 
+  const downloadPdf = async () => {
+    if (!data) return;
+    setPdfState('busy');
+    try {
+      // pdfmake and its font weigh a megabyte: they come only with the first press.
+      const { downloadPlanPdf } = await import('@/features/plan/plan-pdf');
+      await downloadPlanPdf(data);
+      setPdfState('idle');
+    } catch (cause) {
+      setPdfState(fill(t.pdf.failed, { reason: cause instanceof Error ? cause.message : ru.common.error }));
+    }
+  };
+
   return (
     <section className="mx-auto flex w-full max-w-3xl flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">{ru.pages.plan.title}</h1>
-        <p className="text-sm text-muted-foreground">{t.subtitle}</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-1 basis-64 flex-col gap-1">
+          <h1 className="text-2xl font-semibold tracking-tight">{ru.pages.plan.title}</h1>
+          <p className="text-sm text-muted-foreground">{t.subtitle}</p>
+        </div>
+        <Button
+          variant="outline"
+          disabled={!data || pdfState === 'busy'}
+          data-testid="plan-pdf"
+          onClick={() => void downloadPdf()}
+        >
+          <FileDown className="size-4" aria-hidden />
+          {pdfState === 'busy' ? t.pdf.preparing : t.pdf.download}
+        </Button>
       </div>
+      {pdfState !== 'idle' && pdfState !== 'busy' ? (
+        <p role="alert" className="text-sm text-destructive" data-testid="plan-pdf-error">
+          {pdfState}
+        </p>
+      ) : null}
 
       <ol className="flex flex-wrap gap-2" aria-label={t.stepsLabel}>
         {t.steps.map((item, index) => {

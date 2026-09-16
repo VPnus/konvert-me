@@ -465,6 +465,11 @@ export const settingsSchema = z.object({
   externalFeedsEnabled: z.boolean().default(false),
   /** The deduction reminder hidden last, as 'year:kind'; it stays hidden until something else comes up. */
   deductionReminderDismissed: z.string().max(32).nullable().default(null),
+  /** The data-loss warning hidden last, and when: it comes back after a while, the risk has not gone. */
+  dataRiskDismissed: z
+    .object({ kind: z.string().max(32), at: timestamp })
+    .nullable()
+    .default(null),
   schemaVersion: z.number().int().positive(),
 });
 
@@ -502,6 +507,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   storagePersisted: false,
   externalFeedsEnabled: false,
   deductionReminderDismissed: null,
+  dataRiskDismissed: null,
   schemaVersion: SCHEMA_VERSION,
 };
 

@@ -6,7 +6,7 @@
 import { RULES_2026 } from './2026';
 import type { YearRules } from './types';
 
-export type { Norm, YearRules } from './types';
+export type { ChildDeduction, Norm, TaxBand, YearRules } from './types';
 
 const BY_YEAR: readonly YearRules[] = [RULES_2026];
 

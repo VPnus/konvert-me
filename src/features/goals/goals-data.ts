@@ -3,8 +3,16 @@
  * arithmetic of its own: every number below comes from src/core.
  */
 
-import { averageMonthlyExpenses, liquidAssetsMinor, reserveState, type ReserveState } from '@/core/balance';
-import { monthTotals, planTotals } from '@/core/budget';
+import {
+  averageMonthlyExpenses,
+  liquidAssetsMinor,
+  liquidEnvelopesMinor,
+  principalDueMinor,
+  reserveContributionMinor,
+  reserveState,
+  type ReserveState,
+} from '@/core/balance';
+import { budgetBasis, categoryExpenseAverageMinor, planTotals, type BudgetBasis } from '@/core/budget';
 import {
   allocateFreeCash,
   contributionPlan,
@@ -18,6 +26,7 @@ import type { CoreAccount, CoreCategory } from '@/core/types';
 import { db } from '@/db/db';
 import { DEFAULT_SETTINGS, type Account, type AppSettings, type Envelope, type Goal } from '@/db/models';
 import { getAccountBalancesMinor } from '@/db/repositories/accounts';
+import { LOAN_INTEREST_CATEGORY } from '@/db/repositories/categories';
 import { listGoals, RESERVE_GOAL_ID } from '@/db/repositories/goals';
 
 export interface GoalView {
@@ -40,8 +49,15 @@ export interface GoalsData {
   readonly accounts: Account[];
   readonly balances: Map<string, number>;
   readonly reserve: ReserveState;
+  /** A usual month: the average of complete months, the plan, or the month in progress. */
+  readonly basis: BudgetBasis;
+  /** Income minus expenses of that month — formula 7. */
   readonly freeCashMinor: number;
-  readonly freeCashFromFact: boolean;
+  /** The scheduled debt payments less the interest among the expenses. */
+  readonly principalDueMinor: number;
+  /** What formula 8 hands out: the free money less the principal due. */
+  readonly availableMinor: number;
+  /** The reserve first, while it is short of its target; then the goals by priority. */
   readonly allocations: Allocation[];
   readonly leftoverMinor: number;
   readonly totalDeficitMinor: number;
@@ -82,8 +98,8 @@ export async function loadGoals(now: Date = new Date()): Promise<GoalsData> {
     group: category.group,
   }));
 
-  const fact = monthTotals(transactions, month);
   const plan = planTotals(plans, month, coreCategories);
+  const basis = budgetBasis({ transactions, currentMonth: month, plan });
 
   const savedByGoal = new Map<string, number>();
   const envelopesByGoal = new Map<string, Envelope[]>();
@@ -94,9 +110,7 @@ export async function loadGoals(now: Date = new Date()): Promise<GoalsData> {
 
   const reserve = reserveState({
     liquidMinor: liquidAssetsMinor(coreAccounts, transactions),
-    otherGoalsEnvelopesMinor: envelopes
-      .filter((envelope) => envelope.goalId !== RESERVE_GOAL_ID)
-      .reduce((total, envelope) => total + envelope.amountMinor, 0),
+    otherGoalsEnvelopesMinor: liquidEnvelopesMinor(envelopes, coreAccounts, RESERVE_GOAL_ID),
     averageExpenses: averageMonthlyExpenses({
       transactions,
       currentMonth: month,
@@ -137,19 +151,33 @@ export async function loadGoals(now: Date = new Date()): Promise<GoalsData> {
     };
   });
 
-  // Formula 8: the free balance of the month goes to the goals by priority.
-  const freeCashFromFact = fact.incomeMinor > 0 || fact.expenseMinor > 0;
-  const freeCashMinor = freeCashFromFact ? fact.freeCashMinor : plan.freeCashMinor;
+  // Formula 8: the free money of a usual month, less the principal the debts take by
+  // schedule, goes first to the reserve while it is short and then to the goals by priority.
+  const interestMinor =
+    basis.source === 'plan'
+      ? plans
+          .filter((line) => line.categoryId === LOAN_INTEREST_CATEGORY)
+          .reduce((total, line) => total + line.amountMinor, 0)
+      : categoryExpenseAverageMinor(transactions, basis.months, LOAN_INTEREST_CATEGORY);
+  const principalMinor = principalDueMinor(coreAccounts, interestMinor);
+  const availableMinor = basis.freeCashMinor - principalMinor;
 
-  const requests = views
-    .filter((view) => view.plan?.status === 'active' && view.goal.status === 'active')
-    .map((view) => ({
-      goalId: view.goal.id,
-      priority: view.goal.priority,
-      requiredMinor: view.plan?.contributionMinor ?? 0,
-    }));
+  const reserveRequestMinor = reserveContributionMinor(reserve, basis.incomeMinor);
+  const requests = [
+    // Below every goal, whatever their priorities: the reserve is the foundation of the plan.
+    ...(reserveRequestMinor > 0
+      ? [{ goalId: RESERVE_GOAL_ID, priority: Number.NEGATIVE_INFINITY, requiredMinor: reserveRequestMinor }]
+      : []),
+    ...views
+      .filter((view) => view.plan?.status === 'active' && view.goal.status === 'active')
+      .map((view) => ({
+        goalId: view.goal.id,
+        priority: view.goal.priority,
+        requiredMinor: view.plan?.contributionMinor ?? 0,
+      })),
+  ];
 
-  const allocation = allocateFreeCash(requests, freeCashMinor);
+  const allocation = allocateFreeCash(requests, availableMinor);
 
   return {
     month,
@@ -158,8 +186,10 @@ export async function loadGoals(now: Date = new Date()): Promise<GoalsData> {
     accounts: accounts.filter((account) => !account.archived && account.side === 'asset'),
     balances,
     reserve,
-    freeCashMinor,
-    freeCashFromFact,
+    basis,
+    freeCashMinor: basis.freeCashMinor,
+    principalDueMinor: principalMinor,
+    availableMinor,
     allocations: allocation.allocations,
     leftoverMinor: allocation.leftoverMinor,
     totalDeficitMinor: allocation.totalDeficitMinor,

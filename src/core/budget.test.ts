@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
   affectsCashFlow,
+  budgetBasis,
+  categoryExpenseAverageMinor,
   expensesByCategory,
   expensesByGroup,
   freeCashMinor,
@@ -363,5 +365,75 @@ describe('budget: what is left of the plan', () => {
       const better = row.kind === 'income' ? row.remainingMinor <= 0 : row.remainingMinor >= 0;
       expect(better).toBe(row.deviationMinor >= 0);
     }
+  });
+});
+
+describe('budget: what a usual month looks like', () => {
+  const history: CoreTransaction[] = [
+    tx({ date: '2026-05-10', kind: 'income', amountMinor: r(1_000_000), categoryId: 'salary' }),
+    tx({ date: '2026-06-10', kind: 'income', amountMinor: r(65_000), categoryId: 'salary' }),
+    tx({ date: '2026-06-11', kind: 'expense', amountMinor: r(57_000), categoryId: 'rent' }),
+    tx({ date: '2026-07-10', kind: 'income', amountMinor: r(65_000), categoryId: 'salary' }),
+    tx({ date: '2026-07-11', kind: 'expense', amountMinor: r(56_000), categoryId: 'rent' }),
+    tx({ date: '2026-08-10', kind: 'income', amountMinor: r(65_000), categoryId: 'salary' }),
+    tx({ date: '2026-08-11', kind: 'expense', amountMinor: r(56_000), categoryId: 'food' }),
+    tx({ date: '2026-08-12', kind: 'refund', amountMinor: r(1_000), categoryId: 'food' }),
+    tx({ date: '2026-08-20', kind: 'transfer', amountMinor: r(12_000), toAccountId: 'loan' }),
+    // the month in progress: the advance of the 25th has not come yet
+    tx({ date: '2026-09-10', kind: 'income', amountMinor: r(39_000), categoryId: 'salary' }),
+    tx({ date: '2026-09-11', kind: 'expense', amountMinor: r(44_777), categoryId: 'rent' }),
+  ];
+  const noPlan = { incomeMinor: 0, expenseMinor: 0, freeCashMinor: 0 };
+
+  it('averages the complete months and leaves the month in progress out', () => {
+    // On the 16th the month alone said "a deficit"; the usual month has 9 000 to spare.
+    expect(budgetBasis({ transactions: history, currentMonth: '2026-09', plan: noPlan })).toEqual({
+      source: 'fact',
+      months: ['2026-06', '2026-07', '2026-08'],
+      incomeMinor: r(65_000),
+      expenseMinor: r(56_000),
+      freeCashMinor: r(9_000),
+    });
+  });
+
+  it('counts from the first complete month that has operations', () => {
+    const recent = history.filter((transaction) => transaction.date >= '2026-07-01');
+    expect(budgetBasis({ transactions: recent, currentMonth: '2026-09', plan: noPlan })).toEqual({
+      source: 'fact',
+      months: ['2026-07', '2026-08'],
+      incomeMinor: r(65_000),
+      expenseMinor: r(55_500),
+      freeCashMinor: r(9_500),
+    });
+  });
+
+  it('takes the plan of the month before there is a complete month of operations', () => {
+    const plan = { incomeMinor: r(65_000), expenseMinor: r(56_000), freeCashMinor: r(9_000) };
+    const current = history.filter((transaction) => transaction.date >= '2026-09-01');
+    expect(budgetBasis({ transactions: current, currentMonth: '2026-09', plan })).toEqual({
+      source: 'plan',
+      months: ['2026-09'],
+      ...plan,
+    });
+  });
+
+  it('takes the month in progress when there is neither a complete month nor a plan', () => {
+    const current = history.filter((transaction) => transaction.date >= '2026-09-01');
+    expect(budgetBasis({ transactions: current, currentMonth: '2026-09', plan: noPlan })).toEqual({
+      source: 'month',
+      months: ['2026-09'],
+      incomeMinor: r(39_000),
+      expenseMinor: r(44_777),
+      freeCashMinor: r(-5_777),
+    });
+  });
+
+  it('averages the expense of one category over the same months', () => {
+    expect(categoryExpenseAverageMinor(history, ['2026-06', '2026-07', '2026-08'], 'rent')).toBeCloseTo(
+      r(113_000) / 3,
+      6,
+    );
+    expect(categoryExpenseAverageMinor(history, ['2026-08'], 'food')).toBe(r(55_000));
+    expect(categoryExpenseAverageMinor(history, [], 'food')).toBe(0);
   });
 });

@@ -7,7 +7,7 @@
 
 import type { CoreBudgetPlanLine, CoreCategory, CoreTransaction, TransactionKind } from './types';
 import type { IsoMonth } from './time';
-import { monthOfDate, monthsOfYear } from './time';
+import { addMonths, monthOfDate, monthsOfYear } from './time';
 
 export const CASH_FLOW_KINDS: readonly TransactionKind[] = ['income', 'expense', 'refund'];
 
@@ -231,3 +231,88 @@ export function planVsFact(
 }
 
 export const EMPTY_MONTH_TOTALS = EMPTY_TOTALS;
+
+export type BudgetBasisSource = 'fact' | 'plan' | 'month';
+
+export interface BudgetBasis extends MonthTotals {
+  /** The average of complete months, the plan of the current month, or the month in progress. */
+  readonly source: BudgetBasisSource;
+  /** The months behind the numbers, oldest first. */
+  readonly months: readonly IsoMonth[];
+}
+
+export interface BudgetBasisParams {
+  readonly transactions: readonly CoreTransaction[];
+  readonly currentMonth: IsoMonth;
+  /** The plan of the current month. */
+  readonly plan: MonthTotals;
+  readonly monthsBack?: number;
+}
+
+export const BUDGET_BASIS_MONTHS = 3;
+
+/**
+ * A usual month, for the verdicts that must not depend on the day they are read: the debt
+ * burden of formula 10, the type of the budget and the free money of formula 8. On the 16th
+ * the salary has come and the advance has not, and the month alone looks like a deficit.
+ *
+ * The fact of the last complete months, counted from the first one with operations; before
+ * there is one, the plan of the current month; without a plan, the month as it stands.
+ */
+export function budgetBasis({
+  transactions,
+  currentMonth,
+  plan,
+  monthsBack = BUDGET_BASIS_MONTHS,
+}: BudgetBasisParams): BudgetBasis {
+  const window = Array.from({ length: monthsBack }, (_, offset) =>
+    addMonths(currentMonth, offset - monthsBack),
+  );
+
+  let first: IsoMonth | null = null;
+  for (const transaction of transactions) {
+    if (!affectsCashFlow(transaction.kind)) continue;
+    const month = monthOfDate(transaction.date);
+    if (month < window[0] || month >= currentMonth) continue;
+    if (first === null || month < first) first = month;
+  }
+
+  if (first !== null) {
+    const start = first;
+    const months = window.filter((month) => month >= start);
+    let incomeMinor = 0;
+    let expenseMinor = 0;
+    for (const month of months) {
+      const totals = monthTotals(transactions, month);
+      incomeMinor += totals.incomeMinor;
+      expenseMinor += totals.expenseMinor;
+    }
+    const count = months.length;
+    return {
+      source: 'fact',
+      months,
+      incomeMinor: incomeMinor / count,
+      expenseMinor: expenseMinor / count,
+      freeCashMinor: (incomeMinor - expenseMinor) / count,
+    };
+  }
+
+  if (plan.incomeMinor > 0 || plan.expenseMinor > 0) {
+    return { source: 'plan', months: [currentMonth], ...plan };
+  }
+  return { source: 'month', months: [currentMonth], ...monthTotals(transactions, currentMonth) };
+}
+
+/** The expense of one category, refunds netted out, averaged over the given months. */
+export function categoryExpenseAverageMinor(
+  transactions: readonly CoreTransaction[],
+  months: readonly IsoMonth[],
+  categoryId: string,
+): number {
+  if (months.length === 0) return 0;
+  const total = months.reduce(
+    (sum, month) => sum + (expensesByCategory(transactions, month).get(categoryId) ?? 0),
+    0,
+  );
+  return total / months.length;
+}

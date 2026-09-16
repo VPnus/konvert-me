@@ -11,7 +11,8 @@ import {
   savePensionPlan,
   setPlanActionDone,
 } from '@/db/repositories/financial-plan';
-import { createGoal, ensureReserveGoal } from '@/db/repositories/goals';
+import { seedDefaultCategories } from '@/db/repositories/categories';
+import { createGoal, ensureReserveGoal, RESERVE_GOAL_ID } from '@/db/repositories/goals';
 import { planActions } from '@/features/plan/actions';
 import { educationView, pensionView, retirementMonthOf } from '@/features/plan/calculations';
 import { loadPlan } from '@/features/plan/plan-data';
@@ -256,6 +257,144 @@ describe('plan: the whole screen', () => {
     const data = await loadPlan(NOW);
 
     expect(data.budget.balance).toBe('balanced');
-    expect(data.budget.fromFact).toBe(false);
+    expect(data.budget.source).toBe('month');
+  });
+});
+
+describe('plan: a usual month, whatever the day', () => {
+  /** The worker of the scenario audit: 65 000 a month in two parts, three debts, rent. */
+  async function worker() {
+    await seedDefaultCategories();
+    await ensureReserveGoal();
+    const card = await createAccount({
+      name: 'Зарплатная карта',
+      side: 'asset',
+      type: 'debit',
+      openingBalanceMinor: 22_000 * RUB,
+      openingDate: '2026-06-01',
+    });
+    for (const debt of [
+      { name: 'Кредит', type: 'consumer' as const, balance: 230_000, payment: 9_800, rate: 0.219 },
+      { name: 'Кредитка', type: 'credit_card' as const, balance: 60_000, payment: 3_000, rate: 0.299 },
+      { name: 'Рассрочка', type: 'other_debt' as const, balance: 8_000, payment: 4_000, rate: 0 },
+    ]) {
+      await createAccount({
+        name: debt.name,
+        side: 'liability',
+        type: debt.type,
+        openingBalanceMinor: debt.balance * RUB,
+        openingDate: '2026-06-01',
+        monthlyPaymentMinor: debt.payment * RUB,
+        rate: debt.rate,
+      });
+    }
+    let id = 0;
+    const add = (date: string, kind: 'income' | 'expense', rubles: number, categoryId: string) =>
+      db.transactions.add({
+        id: `t${(id += 1)}`,
+        date,
+        amountMinor: rubles * RUB,
+        kind,
+        accountId: card.id,
+        categoryId,
+        createdAt: 1,
+      });
+    for (const month of ['2026-06', '2026-07', '2026-08']) {
+      await add(`${month}-10`, 'income', 39_000, 'salary');
+      await add(`${month}-25`, 'income', 26_000, 'advance');
+      await add(`${month}-05`, 'expense', 4_949, 'loan-interest');
+      await add(`${month}-12`, 'expense', 51_051, 'groceries');
+    }
+    // The 16th of September: the salary has come, the advance has not.
+    await add('2026-09-10', 'income', 39_000, 'salary');
+    await add('2026-09-05', 'expense', 4_777, 'loan-interest');
+    await add('2026-09-12', 'expense', 40_000, 'groceries');
+    return createGoal({
+      name: 'Первый миллион',
+      kind: 'other',
+      costMinor: 1_000_000 * RUB,
+      targetMonth: '2031-09',
+    });
+  }
+
+  it('judges the budget and the debt burden by the complete months, not by the 16th', async () => {
+    await worker();
+    const data = await loadPlan(NOW);
+
+    expect(data.budget.source).toBe('fact');
+    expect(data.budget.months).toBe(3);
+    expect(data.budget.incomeMinor).toBe(65_000 * RUB);
+    expect(data.budget.freeCashMinor).toBe(9_000 * RUB);
+    expect(data.budget.balance).toBe('surplus');
+    // 16 800 of payments against 65 000, not against the 39 000 that has come so far
+    expect(data.overview.debtBurden.ratio).toBeCloseTo(16_800 / 65_000, 10);
+    expect(data.overview.warnings.map((warning) => warning.id)).not.toContain('free-cash');
+  });
+
+  it('takes the principal due out of the free money before anything is handed out', async () => {
+    await worker();
+    const { goals } = await loadPlan(NOW);
+
+    // 16 800 of payments, 4 949 of them interest already among the expenses
+    expect(goals.principalDueMinor).toBe(11_851 * RUB);
+    expect(goals.availableMinor).toBe(-2_851 * RUB);
+    expect(goals.allocations.every((allocation) => allocation.allocatedMinor === 0)).toBe(true);
+  });
+
+  it('asks for the reserve first, and only then for the goals', async () => {
+    const goal = await worker();
+    const { goals } = await loadPlan(NOW);
+
+    expect(goals.allocations.map((allocation) => allocation.goalId)).toEqual([RESERVE_GOAL_ID, goal.id]);
+    // 10 % of the income of a usual month
+    expect(goals.allocations[0].requiredMinor).toBe(6_500 * RUB);
+  });
+
+  it('gives the reserve its share before a goal that is more important than all the others', async () => {
+    await seedDefaultCategories();
+    await ensureReserveGoal();
+    const card = await createAccount({
+      name: 'Карта',
+      side: 'asset',
+      type: 'debit',
+      openingBalanceMinor: 0,
+      openingDate: '2026-06-01',
+    });
+    for (const [index, month] of ['2026-06', '2026-07', '2026-08'].entries()) {
+      await db.transactions.bulkAdd([
+        {
+          id: `in${index}`,
+          date: `${month}-10`,
+          amountMinor: 100_000 * RUB,
+          kind: 'income',
+          accountId: card.id,
+          categoryId: 'salary',
+          createdAt: 1,
+        },
+        {
+          id: `out${index}`,
+          date: `${month}-11`,
+          amountMinor: 80_000 * RUB,
+          kind: 'expense',
+          accountId: card.id,
+          categoryId: 'groceries',
+          createdAt: 1,
+        },
+      ]);
+    }
+    const car = await createGoal({
+      name: 'Машина',
+      kind: 'purchase',
+      costMinor: 600_000 * RUB,
+      targetMonth: '2027-09',
+    });
+
+    const { goals } = await loadPlan(NOW);
+    const [reserve, carAllocation] = goals.allocations;
+
+    expect(reserve.goalId).toBe(RESERVE_GOAL_ID);
+    expect(reserve.allocatedMinor).toBe(10_000 * RUB);
+    expect(carAllocation.goalId).toBe(car.id);
+    expect(carAllocation.allocatedMinor).toBe(10_000 * RUB);
   });
 });

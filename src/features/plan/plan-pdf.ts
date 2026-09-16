@@ -17,6 +17,7 @@ import type { PlanData } from '@/features/plan/plan-data';
 import { actionText, dateInText, monthInText, percentOf, rubles, t } from '@/features/plan/plan-format';
 import { ru } from '@/i18n/ru';
 import { downloadBlob } from '@/lib/download';
+import { monthsLabel } from '@/features/goals/months-label';
 
 /** Roboto has no narrow no-break space; the plain one looks the same in print. */
 function clean(value: string): string {
@@ -65,6 +66,13 @@ function diagnosis(data: PlanData): Content[] {
       [d.expense, rubles(budget.expenseMinor)],
       [d.free, rubles(budget.freeCashMinor)],
     ]),
+    paragraph(
+      budget.source === 'fact'
+        ? fill(d.budgetFromFact, { months: monthsLabel(budget.months) })
+        : budget.source === 'plan'
+          ? d.budgetFromPlan
+          : d.budgetFromMonth,
+    ),
     subheading(d.capital),
     rows([
       [d.assets, rubles(overview.assetsMinor)],
@@ -186,6 +194,12 @@ function mechanisms(data: PlanData): Content[] {
     heading(3),
     rows([
       [m.free, rubles(g.freeCashMinor)],
+      ...(g.principalDueMinor > 0
+        ? ([
+            [m.principal, rubles(g.principalDueMinor)],
+            [m.available, rubles(g.availableMinor)],
+          ] as [string, string][])
+        : []),
       [m.needed, rubles(needed)],
     ]),
     paragraph(

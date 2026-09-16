@@ -6,6 +6,7 @@
  * important the smaller its priority is.
  */
 
+import { liquidEnvelopesMinor } from '@/core/balance';
 import { currentMonth, todayIso, type IsoMonth } from '@/core/time';
 import { db } from '@/db/db';
 import { RepositoryError } from '@/db/errors';
@@ -142,12 +143,10 @@ export async function getSavingsByGoal(): Promise<Map<string, number>> {
   return totals;
 }
 
-/** Envelopes of every goal except the reserve — what formula 9 subtracts. */
+/** Envelopes of the other goals on liquid accounts — what formula 9 subtracts. */
 export async function getOtherGoalsEnvelopesMinor(excludeGoalId: string = RESERVE_GOAL_ID): Promise<number> {
-  const envelopes = await db.envelopes.toArray();
-  return envelopes
-    .filter((envelope) => envelope.goalId !== excludeGoalId)
-    .reduce((total, envelope) => total + envelope.amountMinor, 0);
+  const [envelopes, accounts] = await Promise.all([db.envelopes.toArray(), db.accounts.toArray()]);
+  return liquidEnvelopesMinor(envelopes, accounts, excludeGoalId);
 }
 
 export async function setEnvelope(goalId: string, accountId: string, amountMinor: number): Promise<Envelope> {

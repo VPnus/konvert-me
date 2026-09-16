@@ -7,6 +7,7 @@ import {
   averageMonthlyExpenses,
   debtBurden,
   liquidAssetsMinor,
+  liquidEnvelopesMinor,
   monthlyDebtPaymentsMinor,
   netWorthMinor,
   reserveState,
@@ -16,7 +17,7 @@ import {
   type DebtBurden,
   type ReserveState,
 } from '@/core/balance';
-import { monthTotals, planTotals, type MonthTotals } from '@/core/budget';
+import { budgetBasis, monthTotals, planTotals, type BudgetBasis, type MonthTotals } from '@/core/budget';
 import { upcomingEvents, type UpcomingEvent } from '@/core/upcoming';
 import { contributionPlan, returnBeatsInflation, type ContributionPlan } from '@/core/goals';
 import { currentMonth, todayIso, type IsoMonth } from '@/core/time';
@@ -25,7 +26,7 @@ import { db } from '@/db/db';
 import type { Account, AppSettings, Goal } from '@/db/models';
 import { DEFAULT_SETTINGS } from '@/db/models';
 import { getAccountBalancesMinor } from '@/db/repositories/accounts';
-import { getSavingsByGoal, RESERVE_GOAL_ID } from '@/db/repositories/goals';
+import { RESERVE_GOAL_ID } from '@/db/repositories/goals';
 import {
   deductionsAtGlance,
   loadDeductions,
@@ -47,6 +48,8 @@ export interface OverviewData {
   readonly balances: Map<string, number>;
   readonly fact: MonthTotals;
   readonly plan: MonthTotals;
+  /** A usual month for the verdicts: the average of complete months, the plan, or this month. */
+  readonly basis: BudgetBasis;
   readonly averageExpenses: AverageExpenses;
   readonly reserve: ReserveState;
   readonly netWorthMinor: number;
@@ -86,7 +89,7 @@ export async function loadOverview(now: Date = new Date()): Promise<OverviewData
     plans,
     categories,
     goals,
-    savingsByGoal,
+    envelopes,
     balances,
     policies,
     deductions,
@@ -97,7 +100,7 @@ export async function loadOverview(now: Date = new Date()): Promise<OverviewData
     db.budgetPlans.where('month').equals(month).toArray(),
     db.categories.toArray(),
     db.goals.toArray(),
-    getSavingsByGoal(),
+    db.envelopes.toArray(),
     getAccountBalancesMinor(),
     db.policies.toArray(),
     loadDeductions(now),
@@ -114,6 +117,12 @@ export async function loadOverview(now: Date = new Date()): Promise<OverviewData
 
   const fact = monthTotals(coreTransactions, month);
   const plan = planTotals(plans, month, coreCategories);
+  const basis = budgetBasis({ transactions: coreTransactions, currentMonth: month, plan });
+
+  const savingsByGoal = new Map<string, number>();
+  for (const envelope of envelopes) {
+    savingsByGoal.set(envelope.goalId, (savingsByGoal.get(envelope.goalId) ?? 0) + envelope.amountMinor);
+  }
 
   const averageExpenses = averageMonthlyExpenses({
     transactions: coreTransactions,
@@ -121,18 +130,15 @@ export async function loadOverview(now: Date = new Date()): Promise<OverviewData
     planExpenseMinor: plan.expenseMinor,
   });
 
-  const otherGoalsEnvelopesMinor = [...savingsByGoal.entries()]
-    .filter(([goalId]) => goalId !== RESERVE_GOAL_ID)
-    .reduce((total, [, amount]) => total + amount, 0);
-
   const reserve = reserveState({
     liquidMinor: liquidAssetsMinor(coreAccounts, coreTransactions),
-    otherGoalsEnvelopesMinor,
+    otherGoalsEnvelopesMinor: liquidEnvelopesMinor(envelopes, coreAccounts, RESERVE_GOAL_ID),
     averageExpenses,
     targetMonths: settings.reserveTargetMonths,
   });
 
-  const incomeForBurden = fact.incomeMinor > 0 ? fact.incomeMinor : plan.incomeMinor;
+  // Formula 10: the income of a usual month, not of the days of this one that have passed.
+  const incomeForBurden = basis.incomeMinor;
   const monthlyPayments = monthlyDebtPaymentsMinor(coreAccounts);
 
   const goalViews: GoalView[] = goals
@@ -170,6 +176,7 @@ export async function loadOverview(now: Date = new Date()): Promise<OverviewData
     balances,
     fact,
     plan,
+    basis,
     averageExpenses,
     reserve,
     netWorthMinor: netWorthMinor(coreAccounts, coreTransactions),
@@ -218,7 +225,7 @@ export function collectWarnings(data: Omit<OverviewData, 'warnings'>, texts: War
   } else if (data.reserve.months !== null && data.reserve.months < 3) {
     warnings.push({ id: 'reserve-low', text: texts.reserveLow, to: '/goals' });
   }
-  if (data.fact.freeCashMinor < 0) {
+  if (data.basis.freeCashMinor < 0) {
     warnings.push({ id: 'free-cash', text: texts.negativeFreeCash, to: '/budget' });
   }
 

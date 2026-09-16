@@ -4,6 +4,7 @@
  * plan keeps: the calculators, the risk profile, the notes and the reviews.
  */
 
+import type { BudgetBasisSource } from '@/core/budget';
 import type { ReviewState } from '@/core/financial-plan';
 import { budgetBalance, type BudgetBalance } from '@/core/financial-plan';
 import { todayIso, type IsoDate } from '@/core/time';
@@ -22,8 +23,10 @@ import {
 import { planReviewState } from '@/features/plan/review';
 
 export interface PlanBudget {
-  /** The same month and the same source as the distribution of free money on the goals screen. */
-  readonly fromFact: boolean;
+  /** The same usual month as the distribution of free money on the goals screen. */
+  readonly source: BudgetBasisSource;
+  /** How many complete months the fact is averaged over; zero for the plan or the month in progress. */
+  readonly months: number;
   readonly incomeMinor: number;
   readonly expenseMinor: number;
   readonly freeCashMinor: number;
@@ -57,7 +60,7 @@ export async function loadPlan(now: Date = new Date()): Promise<PlanData> {
 
   const plan = stored ?? emptyFinancialPlan(today, now.getTime());
   const month = goals.month;
-  const totals = goals.freeCashFromFact ? overview.fact : overview.plan;
+  const { basis } = goals;
   const savedOf = (goalId: string | null) =>
     goalId ? (goals.goals.find((view) => view.goal.id === goalId)?.savedMinor ?? 0) : 0;
   const inForce = policies.filter((policy) => !policy.archived && policy.endDate >= today);
@@ -70,11 +73,13 @@ export async function loadPlan(now: Date = new Date()): Promise<PlanData> {
     started: stored !== undefined,
     policies: inForce,
     budget: {
-      fromFact: goals.freeCashFromFact,
-      incomeMinor: totals.incomeMinor,
-      expenseMinor: totals.expenseMinor,
-      freeCashMinor: goals.freeCashMinor,
-      balance: budgetBalance(goals.freeCashMinor),
+      source: basis.source,
+      months: basis.source === 'fact' ? basis.months.length : 0,
+      incomeMinor: basis.incomeMinor,
+      expenseMinor: basis.expenseMinor,
+      freeCashMinor: basis.freeCashMinor,
+      // Rounded first: an average of 0,4 kopeck is a balanced budget, not a surplus.
+      balance: budgetBalance(Math.round(basis.freeCashMinor)),
     },
     education: plan.education.map((item) => educationView(item, month, savedOf(item.goalId))),
     pension: plan.pension ? pensionView(plan.pension, month, savedOf(plan.pension.goalId)) : null,

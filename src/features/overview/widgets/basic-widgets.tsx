@@ -1,4 +1,5 @@
 import { formatMinor, roundToMinor } from '@/core/money';
+import { monthsLabel } from '@/features/goals/months-label';
 import { ru } from '@/i18n/ru';
 import { BigNumber, ProgressBar, WidgetEmpty, WidgetFrame } from '@/features/overview/widgets/widget-shell';
 import type { WidgetProps } from '@/features/overview/widgets/types';
@@ -54,7 +55,9 @@ export function ReserveWidget({ data }: WidgetProps) {
   const months = reserve.months ?? 0;
   const target = data.settings.reserveTargetMonths;
   const basis =
-    averageExpenses.source === 'plan' ? ru.widgets.reserve.basisPlan : ru.widgets.reserve.basisFact;
+    averageExpenses.source === 'plan'
+      ? ru.widgets.reserve.basisPlan
+      : ru.widgets.reserve.basisFact.replace('{months}', monthsLabel(averageExpenses.months));
 
   return (
     <WidgetFrame title={ru.widgets.reserve.title} hint={basis}>

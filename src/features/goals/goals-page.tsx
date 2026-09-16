@@ -24,7 +24,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import type { Goal } from '@/db/models';
+import type { Allocation } from '@/core/goals';
 import { deleteGoal, reorderGoals, updateGoal } from '@/db/repositories/goals';
+import { fill } from '@/features/deductions/fill';
 import { monthLabel } from '@/features/budget/month-label';
 import { GoalDetails } from '@/features/goals/goal-details';
 import { GoalForm } from '@/features/goals/goal-form';
@@ -44,13 +46,13 @@ function statusOf(view: GoalView): string {
 
 interface GoalRowProps {
   readonly view: GoalView;
-  readonly allocatedMinor: number | null;
+  readonly allocation: Allocation | null;
   readonly onOpen: (view: GoalView) => void;
   readonly onEdit: (goal: Goal) => void;
   readonly onDelete: (goal: Goal) => void;
 }
 
-function GoalRow({ view, allocatedMinor, onOpen, onEdit, onDelete }: GoalRowProps) {
+function GoalRow({ view, allocation, onOpen, onEdit, onDelete }: GoalRowProps) {
   const { goal } = view;
   const isReserve = goal.kind === 'reserve';
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -106,7 +108,11 @@ function GoalRow({ view, allocatedMinor, onOpen, onEdit, onDelete }: GoalRowProp
         <div className="flex shrink-0 items-center gap-1">
           <div className="mr-1 text-right">
             <p className="text-sm font-semibold tabular-nums" data-testid={`goal-contribution-${goal.name}`}>
-              {view.plan ? formatForecast(contribution) : '—'}
+              {view.plan
+                ? formatForecast(contribution)
+                : allocation
+                  ? formatForecast(allocation.requiredMinor)
+                  : '—'}
             </p>
             <p className="text-[11px] text-muted-foreground">{ru.goals.contribution}</p>
           </div>
@@ -177,11 +183,11 @@ function GoalRow({ view, allocatedMinor, onOpen, onEdit, onDelete }: GoalRowProp
         </span>
       </div>
 
-      {allocatedMinor === null ? null : (
+      {allocation === null ? null : (
         <p className="pl-7 text-xs text-muted-foreground" data-testid={`goal-allocated-${goal.name}`}>
-          {ru.goals.allocationGets}: {formatForecast(allocatedMinor)}
-          {allocatedMinor < contribution
-            ? ` · ${ru.goals.allocationDeficit} ${formatForecast(contribution - allocatedMinor)}`
+          {ru.goals.allocationGets}: {formatForecast(allocation.allocatedMinor)}
+          {allocation.deficitMinor > 0.5
+            ? ` · ${ru.goals.allocationDeficit} ${formatForecast(allocation.deficitMinor)}`
             : ''}
         </p>
       )}
@@ -191,6 +197,12 @@ function GoalRow({ view, allocatedMinor, onOpen, onEdit, onDelete }: GoalRowProp
 
 function AllocationCard({ data }: { data: GoalsData }) {
   const needed = data.allocations.reduce((total, item) => total + item.requiredMinor, 0);
+  const basis =
+    data.basis.source === 'fact'
+      ? fill(ru.goals.allocationBasisFact, { months: monthsLabel(data.basis.months.length) })
+      : data.basis.source === 'plan'
+        ? ru.goals.allocationBasisPlan
+        : ru.goals.allocationBasisMonth;
 
   return (
     <Card data-testid="allocation-card">
@@ -199,11 +211,10 @@ function AllocationCard({ data }: { data: GoalsData }) {
         <p className="text-sm text-muted-foreground">{ru.goals.allocationHint}</p>
       </CardHeader>
       <CardContent className="flex flex-col gap-2 pt-3">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <div>
             <p className="text-xs text-muted-foreground">
-              {ru.goals.allocationFree} (
-              {data.freeCashFromFact ? ru.goals.allocationBasisFact : ru.goals.allocationBasisPlan})
+              {ru.goals.allocationFree} ({basis})
             </p>
             <p
               className={cn(
@@ -213,6 +224,26 @@ function AllocationCard({ data }: { data: GoalsData }) {
               data-testid="allocation-free"
             >
               {formatForecast(data.freeCashMinor)}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground" title={ru.goals.allocationPrincipalHint}>
+              {ru.goals.allocationPrincipal}
+            </p>
+            <p className="text-sm font-semibold tabular-nums" data-testid="allocation-principal">
+              {formatForecast(data.principalDueMinor)}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">{ru.goals.allocationAvailable}</p>
+            <p
+              className={cn(
+                'text-sm font-semibold tabular-nums',
+                data.availableMinor < 0 && 'text-destructive',
+              )}
+              data-testid="allocation-available"
+            >
+              {formatForecast(data.availableMinor)}
             </p>
           </div>
           <div>
@@ -245,6 +276,10 @@ function AllocationCard({ data }: { data: GoalsData }) {
           <p className="text-sm text-muted-foreground">{ru.goals.allocationNone}</p>
         ) : null}
 
+        {data.principalDueMinor > 0 ? (
+          <p className="text-xs text-muted-foreground">{ru.goals.allocationPrincipalHint}</p>
+        ) : null}
+
         {data.totalDeficitMinor > 0 ? (
           <p className="text-xs text-warning" data-testid="allocation-deficit-hint">
             {ru.goals.allocationDeficitHint}
@@ -275,7 +310,7 @@ export default function GoalsPage() {
   }
 
   const visible = data.goals.filter((view) => showDone || view.goal.status !== 'done');
-  const allocated = new Map(data.allocations.map((item) => [item.goalId, item.allocatedMinor]));
+  const allocated = new Map(data.allocations.map((item) => [item.goalId, item]));
   const opened = data.goals.find((view) => view.goal.id === openedId) ?? null;
 
   const onDragEnd = (event: DragEndEvent) => {
@@ -338,7 +373,7 @@ export default function GoalsPage() {
                     <GoalRow
                       key={view.goal.id}
                       view={view}
-                      allocatedMinor={allocated.get(view.goal.id) ?? null}
+                      allocation={allocated.get(view.goal.id) ?? null}
                       onOpen={(opened) => setOpenedId(opened.goal.id)}
                       onEdit={(goal) => {
                         setEditing(goal);

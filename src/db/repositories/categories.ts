@@ -42,6 +42,9 @@ export const DEFAULT_CATEGORIES: readonly DefaultCategory[] = [
   { id: 'other-variable', name: 'Прочие переменные', kind: 'expense', group: 'variable' },
 ];
 
+/** Interest on loans: the part of a debt payment that is an expense, the rest is a transfer. */
+export const LOAN_INTEREST_CATEGORY = 'loan-interest';
+
 /** Where the onboarding puts the sums the user gives as one number. */
 export const ONBOARDING_INCOME_CATEGORY = 'salary';
 export const ONBOARDING_MANDATORY_CATEGORY = 'other-mandatory';

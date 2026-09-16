@@ -1,4 +1,4 @@
-import { recommendedReserveContributionMinor } from '@/core/balance';
+import { reserveContributionMinor } from '@/core/balance';
 import type { InsurancePolicy } from '@/db/models';
 import { fill } from '@/features/deductions/fill';
 import { monthsLabel } from '@/features/goals/months-label';
@@ -40,7 +40,7 @@ export function ProtectionStep({ data }: { data: PlanData }) {
                 <Row label={p.reserveShort} value={rubles(shortMinor)} strong testId="plan-reserve-short" />
                 <Row
                   label={p.reserveContribution}
-                  value={rubles(recommendedReserveContributionMinor(data.budget.incomeMinor))}
+                  value={rubles(reserveContributionMinor(reserve, data.budget.incomeMinor))}
                 />
                 <Muted>{p.reserveContributionHint}</Muted>
               </>

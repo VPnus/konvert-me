@@ -15,8 +15,11 @@ import {
   totalLiabilitiesMinor,
   netWorthSeries,
   depositsByBank,
+  liquidEnvelopesMinor,
+  principalDueMinor,
+  reserveContributionMinor,
 } from './balance';
-import type { CoreAccount, CoreTransaction } from './types';
+import type { CoreAccount, CoreEnvelope, CoreTransaction } from './types';
 
 const RUB = 100;
 const r = (rubles: number): number => Math.round(rubles * RUB);
@@ -195,6 +198,37 @@ describe('balance: an account balance is derived, never stored', () => {
     expect(accountBalanceMinor(debit, txs)).toBe(r(100_000));
   });
 
+  it('leaves out operations dated before the account was opened', () => {
+    // The opening balance is stated on its date and already holds everything before it:
+    // an old payment typed in later must not move today's balance a second time.
+    const loan: CoreAccount = {
+      id: 'loan',
+      side: 'liability',
+      isLiquid: false,
+      openingBalanceMinor: r(230_000),
+      openingDate: '2026-09-16',
+    };
+    const txs: CoreTransaction[] = [
+      {
+        date: '2026-08-05',
+        kind: 'transfer',
+        amountMinor: r(5_400),
+        accountId: 'debit',
+        toAccountId: 'loan',
+      },
+      {
+        date: '2026-09-16',
+        kind: 'transfer',
+        amountMinor: r(1_000),
+        accountId: 'debit',
+        toAccountId: 'loan',
+      },
+    ];
+    expect(accountBalanceMinor(loan, txs)).toBe(r(229_000));
+    // The account the money left had been open all along, so it did move.
+    expect(accountBalanceMinor(debit, txs)).toBe(r(93_600));
+  });
+
   it('ignores transactions of other accounts', () => {
     const txs: CoreTransaction[] = [
       {
@@ -293,6 +327,7 @@ describe('balance: average monthly expenses', () => {
     expect(averageMonthlyExpenses({ transactions: expenses, currentMonth: '2026-09' })).toEqual({
       source: 'fact',
       valueMinor: r(70_000),
+      months: 3,
     });
   });
 
@@ -303,13 +338,13 @@ describe('balance: average monthly expenses', () => {
         currentMonth: '2026-09',
         planExpenseMinor: r(55_000),
       }),
-    ).toEqual({ source: 'plan', valueMinor: r(55_000) });
+    ).toEqual({ source: 'plan', valueMinor: r(55_000), months: 0 });
   });
 
   it('ignores a zero or negative plan when there is no fact', () => {
     expect(
       averageMonthlyExpenses({ transactions: [], currentMonth: '2026-09', planExpenseMinor: 0 }),
-    ).toEqual({ source: 'none', valueMinor: 0 });
+    ).toEqual({ source: 'none', valueMinor: 0, months: 0 });
   });
 
   it('ignores income when averaging expenses', () => {
@@ -344,16 +379,42 @@ describe('balance: average monthly expenses', () => {
     expect(averageMonthlyExpenses({ transactions: [], currentMonth: '2026-09' })).toEqual({
       source: 'none',
       valueMinor: 0,
+      months: 0,
     });
   });
 
-  it('uses the fact even when only one of the three months has data', () => {
+  it('divides by the months since the records began, not always by three', () => {
+    // A first month of records is a month of spending, not a third of one: dividing
+    // 90 000 by three made a new user's reserve look three times bigger.
     const single: CoreTransaction[] = [
       { date: '2026-08-10', kind: 'expense', amountMinor: r(90_000), accountId: 'debit', categoryId: 'food' },
     ];
     expect(averageMonthlyExpenses({ transactions: single, currentMonth: '2026-09' })).toEqual({
       source: 'fact',
+      valueMinor: r(90_000),
+      months: 1,
+    });
+
+    const two: CoreTransaction[] = [
+      { date: '2026-07-10', kind: 'expense', amountMinor: r(50_000), accountId: 'debit', categoryId: 'food' },
+      ...single,
+    ];
+    expect(averageMonthlyExpenses({ transactions: two, currentMonth: '2026-09' })).toEqual({
+      source: 'fact',
+      valueMinor: r(70_000),
+      months: 2,
+    });
+  });
+
+  it('counts a month without spending between two months with it', () => {
+    const gap: CoreTransaction[] = [
+      { date: '2026-06-10', kind: 'expense', amountMinor: r(60_000), accountId: 'debit', categoryId: 'food' },
+      { date: '2026-08-10', kind: 'expense', amountMinor: r(30_000), accountId: 'debit', categoryId: 'food' },
+    ];
+    expect(averageMonthlyExpenses({ transactions: gap, currentMonth: '2026-09' })).toEqual({
+      source: 'fact',
       valueMinor: r(30_000),
+      months: 3,
     });
   });
 
@@ -363,7 +424,7 @@ describe('balance: average monthly expenses', () => {
       { date: '2026-08-11', kind: 'refund', amountMinor: r(30_000), accountId: 'debit', categoryId: 'food' },
     ];
     expect(averageMonthlyExpenses({ transactions: withRefund, currentMonth: '2026-09' }).valueMinor).toBe(
-      r(20_000),
+      r(60_000),
     );
   });
 });
@@ -377,7 +438,7 @@ describe('balance: financial reserve (formula 9)', () => {
     const state = reserveState({
       liquidMinor: r(400_000),
       otherGoalsEnvelopesMinor: r(150_000),
-      averageExpenses: { source: 'fact', valueMinor: r(70_000) },
+      averageExpenses: { source: 'fact', valueMinor: r(70_000), months: 3 },
       targetMonths: 6,
     });
     expect(state.reserveMinor).toBe(r(250_000));
@@ -390,7 +451,7 @@ describe('balance: financial reserve (formula 9)', () => {
     const state = reserveState({
       liquidMinor: r(100_000),
       otherGoalsEnvelopesMinor: r(150_000),
-      averageExpenses: { source: 'fact', valueMinor: r(70_000) },
+      averageExpenses: { source: 'fact', valueMinor: r(70_000), months: 3 },
       targetMonths: 6,
     });
     expect(state.reserveMinor).toBe(0);
@@ -401,7 +462,7 @@ describe('balance: financial reserve (formula 9)', () => {
     const state = reserveState({
       liquidMinor: r(500_000),
       otherGoalsEnvelopesMinor: 0,
-      averageExpenses: { source: 'fact', valueMinor: r(70_000) },
+      averageExpenses: { source: 'fact', valueMinor: r(70_000), months: 3 },
       targetMonths: 6,
     });
     expect(state.status).toBe('done');
@@ -411,7 +472,7 @@ describe('balance: financial reserve (formula 9)', () => {
     const state = reserveState({
       liquidMinor: r(400_000),
       otherGoalsEnvelopesMinor: 0,
-      averageExpenses: { source: 'fact', valueMinor: 0 },
+      averageExpenses: { source: 'fact', valueMinor: 0, months: 3 },
       targetMonths: 6,
     });
     expect(state.status).toBe('unknown');
@@ -422,7 +483,7 @@ describe('balance: financial reserve (formula 9)', () => {
     const state = reserveState({
       liquidMinor: r(400_000),
       otherGoalsEnvelopesMinor: 0,
-      averageExpenses: { source: 'none', valueMinor: 0 },
+      averageExpenses: { source: 'none', valueMinor: 0, months: 0 },
       targetMonths: 6,
     });
     expect(state.months).toBeNull();
@@ -556,5 +617,125 @@ describe('balance: money in one bank against the insurance limit', () => {
     );
 
     expect(groups).toEqual([]);
+  });
+});
+
+describe('balance: the reserve subtracts only what other goals keep on liquid accounts', () => {
+  const accounts: CoreAccount[] = [
+    debit,
+    savings,
+    {
+      id: 'broker',
+      side: 'asset',
+      isLiquid: false,
+      openingBalanceMinor: r(1_000_000),
+      openingDate: '2026-01-01',
+    },
+    {
+      id: 'old-card',
+      side: 'asset',
+      isLiquid: true,
+      openingBalanceMinor: r(10_000),
+      openingDate: '2026-01-01',
+      archived: true,
+    },
+  ];
+
+  it('leaves out envelopes on a brokerage account, archived accounts and the reserve itself', () => {
+    const envelopes: CoreEnvelope[] = [
+      { goalId: 'flat', accountId: 'broker', amountMinor: r(1_000_000) },
+      { goalId: 'flat', accountId: 'savings', amountMinor: r(120_000) },
+      { goalId: 'car', accountId: 'debit', amountMinor: r(30_000) },
+      { goalId: 'car', accountId: 'old-card', amountMinor: r(10_000) },
+      { goalId: 'reserve', accountId: 'savings', amountMinor: r(50_000) },
+    ];
+    expect(liquidEnvelopesMinor(envelopes, accounts, 'reserve')).toBe(r(150_000));
+  });
+
+  it('is zero without envelopes', () => {
+    expect(liquidEnvelopesMinor([], accounts, 'reserve')).toBe(0);
+  });
+});
+
+describe('balance: the principal due is not free money', () => {
+  const debts: CoreAccount[] = [
+    {
+      id: 'loan',
+      side: 'liability',
+      isLiquid: false,
+      openingBalanceMinor: r(230_000),
+      openingDate: '2026-01-01',
+      monthlyPaymentMinor: r(9_800),
+    },
+    {
+      id: 'card',
+      side: 'liability',
+      isLiquid: false,
+      openingBalanceMinor: r(60_000),
+      openingDate: '2026-01-01',
+      monthlyPaymentMinor: r(3_000),
+    },
+    {
+      id: 'phone',
+      side: 'liability',
+      isLiquid: false,
+      openingBalanceMinor: r(8_000),
+      openingDate: '2026-01-01',
+      monthlyPaymentMinor: r(4_000),
+    },
+  ];
+
+  it('is the scheduled payments less the interest already counted as an expense', () => {
+    // The worker of the scenario audit: 16 800 a month, of which 5 949 is interest.
+    expect(principalDueMinor(debts, r(5_949))).toBe(r(10_851));
+  });
+
+  it('is the whole payment when the interest is not written down separately', () => {
+    expect(principalDueMinor(debts, 0)).toBe(r(16_800));
+  });
+
+  it('never goes below zero and skips archived debts', () => {
+    expect(principalDueMinor(debts, r(20_000))).toBe(0);
+    expect(principalDueMinor([{ ...debts[0], archived: true }], 0)).toBe(0);
+  });
+});
+
+describe('balance: what the reserve asks of a month', () => {
+  const partial = reserveState({
+    liquidMinor: r(37_200),
+    otherGoalsEnvelopesMinor: 0,
+    averageExpenses: { source: 'fact', valueMinor: r(56_849), months: 3 },
+    targetMonths: 6,
+  });
+
+  it('asks for 10 percent of income while the reserve is below its target', () => {
+    expect(reserveContributionMinor(partial, r(65_000))).toBe(r(6_500));
+  });
+
+  it('never asks for more than what is missing', () => {
+    const almost = reserveState({
+      liquidMinor: r(339_000),
+      otherGoalsEnvelopesMinor: 0,
+      averageExpenses: { source: 'fact', valueMinor: r(56_849), months: 3 },
+      targetMonths: 6,
+    });
+    expect(reserveContributionMinor(almost, r(65_000))).toBe(r(56_849) * 6 - r(339_000));
+  });
+
+  it('asks for nothing once the reserve is done or cannot be counted', () => {
+    const done = reserveState({
+      liquidMinor: r(500_000),
+      otherGoalsEnvelopesMinor: 0,
+      averageExpenses: { source: 'fact', valueMinor: r(50_000), months: 3 },
+      targetMonths: 6,
+    });
+    const unknown = reserveState({
+      liquidMinor: r(10_000),
+      otherGoalsEnvelopesMinor: 0,
+      averageExpenses: { source: 'none', valueMinor: 0, months: 0 },
+      targetMonths: 6,
+    });
+    expect(reserveContributionMinor(done, r(65_000))).toBe(0);
+    expect(reserveContributionMinor(unknown, r(65_000))).toBe(0);
   });
 });

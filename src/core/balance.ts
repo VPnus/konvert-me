@@ -5,9 +5,9 @@
  * operation that touched the account.
  */
 
-import type { CoreAccount, CoreTransaction } from './types';
+import type { CoreAccount, CoreEnvelope, CoreTransaction } from './types';
 import type { IsoDate, IsoMonth } from './time';
-import { addMonths, daysInMonth, monthOfDate, monthsRange, withDayOfMonth } from './time';
+import { addMonths, daysInMonth, monthOfDate, monthsBetween, monthsRange, withDayOfMonth } from './time';
 import { affectsCashFlow } from './budget';
 
 export const RESERVE_MIN_MONTHS = 3;
@@ -45,6 +45,10 @@ function cashDelta(account: CoreAccount, transaction: CoreTransaction): number {
   return -amountMinor;
 }
 
+/**
+ * The opening balance is stated on the opening date and already holds everything that
+ * happened before it, so an older operation typed in later leaves the balance alone.
+ */
 export function accountBalanceMinor(
   account: CoreAccount,
   transactions: readonly CoreTransaction[],
@@ -54,6 +58,7 @@ export function accountBalanceMinor(
 
   for (const transaction of transactions) {
     if (options.asOf && transaction.date > options.asOf) continue;
+    if (transaction.date < account.openingDate) continue;
     const delta = cashDelta(account, transaction);
     if (delta === 0) continue;
     balance += account.side === 'asset' ? delta : -delta;
@@ -107,6 +112,15 @@ export function monthlyDebtPaymentsMinor(accounts: readonly CoreAccount[]): numb
     .reduce((total, account) => total + (account.monthlyPaymentMinor ?? 0), 0);
 }
 
+/**
+ * The part of the scheduled debt payments that repays the debts themselves: the payments
+ * less the interest already counted among the expenses. It is not an expense, and it is
+ * not free money either — formula 8 hands the goals only what is left after it.
+ */
+export function principalDueMinor(accounts: readonly CoreAccount[], interestInExpensesMinor: number): number {
+  return Math.max(monthlyDebtPaymentsMinor(accounts) - Math.max(interestInExpensesMinor, 0), 0);
+}
+
 export type DebtBurdenStatus = 'normal' | 'attention' | 'tense' | 'unknown';
 
 export interface DebtBurden {
@@ -128,6 +142,8 @@ export type AverageExpensesSource = 'fact' | 'plan' | 'none';
 export interface AverageExpenses {
   readonly source: AverageExpensesSource;
   readonly valueMinor: number;
+  /** How many complete months the fact is averaged over; zero for the plan and for no data. */
+  readonly months: number;
 }
 
 export interface AverageMonthlyExpensesParams {
@@ -141,6 +157,9 @@ export interface AverageMonthlyExpensesParams {
 /**
  * Average expenses of formula 9: the fact of the last complete months, otherwise the
  * plan of the current month, otherwise an explicit "no data" instead of a zero.
+ *
+ * The fact is divided by the months since the first one with spending, not always by
+ * three: before the records began there was spending too, it just was not written down.
  */
 export function averageMonthlyExpenses({
   transactions,
@@ -148,25 +167,27 @@ export function averageMonthlyExpenses({
   planExpenseMinor,
   monthsBack = AVERAGE_EXPENSE_MONTHS,
 }: AverageMonthlyExpensesParams): AverageExpenses {
-  const months = new Set(
-    Array.from({ length: monthsBack }, (_, offset) => addMonths(currentMonth, -(offset + 1))),
-  );
+  const firstOfWindow = addMonths(currentMonth, -monthsBack);
 
   let total = 0;
-  let hasFact = false;
+  let first: IsoMonth | null = null;
 
   for (const transaction of transactions) {
     if (!affectsCashFlow(transaction.kind) || transaction.kind === 'income') continue;
-    if (!months.has(monthOfDate(transaction.date))) continue;
-    hasFact = true;
+    const month = monthOfDate(transaction.date);
+    if (month < firstOfWindow || month >= currentMonth) continue;
+    if (first === null || month < first) first = month;
     total += transaction.kind === 'refund' ? -transaction.amountMinor : transaction.amountMinor;
   }
 
-  if (hasFact) return { source: 'fact', valueMinor: total / monthsBack };
-  if (planExpenseMinor !== undefined && planExpenseMinor > 0) {
-    return { source: 'plan', valueMinor: planExpenseMinor };
+  if (first !== null) {
+    const months = monthsBetween(first, currentMonth);
+    return { source: 'fact', valueMinor: total / months, months };
   }
-  return { source: 'none', valueMinor: 0 };
+  if (planExpenseMinor !== undefined && planExpenseMinor > 0) {
+    return { source: 'plan', valueMinor: planExpenseMinor, months: 0 };
+  }
+  return { source: 'none', valueMinor: 0, months: 0 };
 }
 
 export interface ReserveNorm {
@@ -199,7 +220,27 @@ export interface ReserveStateParams {
   readonly targetMonths: number;
 }
 
-/** Formula 9: reserve = liquid accounts - envelopes of every goal except the reserve. */
+/**
+ * Formula 9: the envelopes of the other goals that lie on liquid accounts. What a goal keeps
+ * on a brokerage account or a deposit was never part of the liquid money, so it cannot be
+ * taken out of the reserve either.
+ */
+export function liquidEnvelopesMinor(
+  envelopes: readonly CoreEnvelope[],
+  accounts: readonly CoreAccount[],
+  reserveGoalId: string,
+): number {
+  const liquid = new Set(
+    accounts
+      .filter((account) => !account.archived && account.side === 'asset' && account.isLiquid)
+      .map((account) => account.id),
+  );
+  return envelopes
+    .filter((envelope) => envelope.goalId !== reserveGoalId && liquid.has(envelope.accountId))
+    .reduce((total, envelope) => total + envelope.amountMinor, 0);
+}
+
+/** Formula 9: reserve = liquid accounts - envelopes of the other goals on those accounts. */
 export function reserveState({
   liquidMinor,
   otherGoalsEnvelopesMinor,
@@ -225,6 +266,20 @@ export function recommendedReserveContributionMinor(
   share: number = RESERVE_INCOME_SHARE,
 ): number {
   return Math.max(monthlyIncomeMinor, 0) * share;
+}
+
+/**
+ * What the reserve asks of a month in the distribution of formula 8: 10 % of income while
+ * it is short of its target, never more than what is missing, nothing once it is there.
+ */
+export function reserveContributionMinor(
+  reserve: ReserveState,
+  monthlyIncomeMinor: number,
+  share: number = RESERVE_INCOME_SHARE,
+): number {
+  if (reserve.targetMinor === null || reserve.status === 'done' || reserve.status === 'unknown') return 0;
+  const missing = Math.max(reserve.targetMinor - reserve.reserveMinor, 0);
+  return Math.min(recommendedReserveContributionMinor(monthlyIncomeMinor, share), missing);
 }
 
 /** Invariant: the envelopes of an account never exceed its balance. */

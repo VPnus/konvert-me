@@ -14,7 +14,13 @@ export function MechanismsStep({ data }: { data: PlanData }) {
   return (
     <div className="flex flex-col gap-4">
       <PlanCard title={m.title} link={{ to: '/goals', label: t.goals.manage }} testId="plan-mechanisms">
-        <Row label={m.free} value={rubles(goals.freeCashMinor)} />
+        <Row label={m.free} value={rubles(goals.freeCashMinor)} testId="plan-free" />
+        {goals.principalDueMinor > 0 ? (
+          <>
+            <Row label={m.principal} value={rubles(goals.principalDueMinor)} testId="plan-principal" />
+            <Row label={m.available} value={rubles(goals.availableMinor)} strong testId="plan-available" />
+          </>
+        ) : null}
         <Row label={m.needed} value={rubles(neededMinor)} testId="plan-needed" />
 
         {goals.allocations.length === 0 ? (

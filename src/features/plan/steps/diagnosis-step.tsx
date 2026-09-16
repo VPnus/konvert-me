@@ -1,5 +1,6 @@
 import type { Account } from '@/db/models';
 import { fill } from '@/features/deductions/fill';
+import { monthsLabel } from '@/features/goals/months-label';
 import type { PlanData } from '@/features/plan/plan-data';
 import { percentOf, rubles, t } from '@/features/plan/plan-format';
 import { Muted, PlanCard, Row } from '@/features/plan/plan-parts';
@@ -34,7 +35,13 @@ export function DiagnosisStep({ data }: { data: PlanData }) {
         <Row label={d.income} value={rubles(budget.incomeMinor)} />
         <Row label={d.expense} value={rubles(budget.expenseMinor)} />
         <Row label={d.free} value={rubles(budget.freeCashMinor)} strong testId="diagnosis-free" />
-        <Muted>{budget.fromFact ? d.budgetFromFact : d.budgetFromPlan}</Muted>
+        <Muted>
+          {budget.source === 'fact'
+            ? fill(d.budgetFromFact, { months: monthsLabel(budget.months) })
+            : budget.source === 'plan'
+              ? d.budgetFromPlan
+              : d.budgetFromMonth}
+        </Muted>
       </PlanCard>
 
       <PlanCard title={d.capital} link={{ to: '/balance', label: ru.nav.balance }}>

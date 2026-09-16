@@ -177,8 +177,17 @@ describe('envelopes', () => {
       targetMonth: '2028-01',
     });
 
+    const broker = await createAccount({
+      name: 'Брокерский',
+      side: 'asset',
+      type: 'brokerage',
+      openingBalanceMinor: 1_000_000 * RUB,
+    });
+
     await setEnvelope(goal.id, account.id, 150_000 * RUB);
     await setEnvelope(RESERVE_GOAL_ID, account.id, 100_000 * RUB);
+    // Money a goal keeps on a brokerage account was never liquid, so the reserve keeps its own.
+    await setEnvelope(goal.id, broker.id, 1_000_000 * RUB);
 
     expect(await getOtherGoalsEnvelopesMinor()).toBe(150_000 * RUB);
   });

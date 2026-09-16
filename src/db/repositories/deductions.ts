@@ -3,6 +3,7 @@
  * return per year, so the year is the key and saving it again replaces it.
  */
 
+import type { DeductionClaim } from '@/core/deductions';
 import { db } from '@/db/db';
 import { deductionYearSchema, type DeductionYear } from '@/db/models';
 import { parseOrThrow } from '@/db/validate';
@@ -41,4 +42,27 @@ export async function deleteDeductionYear(year: number): Promise<void> {
     await db.deductionYears.delete(year);
   });
   publishAppEvent({ type: 'data-changed' });
+}
+
+/** A stored year in the terms of the law: the four pooled kinds of spending become one pot. */
+export function toDeductionClaim(year: DeductionYear): DeductionClaim {
+  const {
+    treatmentMinor,
+    educationMinor,
+    sportMinor,
+    insuranceMinor,
+    childEducationMinor,
+    expensiveTreatmentMinor,
+  } = year.spending;
+
+  return {
+    incomeMinor: year.incomeMinor,
+    social: {
+      commonMinor: treatmentMinor + educationMinor + sportMinor + insuranceMinor,
+      childEducationMinor,
+      expensiveTreatmentMinor,
+    },
+    longTermSavingsMinor: year.longTermSavingsMinor,
+    property: year.property,
+  };
 }

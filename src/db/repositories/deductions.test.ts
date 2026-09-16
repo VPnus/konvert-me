@@ -9,6 +9,7 @@ import {
   getDeductionYear,
   listDeductionYears,
   saveDeductionYear,
+  toDeductionClaim,
   type DeductionYearInput,
 } from '@/db/repositories/deductions';
 import {
@@ -23,10 +24,24 @@ import {
 
 const RUB = 100;
 
-const noSpending = { commonMinor: 0, childEducationMinor: [], expensiveTreatmentMinor: 0 };
+const noSpending = {
+  treatmentMinor: 0,
+  educationMinor: 0,
+  sportMinor: 0,
+  insuranceMinor: 0,
+  childEducationMinor: [],
+  expensiveTreatmentMinor: 0,
+};
 
 function yearInput(year: number, patch: Partial<DeductionYearInput> = {}): DeductionYearInput {
-  return { year, incomeMinor: 1_200_000 * RUB, spending: noSpending, status: 'draft', ...patch };
+  return {
+    year,
+    incomeMinor: 1_200_000 * RUB,
+    spending: noSpending,
+    longTermSavingsMinor: 0,
+    status: 'draft',
+    ...patch,
+  };
 }
 
 function bytes(...values: number[]): ArrayBuffer {
@@ -62,11 +77,7 @@ describe('deduction years', () => {
     const again = await saveDeductionYear(
       yearInput(2025, {
         incomeMinor: 900_000 * RUB,
-        spending: {
-          commonMinor: 60_000 * RUB,
-          childEducationMinor: [40_000 * RUB],
-          expensiveTreatmentMinor: 0,
-        },
+        spending: { ...noSpending, sportMinor: 60_000 * RUB, childEducationMinor: [40_000 * RUB] },
         status: 'filed',
       }),
     );
@@ -76,7 +87,7 @@ describe('deduction years', () => {
     expect(again.updatedAt).toBeGreaterThanOrEqual(first.updatedAt);
     expect(await getDeductionYear(2025)).toMatchObject({
       incomeMinor: 900_000 * RUB,
-      spending: { commonMinor: 60_000 * RUB, childEducationMinor: [40_000 * RUB] },
+      spending: { sportMinor: 60_000 * RUB, childEducationMinor: [40_000 * RUB] },
       status: 'filed',
     });
   });
@@ -107,9 +118,36 @@ describe('deduction years', () => {
       ValidationError,
     );
     await expect(
-      saveDeductionYear(yearInput(2025, { spending: { ...noSpending, commonMinor: 10.5 } })),
+      saveDeductionYear(yearInput(2025, { spending: { ...noSpending, treatmentMinor: 10.5 } })),
     ).rejects.toBeInstanceOf(ValidationError);
     expect(await db.deductionYears.count()).toBe(0);
+  });
+
+  it('puts treatment, own schooling, sport and insurance into one pot for the law, and keeps the rest apart', async () => {
+    const saved = await saveDeductionYear(
+      yearInput(2025, {
+        spending: {
+          treatmentMinor: 40_000 * RUB,
+          educationMinor: 30_000 * RUB,
+          sportMinor: 20_000 * RUB,
+          insuranceMinor: 10_000 * RUB,
+          childEducationMinor: [110_000 * RUB],
+          expensiveTreatmentMinor: 500_000 * RUB,
+        },
+        longTermSavingsMinor: 400_000 * RUB,
+      }),
+    );
+
+    expect(toDeductionClaim(saved)).toEqual({
+      incomeMinor: 1_200_000 * RUB,
+      social: {
+        commonMinor: 100_000 * RUB,
+        childEducationMinor: [110_000 * RUB],
+        expensiveTreatmentMinor: 500_000 * RUB,
+      },
+      longTermSavingsMinor: 400_000 * RUB,
+      property: undefined,
+    });
   });
 
   it('deleting a year takes its documents with it, and leaves the other years alone', async () => {

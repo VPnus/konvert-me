@@ -211,13 +211,25 @@ export const deductionYearSchema = z.object({
   year: taxYear,
   /** Income before tax, from the income statement — not what reached the card. */
   incomeMinor: nonNegativeMinor,
+  /**
+   * Spending by kind, not as one sum: the law pools the first four, but each needs its own
+   * papers, and the checklist has to know which of them there were.
+   */
   spending: z.object({
-    /** Treatment, medicine, one's own schooling, sport, voluntary insurance. */
-    commonMinor: nonNegativeMinor,
+    /** Treatment and medicine. */
+    treatmentMinor: nonNegativeMinor,
+    /** One's own schooling, or a brother's or a sister's. */
+    educationMinor: nonNegativeMinor,
+    sportMinor: nonNegativeMinor,
+    /** Voluntary medical insurance and life insurance. */
+    insuranceMinor: nonNegativeMinor,
     /** Schooling paid for each child, one entry per child. */
     childEducationMinor: z.array(nonNegativeMinor).max(20),
+    /** Treatment from the government's list of expensive ones. */
     expensiveTreatmentMinor: nonNegativeMinor,
   }),
+  /** Contributions to an investment account and other long-term savings. */
+  longTermSavingsMinor: nonNegativeMinor,
   /**
    * A home, as the return of this year states it: its cost, the interest paid, and what
    * the returns of earlier years already took — the rest of the deduction lives on.

@@ -202,10 +202,14 @@ describe('backup: deductions and their documents', () => {
       year: 2025,
       incomeMinor: 1_200_000 * RUB,
       spending: {
-        commonMinor: 90_000 * RUB,
+        treatmentMinor: 90_000 * RUB,
+        educationMinor: 0,
+        sportMinor: 0,
+        insuranceMinor: 0,
         childEducationMinor: [110_000 * RUB],
         expensiveTreatmentMinor: 0,
       },
+      longTermSavingsMinor: 0,
       status: 'filed',
     });
     await addDocument({

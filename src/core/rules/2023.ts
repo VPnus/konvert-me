@@ -128,6 +128,15 @@ export const RULES_2023: YearRules = {
       'взято из описаний изменений 2025 года.',
   },
 
+  socialPaymentCertificates: {
+    value: false,
+    source: SOURCES.paymentCertificates,
+    checkedAt: CHECKED,
+    note:
+      'До 2024 года расходы на лечение, обучение, спорт и ДМС подтверждали договором, лицензией ' +
+      'организации и платёжными документами — как в уроке 3.7.',
+  },
+
   declarationDeadline: {
     value: '04-30',
     source: SOURCES.declarationDeadline,

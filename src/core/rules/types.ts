@@ -83,6 +83,11 @@ export interface YearRules {
    * salary could not take reduced the sale; if not, only those the law names.
    */
   readonly saleIncomeInMainBase: Norm<boolean>;
+  /**
+   * Whether treatment, schooling, sport and insurance are proved by one certificate of payment
+   * from whoever was paid, instead of the contract, the licence and the receipts.
+   */
+  readonly socialPaymentCertificates: Norm<boolean>;
   /** A return that must be filed is due by this day of the year after. */
   readonly declarationDeadline: Norm<MonthDay>;
   /** And the tax it shows, by this one. */

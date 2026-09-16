@@ -36,6 +36,8 @@ export const SOURCES = {
   homeSaleRate: 'https://audit-reshenie.ru/journal/ndfl/prodazha-kvartiri-v-2025-godu-deklaratsi/',
   /** Tax code, art. 210: the bases of the tax, and which deductions reach the income from a sale. */
   taxBases: 'https://pravo.ppt.ru/kodeks/nk/st-210',
+  /** Tax service: from the spending of 2024, one certificate of payment proves a social deduction. */
+  paymentCertificates: 'https://www.nalog.gov.ru/rn77/taxation/taxes/ndfl/nalog_vichet/soc_nv/soc_nv_pm/',
   /** Tax code, art. 229: a return is filed by 30 April. */
   declarationDeadline: 'https://pravo.ppt.ru/kodeks/nk/st-229',
   /** Tax code, art. 228: the tax it shows is paid by 15 July. */

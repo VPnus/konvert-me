@@ -176,6 +176,14 @@ describe('rules', () => {
     });
   });
 
+  it('asked for contracts, licences and receipts until 2024, and for one certificate of payment from then', () => {
+    expect(RULES_2023.socialPaymentCertificates.value).toBe(false);
+    for (const rules of [RULES_2024, RULES_2025, RULES_2026]) {
+      expect(rules.socialPaymentCertificates.value).toBe(true);
+    }
+    for (const rules of KNOWN_RULES) expect(rules.socialPaymentCertificates.note).toBeTruthy();
+  });
+
   it('asks for a return by 30 April and for its tax by 15 July of the year after', () => {
     for (const rules of KNOWN_RULES) {
       expect(rules.declarationDeadline.value).toBe('04-30');

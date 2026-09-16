@@ -126,6 +126,17 @@ export const RULES_2024: YearRules = {
       'взято из описаний изменений 2025 года.',
   },
 
+  socialPaymentCertificates: {
+    value: true,
+    source: SOURCES.paymentCertificates,
+    checkedAt: CHECKED,
+    note:
+      'С расходов 2024 года за лечение, обучение, спорт и ДМС достаточно одной справки об оплате ' +
+      'от клиники, учебного заведения, спортивной или страховой организации. Её не нужно ' +
+      'прикладывать, если организация сама передала сведения в налоговую. Для лекарств по-прежнему ' +
+      'нужны рецепт и чеки.',
+  },
+
   declarationDeadline: {
     value: '04-30',
     source: SOURCES.declarationDeadline,

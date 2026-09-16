@@ -2,9 +2,10 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
-import { formatMinor, minorToRubles, rublesToMinor } from '@/core/money';
+import { formatForecast, minorToRubles, rublesToMinor } from '@/core/money';
 import type { PaydayOf } from '@/core/payday';
 import { todayIso } from '@/core/time';
+import { daysLabel } from '@/features/balance/days-label';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -21,19 +22,6 @@ import {
 import { useDataVersion } from '@/hooks/use-data-version';
 import { ru } from '@/i18n/ru';
 import { parseNumericInput } from '@/lib/numeric-input';
-
-/** "через 2 дня" — the Russian plural of a number of days. */
-function daysLabel(days: number): string {
-  if (days === 0) return ru.income.today;
-  if (days === 1) return ru.income.tomorrow;
-
-  const [many, one, few] = ru.income.days;
-  const tail = days % 100;
-  const last = days % 10;
-  const word = tail >= 11 && tail <= 14 ? many : last === 1 ? one : last >= 2 && last <= 4 ? few : many;
-
-  return ru.income.inDays.replace('{days}', `${days} ${word}`);
-}
 
 const DATE_FORMAT = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long' });
 
@@ -216,9 +204,7 @@ export function PaydayCard() {
                     <p className="truncate text-sm font-medium">{payday.source.name}</p>
                     <p className="truncate text-xs text-muted-foreground">
                       {humanDate(payday.date)}
-                      {payday.source.amountMinor
-                        ? ` · ${formatMinor(payday.source.amountMinor, { fractionDigits: 0 })}`
-                        : ''}
+                      {payday.source.amountMinor ? ` · ${formatForecast(payday.source.amountMinor)}` : ''}
                     </p>
                   </div>
 
@@ -260,9 +246,7 @@ export function PaydayCard() {
         {monthTotalMinor > 0 ? (
           <p className="text-sm" data-testid="payday-total">
             {ru.income.monthTotal}:{' '}
-            <span className="font-semibold tabular-nums">
-              {formatMinor(monthTotalMinor, { fractionDigits: 0 })}
-            </span>
+            <span className="font-semibold tabular-nums">{formatForecast(monthTotalMinor)}</span>
           </p>
         ) : null}
 

@@ -1,29 +1,41 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Archive, ArchiveRestore, Pencil, Plus, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { Archive, ArchiveRestore, Pencil, Plus, ShieldCheck, Trash2 } from 'lucide-react';
+import { Suspense, lazy, useState } from 'react';
 
-import { formatMinor } from '@/core/money';
+import { formatForecast } from '@/core/money';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { ErrorBoundary } from '@/components/common/error-boundary';
 import { AccountForm } from '@/features/balance/account-form';
+import { loadBalance, type BalanceData } from '@/features/balance/balance-data';
 import { PaydayCard } from '@/features/balance/payday-card';
+import { PoliciesCard } from '@/features/balance/policies-card';
 import { useDataVersion } from '@/hooks/use-data-version';
 import type { Account } from '@/db/models';
-import {
-  deleteAccount,
-  getAccountBalancesMinor,
-  listAccounts,
-  setAccountArchived,
-} from '@/db/repositories/accounts';
+import { deleteAccount, setAccountArchived } from '@/db/repositories/accounts';
 import { ru } from '@/i18n/ru';
 
-interface AccountsView {
-  readonly accounts: Account[];
-  readonly balances: Map<string, number>;
-}
+// Recharts is a chunk of its own: the balance screen is useful long before it draws.
+const CapitalChart = lazy(() => import('@/features/balance/capital-chart'));
 
-const EMPTY_VIEW: AccountsView = { accounts: [], balances: new Map() };
+const RANGES: readonly { readonly months?: number; readonly label: string }[] = [
+  { months: 12, label: ru.capital.range12 },
+  { months: 24, label: ru.capital.range24 },
+  { label: ru.capital.rangeAll },
+];
+
+/** The extra line under an account: its type and whatever dates it carries. */
+function accountDetails(account: Account): string {
+  const parts: string[] = [ru.accounts.types[account.type]];
+  if (account.bankName) parts.push(account.bankName);
+  if (account.paymentDay) parts.push(`платёж ${account.paymentDay} числа`);
+  if (account.maturityDate) parts.push(`${ru.accounts.maturityDate.toLowerCase()} ${account.maturityDate}`);
+  if (account.gracePeriodEnd)
+    parts.push(`${ru.accounts.gracePeriodEnd.toLowerCase()} ${account.gracePeriodEnd}`);
+  if (account.endDate) parts.push(`${ru.accounts.endDate.toLowerCase()} ${account.endDate}`);
+  return parts.join(' · ');
+}
 
 function AccountRow({
   account,
@@ -47,10 +59,7 @@ function AccountRow({
             </span>
           ) : null}
         </p>
-        <p className="truncate text-xs text-muted-foreground">
-          {ru.accounts.types[account.type]}
-          {account.paymentDay ? ` · платёж ${account.paymentDay} числа` : ''}
-        </p>
+        <p className="truncate text-xs text-muted-foreground">{accountDetails(account)}</p>
       </div>
 
       <div className="flex shrink-0 items-center gap-1">
@@ -58,7 +67,7 @@ function AccountRow({
           className={`mr-1 text-sm font-semibold tabular-nums ${account.side === 'liability' ? 'text-destructive' : ''}`}
           data-testid={`balance-${account.name}`}
         >
-          {formatMinor(balanceMinor, { fractionDigits: 0 })}
+          {formatForecast(balanceMinor)}
         </span>
 
         <Button variant="ghost" size="icon" aria-label={ru.common.edit} onClick={() => onEdit(account)}>
@@ -84,6 +93,106 @@ function AccountRow({
   );
 }
 
+function CapitalCard({ data }: { data: BalanceData }) {
+  const [months, setMonths] = useState<number | undefined>(12);
+  const points = months ? data.series.slice(-months) : data.series;
+
+  return (
+    <Card>
+      <CardHeader className="pb-0">
+        <CardTitle className="text-base">{ru.capital.title}</CardTitle>
+        <p className="text-sm text-muted-foreground">{ru.capital.subtitle}</p>
+      </CardHeader>
+      <CardContent className="pt-3">
+        <div className="mb-2 flex gap-1">
+          {RANGES.map((range) => (
+            <Button
+              key={range.label}
+              size="sm"
+              variant={range.months === months ? 'default' : 'outline'}
+              data-testid={`capital-range-${range.months ?? 'all'}`}
+              onClick={() => setMonths(range.months)}
+            >
+              {range.label}
+            </Button>
+          ))}
+        </div>
+
+        {points.length > 1 ? (
+          <ErrorBoundary
+            fallback={() => <p className="py-4 text-xs text-muted-foreground">{ru.capital.empty}</p>}
+          >
+            <Suspense fallback={<p className="py-6 text-xs text-muted-foreground">{ru.common.loading}</p>}>
+              <CapitalChart points={points} />
+            </Suspense>
+          </ErrorBoundary>
+        ) : (
+          <p className="py-4 text-sm text-muted-foreground" data-testid="capital-empty">
+            {ru.capital.empty}
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function InsuranceCard({ data }: { data: BalanceData }) {
+  const limit = data.insuranceLimit;
+
+  return (
+    <Card data-testid="insurance-card">
+      <CardHeader className="pb-0">
+        <CardTitle className="text-base">
+          <ShieldCheck className="mr-1 inline size-4" aria-hidden />
+          {ru.insurance.title}
+        </CardTitle>
+        <p className="text-sm text-muted-foreground">{ru.insurance.subtitle}</p>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-2 pt-3">
+        <p className="text-sm">
+          {ru.insurance.limit}: <span className="font-semibold">{formatForecast(limit.value)}</span>
+        </p>
+
+        {data.banks.length === 0 ? (
+          <p className="text-sm text-muted-foreground" data-testid="insurance-empty">
+            {ru.insurance.empty}
+          </p>
+        ) : (
+          <ul>
+            {data.banks.map((bank) => (
+              <li
+                key={bank.bankName}
+                className="flex items-center justify-between gap-2 border-b border-border/60 py-2 last:border-b-0"
+              >
+                <span className="truncate text-sm">{bank.bankName}</span>
+                <span
+                  className={`shrink-0 text-sm tabular-nums ${bank.overLimit ? 'text-destructive' : ''}`}
+                  data-testid={`insurance-${bank.bankName}`}
+                >
+                  {formatForecast(bank.amountMinor)}
+                  {bank.overLimit ? ` · ${ru.insurance.overLimit} ${formatForecast(bank.excessMinor)}` : ''}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {data.banks.length > 0 && data.banks.every((bank) => !bank.overLimit) ? (
+          <p className="text-xs text-muted-foreground">{ru.insurance.ok}</p>
+        ) : null}
+
+        <p className="text-[11px] text-muted-foreground">
+          {limit.note} {ru.insurance.source}:{' '}
+          <a href={limit.source} target="_blank" rel="noreferrer noopener" className="underline">
+            {new URL(limit.source).hostname}
+          </a>
+          , {ru.insurance.checkedAt} {limit.checkedAt}.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function BalancePage() {
   const dataVersion = useDataVersion();
   const [showArchived, setShowArchived] = useState(false);
@@ -92,21 +201,10 @@ export default function BalancePage() {
   const [pendingDelete, setPendingDelete] = useState<Account | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const view: AccountsView =
-    useLiveQuery(
-      async () => ({
-        accounts: await listAccounts({ includeArchived: showArchived }),
-        balances: await getAccountBalancesMinor(),
-      }),
-      [showArchived, dataVersion],
-    ) ?? EMPTY_VIEW;
-
-  const assets = view.accounts.filter((account) => account.side === 'asset');
-  const liabilities = view.accounts.filter((account) => account.side === 'liability');
-  const balanceOf = (account: Account): number =>
-    view.balances.get(account.id) ?? account.openingBalanceMinor;
-  const sum = (list: Account[]): number => list.reduce((total, account) => total + balanceOf(account), 0);
-  const netWorthMinor = sum(assets) - sum(liabilities);
+  const data = useLiveQuery(
+    () => loadBalance({ includeArchived: showArchived }),
+    [showArchived, dataVersion],
+  );
 
   const openCreate = () => {
     setEditing(undefined);
@@ -129,6 +227,15 @@ export default function BalancePage() {
     }
   };
 
+  if (!data) {
+    return <p className="text-sm text-muted-foreground">{ru.common.loading}</p>;
+  }
+
+  const assets = data.accounts.filter((account) => account.side === 'asset');
+  const liabilities = data.accounts.filter((account) => account.side === 'liability');
+  const balanceOf = (account: Account): number =>
+    data.balances.get(account.id) ?? account.openingBalanceMinor;
+
   return (
     <section className="mx-auto flex w-full max-w-3xl flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -142,9 +249,7 @@ export default function BalancePage() {
         </Button>
       </div>
 
-      <PaydayCard />
-
-      {view.accounts.length === 0 ? (
+      {data.accounts.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-start gap-3 p-5">
             <p className="text-sm text-muted-foreground">{ru.accounts.empty}</p>
@@ -159,59 +264,71 @@ export default function BalancePage() {
             <CardHeader className="pb-0">
               <CardTitle className="text-base">{ru.accounts.netWorth}</CardTitle>
             </CardHeader>
-            <CardContent className="pt-2">
+            <CardContent className="flex flex-wrap items-baseline gap-x-4 gap-y-1 pt-2">
               <p
-                className={`text-2xl font-semibold tabular-nums ${netWorthMinor < 0 ? 'text-destructive' : ''}`}
+                className={`text-2xl font-semibold tabular-nums ${data.netWorthMinor < 0 ? 'text-destructive' : ''}`}
                 data-testid="net-worth"
               >
-                {formatMinor(netWorthMinor, { fractionDigits: 0 })}
+                {formatForecast(data.netWorthMinor)}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {ru.capital.assets}: {formatForecast(data.assetsMinor)} · {ru.capital.liabilities}:{' '}
+                {formatForecast(data.liabilitiesMinor)}
               </p>
             </CardContent>
           </Card>
 
-          {assets.length > 0 ? (
-            <Card>
-              <CardHeader className="pb-0">
-                <CardTitle className="text-base">{ru.accounts.assets}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul>
-                  {assets.map((account) => (
-                    <AccountRow
-                      key={account.id}
-                      account={account}
-                      balanceMinor={balanceOf(account)}
-                      onEdit={openEdit}
-                      onDelete={setPendingDelete}
-                    />
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          ) : null}
-
-          {liabilities.length > 0 ? (
-            <Card>
-              <CardHeader className="pb-0">
-                <CardTitle className="text-base">{ru.accounts.liabilities}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul>
-                  {liabilities.map((account) => (
-                    <AccountRow
-                      key={account.id}
-                      account={account}
-                      balanceMinor={balanceOf(account)}
-                      onEdit={openEdit}
-                      onDelete={setPendingDelete}
-                    />
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          ) : null}
+          <CapitalCard data={data} />
         </>
       )}
+
+      <PaydayCard />
+
+      {assets.length > 0 ? (
+        <Card>
+          <CardHeader className="pb-0">
+            <CardTitle className="text-base">{ru.accounts.assets}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul>
+              {assets.map((account) => (
+                <AccountRow
+                  key={account.id}
+                  account={account}
+                  balanceMinor={balanceOf(account)}
+                  onEdit={openEdit}
+                  onDelete={setPendingDelete}
+                />
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {liabilities.length > 0 ? (
+        <Card>
+          <CardHeader className="pb-0">
+            <CardTitle className="text-base">{ru.accounts.liabilities}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul>
+              {liabilities.map((account) => (
+                <AccountRow
+                  key={account.id}
+                  account={account}
+                  balanceMinor={balanceOf(account)}
+                  onEdit={openEdit}
+                  onDelete={setPendingDelete}
+                />
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      <InsuranceCard data={data} />
+
+      <PoliciesCard policies={data.policies} />
 
       <label className="flex items-center gap-2 text-sm text-muted-foreground">
         <input

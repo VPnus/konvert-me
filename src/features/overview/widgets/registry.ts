@@ -13,6 +13,7 @@ import {
 } from '@/features/overview/widgets/basic-widgets';
 import { GoalProgressWidget, GoalsWidget, WarningsWidget } from '@/features/overview/widgets/goal-widgets';
 import { QuickAddWidget } from '@/features/overview/widgets/quick-add-widget';
+import { UpcomingWidget } from '@/features/overview/widgets/upcoming-widget';
 import { LinksWidget, NewsWidget } from '@/features/overview/widgets/source-widgets';
 import type { WidgetDefinition } from '@/features/overview/widgets/types';
 import { ru } from '@/i18n/ru';
@@ -52,6 +53,14 @@ export const WIDGET_REGISTRY: readonly WidgetDefinition[] = [
     sizes: ['M', 'L'],
     defaultSize: 'L',
     Component: GoalsWidget,
+  },
+  {
+    type: 'upcoming',
+    title: ru.upcoming.title,
+    description: ru.upcoming.description,
+    sizes: ['M', 'L'],
+    defaultSize: 'M',
+    Component: UpcomingWidget,
   },
   {
     type: 'net-worth',

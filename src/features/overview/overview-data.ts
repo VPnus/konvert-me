@@ -17,8 +17,9 @@ import {
   type ReserveState,
 } from '@/core/balance';
 import { monthTotals, planTotals, type MonthTotals } from '@/core/budget';
+import { upcomingEvents, type UpcomingEvent } from '@/core/upcoming';
 import { contributionPlan, returnBeatsInflation, type ContributionPlan } from '@/core/goals';
-import { currentMonth, type IsoMonth } from '@/core/time';
+import { currentMonth, todayIso, type IsoMonth } from '@/core/time';
 import type { CoreAccount, CoreCategory, CoreTransaction } from '@/core/types';
 import { db } from '@/db/db';
 import type { Account, AppSettings, Goal } from '@/db/models';
@@ -52,6 +53,8 @@ export interface OverviewData {
   readonly hasPlan: boolean;
   readonly hasTransactions: boolean;
   readonly warnings: Warning[];
+  /** The dates that are about to matter — the "soon" feed of stage 6. */
+  readonly upcoming: UpcomingEvent[];
 }
 
 function toCoreAccount(account: Account): CoreAccount {
@@ -69,7 +72,7 @@ function toCoreAccount(account: Account): CoreAccount {
 export async function loadOverview(now: Date = new Date()): Promise<OverviewData> {
   const month = currentMonth(now);
 
-  const [settingsRow, accounts, transactions, plans, categories, goals, savingsByGoal, balances] =
+  const [settingsRow, accounts, transactions, plans, categories, goals, savingsByGoal, balances, policies] =
     await Promise.all([
       db.settings.get('app'),
       db.accounts.toArray(),
@@ -79,6 +82,7 @@ export async function loadOverview(now: Date = new Date()): Promise<OverviewData
       db.goals.toArray(),
       getSavingsByGoal(),
       getAccountBalancesMinor(),
+      db.policies.toArray(),
     ]);
 
   const settings = settingsRow ?? DEFAULT_SETTINGS;
@@ -155,6 +159,17 @@ export async function loadOverview(now: Date = new Date()): Promise<OverviewData
     liabilitiesMinor: totalLiabilitiesMinor(coreAccounts, coreTransactions),
     debtBurden: debtBurden(monthlyPayments, incomeForBurden),
     hasDebts: accounts.some((account) => account.side === 'liability' && !account.archived),
+    upcoming: upcomingEvents({
+      today: todayIso(now),
+      accounts,
+      policies: policies.map((policy) => ({
+        id: policy.id,
+        name: policy.name,
+        endDate: policy.endDate,
+        premiumMinor: policy.premiumMinor,
+        archived: policy.archived,
+      })),
+    }),
     goals: goalViews,
     hasPlan: plans.length > 0,
     hasTransactions: transactions.length > 0,

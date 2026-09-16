@@ -28,6 +28,20 @@ interface FormState {
   isLiquid: boolean;
   monthlyPayment: string;
   paymentDay: string;
+  bankName: string;
+  rate: string;
+  maturityDate: string;
+  endDate: string;
+  creditLimit: string;
+  gracePeriodEnd: string;
+  note: string;
+}
+
+/** Deposits and savings are insured; a brokerage account or a flat is not. */
+const INSURABLE_TYPES: readonly AccountType[] = ['debit', 'savings', 'deposit', 'cash'];
+
+function percent(rate: number | undefined): string {
+  return rate === undefined ? '' : String(Math.round(rate * 1000) / 10);
 }
 
 function initialState(account?: Account): FormState {
@@ -41,6 +55,13 @@ function initialState(account?: Account): FormState {
       isLiquid: account.isLiquid,
       monthlyPayment: account.monthlyPaymentMinor ? String(minorToRubles(account.monthlyPaymentMinor)) : '',
       paymentDay: account.paymentDay ? String(account.paymentDay) : '',
+      bankName: account.bankName ?? '',
+      rate: percent(account.rate),
+      maturityDate: account.maturityDate ?? '',
+      endDate: account.endDate ?? '',
+      creditLimit: account.creditLimitMinor ? String(minorToRubles(account.creditLimitMinor)) : '',
+      gracePeriodEnd: account.gracePeriodEnd ?? '',
+      note: account.note ?? '',
     };
   }
 
@@ -53,6 +74,13 @@ function initialState(account?: Account): FormState {
     isLiquid: true,
     monthlyPayment: '',
     paymentDay: '',
+    bankName: '',
+    rate: '',
+    maturityDate: '',
+    endDate: '',
+    creditLimit: '',
+    gracePeriodEnd: '',
+    note: '',
   };
 }
 
@@ -85,6 +113,16 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
           ? rublesToMinor(parseNumericInput(state.monthlyPayment))
           : undefined,
       paymentDay: state.side === 'liability' && state.paymentDay ? Number(state.paymentDay) : undefined,
+      bankName: state.bankName.trim() || undefined,
+      rate: state.rate ? parseNumericInput(state.rate) / 100 : undefined,
+      maturityDate: state.side === 'asset' && state.maturityDate ? state.maturityDate : undefined,
+      endDate: state.side === 'liability' && state.endDate ? state.endDate : undefined,
+      creditLimitMinor:
+        state.side === 'liability' && state.creditLimit
+          ? rublesToMinor(parseNumericInput(state.creditLimit))
+          : undefined,
+      gracePeriodEnd: state.side === 'liability' && state.gracePeriodEnd ? state.gracePeriodEnd : undefined,
+      note: state.note.trim() || undefined,
     };
 
     try {
@@ -228,6 +266,108 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
                 </Field>
               </div>
             )}
+
+            {state.side === 'asset' && INSURABLE_TYPES.includes(state.type) ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field
+                  label={`${ru.accounts.bankName} (${ru.common.optional})`}
+                  hint={ru.accounts.bankNameHint}
+                >
+                  {(id) => (
+                    <Input
+                      id={id}
+                      value={state.bankName}
+                      data-testid="account-bank"
+                      onChange={(event) => patch({ bankName: event.target.value })}
+                    />
+                  )}
+                </Field>
+
+                <Field label={`${ru.accounts.rate} (${ru.common.optional})`}>
+                  {(id) => (
+                    <NumberInput
+                      id={id}
+                      value={state.rate}
+                      data-testid="account-rate"
+                      onValueChange={(rate) => patch({ rate })}
+                    />
+                  )}
+                </Field>
+              </div>
+            ) : null}
+
+            {state.type === 'deposit' ? (
+              <Field
+                label={`${ru.accounts.maturityDate} (${ru.common.optional})`}
+                hint={ru.accounts.maturityHint}
+              >
+                {(id) => (
+                  <Input
+                    id={id}
+                    type="date"
+                    value={state.maturityDate}
+                    data-testid="account-maturity"
+                    onChange={(event) => patch({ maturityDate: event.target.value })}
+                  />
+                )}
+              </Field>
+            ) : null}
+
+            {state.type === 'credit_card' ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label={`${ru.accounts.creditLimit} (${ru.common.optional})`}>
+                  {(id) => (
+                    <NumberInput
+                      id={id}
+                      value={state.creditLimit}
+                      data-testid="account-credit-limit"
+                      onValueChange={(creditLimit) => patch({ creditLimit })}
+                    />
+                  )}
+                </Field>
+
+                <Field
+                  label={`${ru.accounts.gracePeriodEnd} (${ru.common.optional})`}
+                  hint={ru.accounts.graceHint}
+                >
+                  {(id) => (
+                    <Input
+                      id={id}
+                      type="date"
+                      value={state.gracePeriodEnd}
+                      data-testid="account-grace"
+                      onChange={(event) => patch({ gracePeriodEnd: event.target.value })}
+                    />
+                  )}
+                </Field>
+              </div>
+            ) : null}
+
+            {state.side === 'liability' && state.type !== 'credit_card' ? (
+              <Field label={`${ru.accounts.endDate} (${ru.common.optional})`} hint={ru.accounts.endDateHint}>
+                {(id) => (
+                  <Input
+                    id={id}
+                    type="date"
+                    value={state.endDate}
+                    data-testid="account-end-date"
+                    onChange={(event) => patch({ endDate: event.target.value })}
+                  />
+                )}
+              </Field>
+            ) : null}
+
+            <Field label={`${ru.accounts.note} (${ru.common.optional})`}>
+              {(id) => (
+                <Input
+                  id={id}
+                  value={state.note}
+                  maxLength={200}
+                  data-testid="account-note"
+                  onChange={(event) => patch({ note: event.target.value })}
+                />
+              )}
+            </Field>
 
             {error ? (
               <p role="alert" className="text-sm text-destructive" data-testid="account-error">

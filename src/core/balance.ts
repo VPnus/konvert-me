@@ -7,7 +7,7 @@
 
 import type { CoreAccount, CoreTransaction } from './types';
 import type { IsoDate, IsoMonth } from './time';
-import { addMonths, monthOfDate } from './time';
+import { addMonths, daysInMonth, monthOfDate, monthsRange, withDayOfMonth } from './time';
 import { affectsCashFlow } from './budget';
 
 export const RESERVE_MIN_MONTHS = 3;
@@ -230,4 +230,92 @@ export function recommendedReserveContributionMinor(
 /** Invariant: the envelopes of an account never exceed its balance. */
 export function envelopesFitAccount(accountBalance: number, envelopesSumMinor: number): boolean {
   return envelopesSumMinor <= accountBalance;
+}
+
+export interface NetWorthPoint {
+  readonly month: IsoMonth;
+  readonly assetsMinor: number;
+  readonly liabilitiesMinor: number;
+  readonly netWorthMinor: number;
+}
+
+/**
+ * Capital at the end of every month of a range. Nothing is stored: a month is simply
+ * the balances counted with the operations up to its last day, so the line can never
+ * drift away from the operations it is drawn from.
+ */
+export function netWorthSeries(
+  accounts: readonly CoreAccount[],
+  transactions: readonly CoreTransaction[],
+  from: IsoMonth,
+  to: IsoMonth,
+): NetWorthPoint[] {
+  return monthsRange(from, to).map((month) => {
+    const asOf = withDayOfMonth(month, daysInMonth(month));
+    let assetsMinor = 0;
+    let liabilitiesMinor = 0;
+
+    for (const account of accounts) {
+      if (account.archived) continue;
+      // An account only exists from the day its opening balance is stated.
+      if (account.openingDate > asOf) continue;
+
+      const balance = accountBalanceMinor(account, transactions, { asOf });
+      if (account.side === 'asset') assetsMinor += balance;
+      else liabilitiesMinor += balance;
+    }
+
+    return { month, assetsMinor, liabilitiesMinor, netWorthMinor: assetsMinor - liabilitiesMinor };
+  });
+}
+
+export interface BankDeposits {
+  readonly bankName: string;
+  readonly amountMinor: number;
+  readonly accountIds: string[];
+  /** Above the limit the state guarantees, so part of the money is not insured. */
+  readonly overLimit: boolean;
+  readonly excessMinor: number;
+}
+
+export interface InsuredAccount extends CoreAccount {
+  /** Deposits of the same bank are insured together, so they are counted together. */
+  readonly bankName?: string;
+  readonly insurable?: boolean;
+}
+
+/**
+ * Money grouped by bank against the insurance limit. Only accounts marked insurable
+ * take part: shares and property are not deposits, whatever bank sold them.
+ */
+export function depositsByBank(
+  accounts: readonly InsuredAccount[],
+  transactions: readonly CoreTransaction[],
+  limitMinor: number,
+): BankDeposits[] {
+  const byBank = new Map<string, { amountMinor: number; accountIds: string[] }>();
+
+  for (const account of accounts) {
+    if (account.archived || !account.insurable) continue;
+    const bankName = account.bankName?.trim();
+    if (!bankName) continue;
+
+    const balance = accountBalanceMinor(account, transactions);
+    if (balance <= 0) continue;
+
+    const group = byBank.get(bankName) ?? { amountMinor: 0, accountIds: [] };
+    group.amountMinor += balance;
+    group.accountIds.push(account.id);
+    byBank.set(bankName, group);
+  }
+
+  return [...byBank.entries()]
+    .map(([bankName, group]) => ({
+      bankName,
+      amountMinor: group.amountMinor,
+      accountIds: group.accountIds,
+      overLimit: group.amountMinor > limitMinor,
+      excessMinor: Math.max(group.amountMinor - limitMinor, 0),
+    }))
+    .sort((a, b) => b.amountMinor - a.amountMinor || a.bankName.localeCompare(b.bankName, 'ru'));
 }

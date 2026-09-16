@@ -13,6 +13,8 @@ import {
   reserveNorm,
   reserveState,
   totalLiabilitiesMinor,
+  netWorthSeries,
+  depositsByBank,
 } from './balance';
 import type { CoreAccount, CoreTransaction } from './types';
 
@@ -443,5 +445,116 @@ describe('balance: envelopes never exceed the account balance', () => {
 
   it('rejects envelopes above the balance', () => {
     expect(envelopesFitAccount(r(100_000), r(100_001))).toBe(false);
+  });
+});
+
+describe('balance: capital month by month', () => {
+  const accounts: CoreAccount[] = [
+    {
+      id: 'card',
+      side: 'asset',
+      isLiquid: true,
+      openingBalanceMinor: 100_000 * RUB,
+      openingDate: '2026-07-01',
+    },
+    {
+      id: 'loan',
+      side: 'liability',
+      isLiquid: false,
+      openingBalanceMinor: 60_000 * RUB,
+      openingDate: '2026-08-01',
+    },
+  ];
+
+  const transactions: CoreTransaction[] = [
+    { date: '2026-08-10', kind: 'income', amountMinor: 20_000 * RUB, accountId: 'card', categoryId: 'pay' },
+    {
+      date: '2026-09-05',
+      kind: 'transfer',
+      amountMinor: 10_000 * RUB,
+      accountId: 'card',
+      toAccountId: 'loan',
+    },
+  ];
+
+  it('counts every month with the operations up to its last day', () => {
+    const series = netWorthSeries(accounts, transactions, '2026-07', '2026-09');
+
+    expect(series.map((point) => [point.month, point.assetsMinor, point.liabilitiesMinor])).toEqual([
+      // july: only the card exists yet
+      ['2026-07', 100_000 * RUB, 0],
+      // august: the loan appears, the salary lands
+      ['2026-08', 120_000 * RUB, 60_000 * RUB],
+      // september: 10 000 moved from the card to the loan
+      ['2026-09', 110_000 * RUB, 50_000 * RUB],
+    ]);
+    expect(series[2].netWorthMinor).toBe(60_000 * RUB);
+  });
+
+  it('agrees with the plain net worth on the last month', () => {
+    const series = netWorthSeries(accounts, transactions, '2026-07', '2026-09');
+    expect(series[series.length - 1].netWorthMinor).toBe(netWorthMinor(accounts, transactions));
+  });
+});
+
+describe('balance: money in one bank against the insurance limit', () => {
+  const LIMIT = 1_400_000 * RUB;
+
+  const deposits = [
+    {
+      id: 'd1',
+      side: 'asset' as const,
+      isLiquid: true,
+      openingBalanceMinor: 900_000 * RUB,
+      openingDate: '2026-01-01',
+      bankName: 'Банк А',
+      insurable: true,
+    },
+    {
+      id: 'd2',
+      side: 'asset' as const,
+      isLiquid: true,
+      openingBalanceMinor: 700_000 * RUB,
+      openingDate: '2026-01-01',
+      bankName: 'Банк А',
+      insurable: true,
+    },
+    {
+      id: 'd3',
+      side: 'asset' as const,
+      isLiquid: true,
+      openingBalanceMinor: 500_000 * RUB,
+      openingDate: '2026-01-01',
+      bankName: 'Банк Б',
+      insurable: true,
+    },
+  ];
+
+  it('adds up the deposits of one bank and says how much is not insured', () => {
+    const groups = depositsByBank(deposits, [], LIMIT);
+
+    expect(groups[0]).toMatchObject({
+      bankName: 'Банк А',
+      amountMinor: 1_600_000 * RUB,
+      overLimit: true,
+      excessMinor: 200_000 * RUB,
+    });
+    expect(groups[0].accountIds).toEqual(['d1', 'd2']);
+    expect(groups[1]).toMatchObject({ bankName: 'Банк Б', overLimit: false, excessMinor: 0 });
+  });
+
+  it('leaves out what is not a deposit, has no bank, or is empty', () => {
+    const groups = depositsByBank(
+      [
+        { ...deposits[0], id: 'shares', insurable: false },
+        { ...deposits[0], id: 'nobank', bankName: '  ' },
+        { ...deposits[0], id: 'empty', openingBalanceMinor: 0 },
+        { ...deposits[0], id: 'archived', archived: true },
+      ],
+      [],
+      LIMIT,
+    );
+
+    expect(groups).toEqual([]);
   });
 });

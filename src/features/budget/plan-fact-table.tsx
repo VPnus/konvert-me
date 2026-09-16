@@ -22,6 +22,22 @@ function remainingMoney(minor: number): string {
   return money(minor);
 }
 
+/**
+ * What is left of an income plan. More coming in than planned is no overspend: it carries a plus,
+ * as money over the plan, and is never painted red.
+ */
+function incomeRemainingMoney(minor: number): string {
+  return minor < 0 ? `+${money(-minor)}` : money(minor);
+}
+
+/** The colour and the tooltip of what is left: red only for spending past the plan. */
+function remainingLook(minor: number, income: boolean): { className: string; title: string | undefined } {
+  if (minor >= 0) return { className: 'text-muted-foreground', title: undefined };
+  return income
+    ? { className: 'text-muted-foreground', title: ru.budget.overIncome }
+    : { className: 'text-destructive', title: ru.budget.overspent };
+}
+
 interface PlanCellProps {
   readonly month: IsoMonth;
   readonly categoryId: string;
@@ -152,6 +168,8 @@ export function PlanFactTable({ data }: PlanFactTableProps) {
             {group.categories.map((category) => {
               const row = byId.get(category.id);
               if (!row) return null;
+              const income = row.kind === 'income';
+              const look = remainingLook(row.remainingMinor, income);
 
               return (
                 <tr key={category.id} className="border-b border-border/40">
@@ -172,11 +190,11 @@ export function PlanFactTable({ data }: PlanFactTableProps) {
                     {money(row.factMinor)}
                   </td>
                   <td
-                    className={`py-1 text-right tabular-nums ${row.remainingMinor < 0 ? 'text-destructive' : 'text-muted-foreground'}`}
+                    className={`py-1 text-right tabular-nums ${look.className}`}
                     data-testid={`remaining-${category.id}`}
-                    title={row.remainingMinor < 0 ? ru.budget.overspent : undefined}
+                    title={look.title}
                   >
-                    {remainingMoney(row.remainingMinor)}
+                    {income ? incomeRemainingMoney(row.remainingMinor) : remainingMoney(row.remainingMinor)}
                   </td>
                 </tr>
               );
@@ -191,9 +209,12 @@ export function PlanFactTable({ data }: PlanFactTableProps) {
                 {money(sumOf(group.categories, 'factMinor'))}
               </td>
               <td
-                className={`py-1.5 text-right tabular-nums ${sumOf(group.categories, 'remainingMinor') < 0 ? 'text-destructive' : ''}`}
+                className={`py-1.5 text-right tabular-nums ${sumOf(group.categories, 'remainingMinor') < 0 && group.key !== 'income' ? 'text-destructive' : ''}`}
+                data-testid={`group-remaining-${group.key}`}
               >
-                {remainingMoney(sumOf(group.categories, 'remainingMinor'))}
+                {group.key === 'income'
+                  ? incomeRemainingMoney(sumOf(group.categories, 'remainingMinor'))
+                  : remainingMoney(sumOf(group.categories, 'remainingMinor'))}
               </td>
             </tr>
           </tbody>
@@ -206,8 +227,11 @@ export function PlanFactTable({ data }: PlanFactTableProps) {
             <td className="py-2 pr-1 text-right tabular-nums" data-testid="total-income">
               {money(data.fact.incomeMinor)}
             </td>
-            <td className="py-2 text-right tabular-nums text-muted-foreground">
-              {remainingMoney(data.plan.incomeMinor - data.fact.incomeMinor)}
+            <td
+              className="py-2 text-right tabular-nums text-muted-foreground"
+              data-testid="total-income-remaining"
+            >
+              {incomeRemainingMoney(data.plan.incomeMinor - data.fact.incomeMinor)}
             </td>
           </tr>
           <tr className="border-b border-border">

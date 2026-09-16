@@ -15,6 +15,7 @@ import {
 } from '@/db/backup';
 import { markBackupDone } from '@/db/repositories/settings';
 import { publishAppEvent } from '@/lib/broadcast';
+import { ru } from '@/i18n/ru';
 import { downloadBlob } from '@/lib/download';
 
 export async function downloadBackup(password?: string): Promise<void> {
@@ -41,4 +42,10 @@ export async function importBackupFile(file: File, password?: string): Promise<R
 export async function wipeEverything(): Promise<void> {
   await clearAllData();
   publishAppEvent({ type: 'data-cleared' });
+}
+
+/** When the last backup was made, in words; «копий ещё не было» if never. */
+export function lastBackupLabel(timestamp: number | null): string {
+  if (timestamp === null) return ru.settings.backupNever;
+  return new Intl.DateTimeFormat('ru-RU', { dateStyle: 'long' }).format(new Date(timestamp));
 }

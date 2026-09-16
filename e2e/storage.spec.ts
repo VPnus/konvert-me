@@ -207,6 +207,67 @@ test.describe('backup', () => {
   });
 });
 
+test.describe('the risk of losing the data', () => {
+  test('a browser that does not keep the storage is named, and hiding the warning keeps it hidden', async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator.storage, 'persisted', { value: () => Promise.resolve(false) });
+      Object.defineProperty(navigator.storage, 'persist', { value: () => Promise.resolve(false) });
+    });
+    await skipOnboarding(page);
+
+    const warning = page.getByTestId('data-risk');
+    await expect(warning).toHaveAttribute('data-kind', 'not-persisted');
+    await page.getByTestId('data-risk-dismiss').click();
+    await expect(warning).toHaveCount(0);
+
+    await page.reload();
+    await expect(page.getByTestId('backup-reminder')).toBeVisible();
+    await expect(warning).toHaveCount(0);
+  });
+
+  test('a storage nearly full says how much is taken', async ({ page }) => {
+    await page.addInitScript(() => {
+      const GB = 1024 ** 3;
+      Object.defineProperty(navigator.storage, 'persisted', { value: () => Promise.resolve(true) });
+      Object.defineProperty(navigator.storage, 'estimate', {
+        value: () => Promise.resolve({ usage: 9 * GB, quota: 10 * GB }),
+      });
+    });
+    await skipOnboarding(page);
+
+    const warning = page.getByTestId('data-risk');
+    await expect(warning).toHaveAttribute('data-kind', 'space');
+    await expect(warning).toContainText('занято 9.0 ГБ из 10 ГБ');
+  });
+
+  test('a window that refuses the private file system is taken for a private one', async ({ page }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator.storage, 'getDirectory', {
+        value: () => Promise.reject(new DOMException('unknown transient reason', 'UnknownError')),
+      });
+    });
+    await skipOnboarding(page);
+
+    await expect(page.getByTestId('data-risk')).toHaveAttribute('data-kind', 'private');
+  });
+
+  test('a backup is one press away before everything is wiped', async ({ page }) => {
+    await skipOnboarding(page);
+    await page.goto('/settings');
+
+    await page.getByTestId('wipe-data').click();
+    await expect(page.getByTestId('backup-first')).toContainText('копий ещё не было');
+
+    const downloadPromise = page.waitForEvent('download');
+    await page.getByTestId('backup-first-download').click();
+    await downloadPromise;
+    await expect(page.getByTestId('backup-first-done')).toBeVisible();
+    await expect(page.getByTestId('last-backup')).not.toContainText('копий ещё не было');
+  });
+});
+
 test.describe('two tabs of the same app', () => {
   test('an account added in one tab shows up in the other', async ({ context }) => {
     const first = await context.newPage();

@@ -278,6 +278,8 @@ test.describe('deductions', () => {
     await expect(page.getByTestId('doc-row')).toHaveCount(1);
 
     await page.getByTestId('deduction-delete').click();
+    // the papers go with the year: a backup is offered first
+    await expect(page.getByTestId('backup-first')).toBeVisible();
     await page.getByTestId('confirm-action').click();
 
     await expect(page.getByTestId('docs-empty')).toBeVisible();

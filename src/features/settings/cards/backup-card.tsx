@@ -11,13 +11,10 @@ import {
   downloadBackup,
   fileNeedsPassword,
   importBackupFile,
+  lastBackupLabel,
   wipeEverything,
 } from '@/features/settings/backup-actions';
-
-function formatDate(timestamp: number | null): string {
-  if (timestamp === null) return ru.settings.backupNever;
-  return new Intl.DateTimeFormat('ru-RU', { dateStyle: 'long' }).format(new Date(timestamp));
-}
+import { BackupFirst } from '@/features/settings/backup-first';
 
 export function BackupCard() {
   const settings = useSettings();
@@ -88,7 +85,7 @@ export function BackupCard() {
 
       <CardContent className="flex flex-col gap-5">
         <p className="text-sm text-muted-foreground" data-testid="last-backup">
-          {ru.settings.backupLast}: {formatDate(settings.lastBackupAt)}
+          {ru.settings.backupLast}: {lastBackupLabel(settings.lastBackupAt)}
         </p>
 
         <div className="flex flex-col gap-3">
@@ -163,20 +160,23 @@ export function BackupCard() {
           if (!open) setPendingFile(null);
         }}
       >
-        {needsPassword ? (
-          <Field label={ru.settings.backupImportPassword}>
-            {(id) => (
-              <Input
-                id={id}
-                type="password"
-                value={importPassword}
-                autoComplete="current-password"
-                onChange={(event) => setImportPassword(event.target.value)}
-                data-testid="import-password"
-              />
-            )}
-          </Field>
-        ) : null}
+        <div className="flex flex-col gap-3">
+          <BackupFirst />
+          {needsPassword ? (
+            <Field label={ru.settings.backupImportPassword}>
+              {(id) => (
+                <Input
+                  id={id}
+                  type="password"
+                  value={importPassword}
+                  autoComplete="current-password"
+                  onChange={(event) => setImportPassword(event.target.value)}
+                  data-testid="import-password"
+                />
+              )}
+            </Field>
+          ) : null}
+        </div>
       </ConfirmDialog>
 
       <ConfirmDialog
@@ -188,7 +188,9 @@ export function BackupCard() {
         busy={busy}
         onConfirm={() => void confirmWipe()}
         onOpenChange={setWipeOpen}
-      />
+      >
+        <BackupFirst />
+      </ConfirmDialog>
     </Card>
   );
 }

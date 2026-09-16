@@ -21,6 +21,7 @@ import { ChecklistCard } from '@/features/deductions/checklist-card';
 import type { DeductionYearView } from '@/features/deductions/deductions-data';
 import { fill } from '@/features/deductions/fill';
 import { RefundCard } from '@/features/deductions/refund-card';
+import { BackupFirst } from '@/features/settings/backup-first';
 import { ru } from '@/i18n/ru';
 import { parseNumericInput } from '@/lib/numeric-input';
 
@@ -778,7 +779,9 @@ export function YearPanel({ view }: { view: DeductionYearView }) {
           void deleteDeductionYear(view.year).then(() => setForm(formOf(undefined)));
         }}
         onOpenChange={setConfirmDelete}
-      />
+      >
+        <BackupFirst />
+      </ConfirmDialog>
     </div>
   );
 }

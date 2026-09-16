@@ -12,7 +12,7 @@
 
 <br/>
 
-<a href="https://github.com/VPnus/konvert-me/releases"><img src="https://img.shields.io/badge/%D0%92%D0%B5%D1%80%D1%81%D0%B8%D1%8F-0.16.0-000000?style=for-the-badge" alt="Версия 0.16.0"></a>
+<a href="https://github.com/VPnus/konvert-me/releases"><img src="https://img.shields.io/badge/%D0%92%D0%B5%D1%80%D1%81%D0%B8%D1%8F-0.16.1-000000?style=for-the-badge" alt="Версия 0.16.1"></a>
 <a href="#-быстрый-старт"><img src="https://img.shields.io/badge/PWA-%D1%80%D0%B0%D0%B1%D0%BE%D1%82%D0%B0%D0%B5%D1%82_%D0%BE%D1%84%D0%BB%D0%B0%D0%B9%D0%BD-000000?style=for-the-badge&logo=pwa&logoColor=white" alt="PWA, работает офлайн"></a>
 <a href="#-данные-и-приватность"><img src="https://img.shields.io/badge/%D0%94%D0%B0%D0%BD%D0%BD%D1%8B%D0%B5-%D1%82%D0%BE%D0%BB%D1%8C%D0%BA%D0%BE_%D0%BD%D0%B0_%D1%83%D1%81%D1%82%D1%80%D0%BE%D0%B9%D1%81%D1%82%D0%B2%D0%B5-555555?style=for-the-badge" alt="Данные только на устройстве"></a>
 
@@ -21,7 +21,7 @@
 <img src="https://img.shields.io/badge/React-18-149eca?style=flat-square&logo=react&logoColor=white" alt="React 18">
 <img src="https://img.shields.io/badge/Vite-8-646cff?style=flat-square&logo=vite&logoColor=white" alt="Vite 8">
 <img src="https://img.shields.io/badge/%D0%9C%D0%BE%D0%B4%D1%83%D0%BB%D1%8C%D0%BD%D1%8B%D1%85_%D1%82%D0%B5%D1%81%D1%82%D0%BE%D0%B2-576-2b9246?style=flat-square&logo=vitest&logoColor=white" alt="576 модульных тестов">
-<img src="https://img.shields.io/badge/E2E-149_%D0%BF%D1%80%D0%BE%D0%B3%D0%BE%D0%BD%D0%BE%D0%B2-2b9246?style=flat-square&logo=playwright&logoColor=white" alt="149 e2e-прогонов">
+<img src="https://img.shields.io/badge/E2E-153_%D0%BF%D1%80%D0%BE%D0%B3%D0%BE%D0%BD%D0%B0-2b9246?style=flat-square&logo=playwright&logoColor=white" alt="153 e2e-прогона">
 <img src="https://img.shields.io/badge/%D0%90%D0%BD%D0%B0%D0%BB%D0%B8%D1%82%D0%B8%D0%BA%D0%B0-%D0%BD%D0%B5%D1%82-555555?style=flat-square" alt="Аналитики нет">
 
 </div>
@@ -89,6 +89,7 @@ npm run dev
 - **Как приложение** — установите его из меню браузера: так данные надёжнее защищены от очистки, а Safari не сотрёт их через неделю без посещений
 - **Без интернета** — после первого открытия приложение работает офлайн, включая сборку PDF
 - **На другом устройстве** — сохраните резервную копию в «Настройках» и откройте её там
+- **С клавиатуры** — до любой кнопки и поля можно дойти по Tab, у всех есть подписи для экранного диктора, а контраст текста — не ниже WCAG AA в обеих темах
 
 ---
 
@@ -189,7 +190,7 @@ npm run icons      # перерисовать иконки из одного и�
 ```
 
 > [!NOTE]
-> Перед первым запуском e2e: `npx playwright install chromium`. Сценарии идут в двух ширинах экрана — 1280 и 375 px — и отдельно замер скорости на 10 000 операций.
+> Перед первым запуском e2e: `npx playwright install chromium`. Сценарии идут в двух ширинах экрана — 1280 и 375 px; отдельно — замер скорости на 10 000 операций и проверка доступности: контраст, клавиатура и подписи на всех экранах в обеих темах.
 
 ### Архитектура
 
@@ -232,7 +233,8 @@ TypeScript (strict) · React 18 · Vite · Tailwind CSS · shadcn/ui · React Ro
 | 7    | «Вычеты»: возврат налога, бумаги, продажа  | готово |
 | 8    | «Финплан»: образование, пенсия, PDF        | готово |
 | MVP  | Скорость на 10 000 операций                | готово |
-| MVP  | Доступность, лендинг, пилот                | дальше |
+| MVP  | Доступность: контраст, клавиатура, подписи | готово |
+| MVP  | Лендинг и пилот                            | дальше |
 
 ## Поддержать проект
 

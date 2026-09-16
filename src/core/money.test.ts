@@ -11,6 +11,7 @@ import {
   roundToMinor,
   rublesToMinor,
   sumMinor,
+  formatForecast,
 } from './money';
 
 const nbsp = /[\u00a0\u202f\s]/g;
@@ -107,5 +108,18 @@ describe('money: formatting', () => {
 
   it('refuses to format a non-integer amount', () => {
     expect(() => formatMinor(1.5)).toThrow(MoneyError);
+  });
+});
+
+describe('money: showing a forecast', () => {
+  it('rounds to whole kopecks before formatting, so a forecast never throws', () => {
+    expect(formatForecast(12_059_905.16572941)).toBe(formatMinor(12_059_905, { fractionDigits: 0 }));
+    expect(() => formatForecast(0.4)).not.toThrow();
+    expect(formatForecast(0.4)).toBe(formatMinor(0, { fractionDigits: 0 }));
+  });
+
+  it('shows whole roubles unless asked otherwise', () => {
+    expect(formatForecast(123_456.7)).not.toContain(',');
+    expect(formatForecast(123_456.7, { fractionDigits: 2 })).toContain(',');
   });
 });

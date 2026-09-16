@@ -89,3 +89,12 @@ export function formatMinor(minor: Minor, options: FormatMinorOptions = {}): str
   }
   return formatter.format(minor / 100);
 }
+
+/**
+ * A forecast is a plain number until the moment it is shown: a contribution, a future
+ * value, an average. This rounds to whole kopecks first, so the guard of formatMinor
+ * never fires on an honest estimate, and defaults to whole roubles on screen.
+ */
+export function formatForecast(value: number, options: FormatMinorOptions = {}): string {
+  return formatMinor(roundToMinor(value), { fractionDigits: 0, ...options });
+}

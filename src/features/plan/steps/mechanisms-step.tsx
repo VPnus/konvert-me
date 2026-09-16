@@ -64,7 +64,7 @@ export function MechanismsStep({ data }: { data: PlanData }) {
         </ul>
       </PlanCard>
 
-      <NoteCard key={data.plan.notes.mechanisms} name="mechanisms" value={data.plan.notes.mechanisms} />
+      <NoteCard name="mechanisms" value={data.plan.notes.mechanisms} />
     </div>
   );
 }

@@ -67,12 +67,22 @@ export function Muted({ children, testId }: { children: ReactNode; testId?: stri
 
 /**
  * The notes of a step. Saved when the field is left, not on every key: the plan keeps one
- * row, and a note is not worth a write per letter. Give it the note as its key, so a note
- * brought by another tab or a restored backup starts the field over.
+ * row, and a note is not worth a write per letter.
  */
 export function NoteCard({ name, value }: { name: PlanNoteName; value: string }) {
   const [text, setText] = useState(value);
   const [saved, setSaved] = useState(false);
+  const [stored, setStored] = useState(value);
+
+  // A note that comes from elsewhere — another tab, a restored backup — replaces the field;
+  // the one this field has just saved comes back as it is and changes nothing.
+  if (value !== stored) {
+    setStored(value);
+    if (value !== text) {
+      setText(value);
+      setSaved(false);
+    }
+  }
 
   const save = async () => {
     if (text === value) return;

@@ -75,7 +75,7 @@ export function ProtectionStep({ data }: { data: PlanData }) {
         })}
       </PlanCard>
 
-      <NoteCard key={data.plan.notes.protection} name="protection" value={data.plan.notes.protection} />
+      <NoteCard name="protection" value={data.plan.notes.protection} />
     </div>
   );
 }

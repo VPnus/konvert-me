@@ -59,7 +59,7 @@ export function OptimizationStep({ data }: { data: PlanData }) {
         </Muted>
       </PlanCard>
 
-      <NoteCard key={data.plan.notes.optimization} name="optimization" value={data.plan.notes.optimization} />
+      <NoteCard name="optimization" value={data.plan.notes.optimization} />
     </div>
   );
 }

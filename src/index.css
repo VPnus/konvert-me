@@ -28,7 +28,8 @@
   --destructive: oklch(0.52 0.16 25);
   --destructive-foreground: oklch(1 0 0);
   --success: oklch(0.45 0.08 150);
-  --warning: oklch(0.62 0.12 75);
+  /* Dark enough for small text on every light ground: 4.7 and more against 4.5 of WCAG AA. */
+  --warning: oklch(0.52 0.12 75);
   --border: oklch(0.89 0 0);
   --input: oklch(0.89 0 0);
   --ring: oklch(0.15 0 0);

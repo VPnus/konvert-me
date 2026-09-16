@@ -10,29 +10,65 @@ import { db } from '@/db/db';
 import { RepositoryError } from '@/db/errors';
 import { SCHEMA_VERSION, TABLE_NAMES, TABLE_SCHEMAS, type TableName } from '@/db/models';
 import { parseOrThrow } from '@/db/validate';
-import { decryptText, encryptText, type EncryptedPayload } from '@/lib/crypto';
+import { decryptText, encryptText, fromBase64, toBase64, type EncryptedPayload } from '@/lib/crypto';
 
 export const BACKUP_FORMAT = 'konvert-me-backup';
 export const BACKUP_FORMAT_ENCRYPTED = 'konvert-me-backup-encrypted';
 
-const backupDataSchema = z.object({
-  settings: z.array(TABLE_SCHEMAS.settings),
-  accounts: z.array(TABLE_SCHEMAS.accounts),
-  categories: z.array(TABLE_SCHEMAS.categories),
-  transactions: z.array(TABLE_SCHEMAS.transactions),
-  budgetPlans: z.array(TABLE_SCHEMAS.budgetPlans),
-  goals: z.array(TABLE_SCHEMAS.goals),
-  envelopes: z.array(TABLE_SCHEMAS.envelopes),
-  dashboardLayouts: z.array(TABLE_SCHEMAS.dashboardLayouts),
-  // Added in schema 2: a file written by schema 1 simply has none of them.
-  links: z.array(TABLE_SCHEMAS.links).default([]),
-  // Added in schema 3.
-  incomeSources: z.array(TABLE_SCHEMAS.incomeSources).default([]),
-  // Added in schema 4.
-  policies: z.array(TABLE_SCHEMAS.policies).default([]),
-  feeds: z.array(TABLE_SCHEMAS.feeds).default([]),
-  feedItems: z.array(TABLE_SCHEMAS.feedItems).default([]),
+const BASE64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+
+/** How many bytes a base64 text stands for, or null if it is not base64 at all. */
+function base64Length(value: string): number | null {
+  if (!BASE64.test(value)) return null;
+  const padding = value.endsWith('==') ? 2 : value.endsWith('=') ? 1 : 0;
+  return (value.length / 4) * 3 - padding;
+}
+
+/** A file inside the backup: JSON cannot hold bytes, so they travel as base64. */
+const backupDocumentFileSchema = z.object({
+  id: TABLE_SCHEMAS.documentFiles.shape.id,
+  content: z
+    .string()
+    .refine((value) => base64Length(value) !== null, { message: 'Файл документа повреждён' }),
 });
+
+const backupDataSchema = z
+  .object({
+    settings: z.array(TABLE_SCHEMAS.settings),
+    accounts: z.array(TABLE_SCHEMAS.accounts),
+    categories: z.array(TABLE_SCHEMAS.categories),
+    transactions: z.array(TABLE_SCHEMAS.transactions),
+    budgetPlans: z.array(TABLE_SCHEMAS.budgetPlans),
+    goals: z.array(TABLE_SCHEMAS.goals),
+    envelopes: z.array(TABLE_SCHEMAS.envelopes),
+    dashboardLayouts: z.array(TABLE_SCHEMAS.dashboardLayouts),
+    // Added in schema 2: a file written by schema 1 simply has none of them.
+    links: z.array(TABLE_SCHEMAS.links).default([]),
+    // Added in schema 3.
+    incomeSources: z.array(TABLE_SCHEMAS.incomeSources).default([]),
+    // Added in schema 4.
+    policies: z.array(TABLE_SCHEMAS.policies).default([]),
+    // Added in schema 5.
+    deductionYears: z.array(TABLE_SCHEMAS.deductionYears).default([]),
+    documents: z.array(TABLE_SCHEMAS.documents).default([]),
+    documentFiles: z.array(backupDocumentFileSchema).default([]),
+    feeds: z.array(TABLE_SCHEMAS.feeds).default([]),
+    feedItems: z.array(TABLE_SCHEMAS.feedItems).default([]),
+  })
+  .superRefine((data, context) => {
+    // Every document must bring exactly its own bytes: a lost or truncated scan is refused
+    // here, not discovered the day it is needed.
+    const lengths = new Map(data.documentFiles.map((file) => [file.id, base64Length(file.content)]));
+    data.documents.forEach((document, index) => {
+      if (lengths.get(document.id) !== document.sizeBytes) {
+        context.addIssue({
+          code: 'custom',
+          path: ['documents', index],
+          message: `Файл документа «${document.fileName}» отсутствует или повреждён`,
+        });
+      }
+    });
+  });
 
 export const backupFileSchema = z.object({
   format: z.literal(BACKUP_FORMAT),
@@ -73,6 +109,9 @@ export async function collectBackup(now: number = Date.now()): Promise<BackupFil
     feedItems,
     incomeSources,
     policies,
+    deductionYears,
+    documents,
+    documentFiles,
   ] = await Promise.all([
     db.settings.toArray(),
     db.accounts.toArray(),
@@ -87,6 +126,9 @@ export async function collectBackup(now: number = Date.now()): Promise<BackupFil
     db.feedItems.toArray(),
     db.incomeSources.toArray(),
     db.policies.toArray(),
+    db.deductionYears.toArray(),
+    db.documents.toArray(),
+    db.documentFiles.toArray(),
   ]);
 
   return {
@@ -107,6 +149,12 @@ export async function collectBackup(now: number = Date.now()): Promise<BackupFil
       feedItems,
       incomeSources,
       policies,
+      deductionYears,
+      documents,
+      documentFiles: documentFiles.map((file) => ({
+        id: file.id,
+        content: toBase64(new Uint8Array(file.content)),
+      })),
     },
   };
 }
@@ -181,7 +229,13 @@ export async function restoreBackup(backup: BackupFile): Promise<RestoreSummary>
   await db.transaction('rw', tables, async () => {
     for (const name of TABLE_NAMES) {
       await db.table(name).clear();
-      const rows = backup.data[name] as unknown[];
+      const rows =
+        name === 'documentFiles'
+          ? backup.data.documentFiles.map((file) => ({
+              id: file.id,
+              content: fromBase64(file.content).buffer,
+            }))
+          : (backup.data[name] as unknown[]);
       if (rows.length > 0) await db.table(name).bulkPut(rows);
     }
   });
@@ -191,7 +245,13 @@ export async function restoreBackup(backup: BackupFile): Promise<RestoreSummary>
     number
   >;
 
-  return { counts, total: Object.values(counts).reduce((sum, count) => sum + count, 0) };
+  // The bytes of a document are not a record of their own: the person brought one paper, not two.
+  const total = TABLE_NAMES.filter((name) => name !== 'documentFiles').reduce(
+    (sum, name) => sum + counts[name],
+    0,
+  );
+
+  return { counts, total };
 }
 
 export async function clearAllData(): Promise<void> {

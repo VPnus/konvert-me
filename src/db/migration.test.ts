@@ -1,7 +1,7 @@
 import Dexie from 'dexie';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { handleVersionChange } from '@/db/db';
+import { handleVersionChange, KonvertDatabase } from '@/db/db';
 
 const V1_STORES = {
   settings: 'id',
@@ -84,6 +84,40 @@ describe('schema migration', () => {
     expect(accounts[0].color).toBe('green');
     expect(await v2.table('transactions').count()).toBe(1);
     expect(await v2.table('insurancePolicies').count()).toBe(0);
+  });
+
+  it('keeps the data of schema 4 when schema 5 adds the deductions', async () => {
+    const name = `konvert-me-v5-${crypto.randomUUID()}`;
+
+    // schema 4 exactly as the app declared it before stage 7
+    const v4 = open(name, (database) => {
+      database.version(1).stores(V1_STORES);
+      database.version(2).stores({ links: 'id, sortOrder', feeds: 'id, enabled', feedItems: 'id, feedId, publishedAt' });
+      database.version(3).stores({ incomeSources: 'id, sortOrder, archived' });
+      database.version(4).stores({ policies: 'id, endDate, archived' });
+    });
+    await v4.table('policies').add({
+      id: 'p1',
+      name: 'ОСАГО',
+      type: 'vehicle',
+      endDate: '2026-11-20',
+      archived: false,
+      createdAt: 1,
+      updatedAt: 1,
+    });
+    await v4.table('incomeSources').add({ id: 's1', name: 'Зарплата', day: 10, sortOrder: 0, archived: false });
+    v4.close();
+
+    const v5 = new KonvertDatabase(name);
+    opened.push(v5);
+    await v5.open();
+
+    expect(v5.verno).toBe(5);
+    expect(await v5.policies.count()).toBe(1);
+    expect(await v5.incomeSources.count()).toBe(1);
+    expect(await v5.deductionYears.count()).toBe(0);
+    expect(await v5.documents.count()).toBe(0);
+    expect(await v5.documentFiles.count()).toBe(0);
   });
 
   it('closes the old connection when another tab upgrades the schema', async () => {

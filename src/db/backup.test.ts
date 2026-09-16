@@ -14,6 +14,8 @@ import {
 } from '@/db/backup';
 import { SCHEMA_VERSION, TABLE_NAMES } from '@/db/models';
 import { createAccount } from '@/db/repositories/accounts';
+import { getDeductionYear, saveDeductionYear } from '@/db/repositories/deductions';
+import { addDocument, listDocuments, readDocumentContent } from '@/db/repositories/documents';
 import { getSettings } from '@/db/repositories/settings';
 import { CryptoError } from '@/lib/crypto';
 
@@ -191,5 +193,143 @@ describe('backup: optional password', () => {
     const text = await serializeBackup(await collectBackup());
     expect(isEncryptedBackup(text)).toBe(false);
     expect(isEncryptedBackup('не json')).toBe(false);
+  });
+});
+
+describe('backup: deductions and their documents', () => {
+  async function seedDeductions(): Promise<void> {
+    await saveDeductionYear({
+      year: 2025,
+      incomeMinor: 1_200_000 * RUB,
+      spending: {
+        commonMinor: 90_000 * RUB,
+        childEducationMinor: [110_000 * RUB],
+        expensiveTreatmentMinor: 0,
+      },
+      status: 'filed',
+    });
+    await addDocument({
+      year: 2025,
+      category: 'child_schooling',
+      fileName: 'договор с вузом.pdf',
+      mimeType: 'application/pdf',
+      // bytes that a careless text conversion would break
+      content: new Uint8Array([0, 37, 80, 255, 128, 10, 13]).buffer,
+    });
+  }
+
+  it('carries the years and the exact bytes of every document through export and import', async () => {
+    await seedDeductions();
+    const text = await serializeBackup(await collectBackup());
+
+    await clearAllData();
+    expect(await listDocuments()).toHaveLength(0);
+    await restoreBackup(await parseBackup(text));
+
+    expect(await getDeductionYear(2025)).toMatchObject({ status: 'filed', incomeMinor: 1_200_000 * RUB });
+    const [document] = await listDocuments(2025);
+    expect(document.fileName).toBe('договор с вузом.pdf');
+    expect([...new Uint8Array((await readDocumentContent(document.id))!)]).toEqual([
+      0, 37, 80, 255, 128, 10, 13,
+    ]);
+  });
+
+  it('counts a document once in what the import reports, not once for its bytes as well', async () => {
+    await seedDeductions();
+    const text = await serializeBackup(await collectBackup());
+
+    await clearAllData();
+    const summary = await restoreBackup(await parseBackup(text));
+
+    // one year and one document
+    expect(summary.total).toBe(2);
+    expect(summary.counts.documents).toBe(1);
+  });
+
+  it('keeps files of every length whole, whatever padding their base64 ends with', async () => {
+    // 3 bytes end with no padding, 2 with "=", 1 with "==": a mistake in counting any of
+    // them would call a sound file broken and refuse the whole backup
+    for (const length of [1, 2, 3, 4, 5, 6]) {
+      await addDocument({
+        year: 2025,
+        category: 'other',
+        fileName: `${length}.bin`,
+        mimeType: 'application/octet-stream',
+        content: new Uint8Array(Array.from({ length }, (_, index) => 250 - index)).buffer,
+      });
+    }
+    const text = await serializeBackup(await collectBackup());
+
+    await clearAllData();
+    await restoreBackup(await parseBackup(text));
+
+    for (const document of await listDocuments(2025)) {
+      const content = new Uint8Array((await readDocumentContent(document.id))!);
+      expect(content.length, document.fileName).toBe(document.sizeBytes);
+      expect(content[0], document.fileName).toBe(250);
+    }
+    expect(await listDocuments(2025)).toHaveLength(6);
+  });
+
+  it('carries them through a file with a password as well', async () => {
+    await seedDeductions();
+    const text = await serializeBackup(await collectBackup(), 'пароль');
+
+    expect(text).not.toContain('договор с вузом');
+
+    await clearAllData();
+    await restoreBackup(await parseBackup(text, 'пароль'));
+
+    const [document] = await listDocuments(2025);
+    expect([...new Uint8Array((await readDocumentContent(document.id))!)]).toEqual([
+      0, 37, 80, 255, 128, 10, 13,
+    ]);
+  });
+
+  it('takes a file from schema 4, which knows nothing of deductions', async () => {
+    const backup = await collectBackup();
+    const data = { ...backup.data } as Record<string, unknown>;
+    delete data.deductionYears;
+    delete data.documents;
+    delete data.documentFiles;
+
+    const parsed = await parseBackup(JSON.stringify({ ...backup, schemaVersion: 4, data }));
+
+    expect(parsed.data.deductionYears).toEqual([]);
+    expect(parsed.data.documents).toEqual([]);
+    expect(parsed.data.documentFiles).toEqual([]);
+  });
+
+  it('refuses a document whose bytes do not add up to its size', async () => {
+    await seedDeductions();
+    const backup = await collectBackup();
+    const broken = {
+      ...backup,
+      data: { ...backup.data, documents: [{ ...backup.data.documents[0], sizeBytes: 999 }] },
+    };
+
+    await expect(parseBackup(JSON.stringify(broken))).rejects.toBeInstanceOf(ValidationError);
+  });
+
+  it('refuses a document that lost its file', async () => {
+    await seedDeductions();
+    const backup = await collectBackup();
+    const broken = { ...backup, data: { ...backup.data, documentFiles: [] } };
+
+    await expect(parseBackup(JSON.stringify(broken))).rejects.toBeInstanceOf(ValidationError);
+  });
+
+  it('refuses a document whose bytes are not readable', async () => {
+    await seedDeductions();
+    const backup = await collectBackup();
+    const broken = {
+      ...backup,
+      data: {
+        ...backup.data,
+        documentFiles: [{ ...backup.data.documentFiles[0], content: 'это не base64 !!!' }],
+      },
+    };
+
+    await expect(parseBackup(JSON.stringify(broken))).rejects.toBeInstanceOf(ValidationError);
   });
 });

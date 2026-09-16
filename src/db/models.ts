@@ -9,7 +9,7 @@ import { z } from 'zod';
 
 import { isIsoDate, isIsoMonth } from '@/core/time';
 
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 const isoDate = z.string().refine(isIsoDate, { message: 'Дата должна быть в формате ГГГГ-ММ-ДД' });
 const isoMonth = z.string().refine(isIsoMonth, { message: 'Месяц должен быть в формате ГГГГ-ММ' });
@@ -195,6 +195,99 @@ export const insurancePolicySchema = z.object({
   updatedAt: timestamp,
 });
 
+const taxYear = z
+  .number()
+  .int('Год должен быть целым числом')
+  .min(2000, 'Год должен быть четырёхзначным')
+  .max(2100, 'Год должен быть четырёхзначным');
+
+export const DEDUCTION_STATUSES = ['draft', 'filed', 'refunded'] as const;
+
+/**
+ * What a person claims for one tax year (stage 7). The year itself is the key: there
+ * is one return per year, so saving a year again replaces it.
+ */
+export const deductionYearSchema = z.object({
+  year: taxYear,
+  /** Income before tax, from the income statement — not what reached the card. */
+  incomeMinor: nonNegativeMinor,
+  spending: z.object({
+    /** Treatment, medicine, one's own schooling, sport, voluntary insurance. */
+    commonMinor: nonNegativeMinor,
+    /** Schooling paid for each child, one entry per child. */
+    childEducationMinor: z.array(nonNegativeMinor).max(20),
+    expensiveTreatmentMinor: nonNegativeMinor,
+  }),
+  /**
+   * A home, as the return of this year states it: its cost, the interest paid, and what
+   * the returns of earlier years already took — the rest of the deduction lives on.
+   */
+  property: z
+    .object({
+      purchaseMinor: nonNegativeMinor,
+      mortgageInterestMinor: nonNegativeMinor,
+      loanBefore2014: z.boolean(),
+      usedBeforeMinor: nonNegativeMinor,
+    })
+    .optional(),
+  status: z.enum(DEDUCTION_STATUSES),
+  note,
+  createdAt: timestamp,
+  updatedAt: timestamp,
+});
+
+export const DOCUMENT_CATEGORIES = [
+  'income',
+  'treatment',
+  'medicine',
+  'schooling',
+  'child_schooling',
+  'sport',
+  'insurance',
+  'long_term_savings',
+  'property',
+  'mortgage',
+  'other',
+] as const;
+
+/** A scan of a contract or a photo of a receipt fits; a film of the whole flat does not. */
+export const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
+
+/**
+ * A receipt, a contract or an income statement behind a deduction. Only the description
+ * lives here; the bytes are in documentFiles, so a list of papers never loads the papers.
+ */
+export const documentSchema = z.object({
+  id,
+  year: taxYear,
+  category: z.enum(DOCUMENT_CATEGORIES),
+  fileName: z.string().trim().min(1, 'У файла должно быть имя').max(255),
+  mimeType: z.string().trim().min(1).max(127),
+  sizeBytes: z
+    .number()
+    .int()
+    .min(1, 'Файл пустой')
+    .max(MAX_DOCUMENT_BYTES, `Файл больше ${MAX_DOCUMENT_BYTES / 1024 / 1024} МБ`),
+  note,
+  createdAt: timestamp,
+});
+
+/**
+ * The bytes of a document, under the same id. Kept as an ArrayBuffer rather than a
+ * Blob: a Blob loses its contents in the test database, and the storage layer must be
+ * testable. A Blob is made from these bytes when a file is shown or saved.
+ */
+export const documentFileSchema = z.object({
+  id,
+  // Checked by its tag, not instanceof: the buffer may come from another realm.
+  content: z.custom<ArrayBuffer>(
+    (value) => Object.prototype.toString.call(value) === '[object ArrayBuffer]',
+    {
+      message: 'Содержимое файла не прочитано',
+    },
+  ),
+});
+
 export const envelopeSchema = z.object({
   id,
   goalId: id,
@@ -327,6 +420,11 @@ export type Goal = z.infer<typeof goalSchema>;
 export type Envelope = z.infer<typeof envelopeSchema>;
 export type InsurancePolicy = z.infer<typeof insurancePolicySchema>;
 export type PolicyType = InsurancePolicy['type'];
+export type DeductionYear = z.infer<typeof deductionYearSchema>;
+export type DeductionStatus = DeductionYear['status'];
+export type TaxDocument = z.infer<typeof documentSchema>;
+export type DocumentCategory = TaxDocument['category'];
+export type DocumentFile = z.infer<typeof documentFileSchema>;
 export type DashboardLayout = z.infer<typeof dashboardLayoutSchema>;
 export type Link = z.infer<typeof linkSchema>;
 export type Feed = z.infer<typeof feedSchema>;
@@ -360,6 +458,9 @@ export const TABLE_SCHEMAS = {
   goals: goalSchema,
   envelopes: envelopeSchema,
   policies: insurancePolicySchema,
+  deductionYears: deductionYearSchema,
+  documents: documentSchema,
+  documentFiles: documentFileSchema,
   dashboardLayouts: dashboardLayoutSchema,
   links: linkSchema,
   feeds: feedSchema,

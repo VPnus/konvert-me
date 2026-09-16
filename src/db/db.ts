@@ -10,6 +10,8 @@ import type {
   BudgetPlan,
   Category,
   DashboardLayout,
+  DeductionYear,
+  DocumentFile,
   Envelope,
   Feed,
   FeedItem,
@@ -17,6 +19,7 @@ import type {
   IncomeSource,
   InsurancePolicy,
   Link,
+  TaxDocument,
   Transaction,
 } from '@/db/models';
 
@@ -30,6 +33,9 @@ export class KonvertDatabase extends Dexie {
   declare budgetPlans: Table<BudgetPlan, string>;
   declare incomeSources: Table<IncomeSource, string>;
   declare policies: Table<InsurancePolicy, string>;
+  declare deductionYears: Table<DeductionYear, number>;
+  declare documents: Table<TaxDocument, string>;
+  declare documentFiles: Table<DocumentFile, string>;
   declare goals: Table<Goal, string>;
   declare envelopes: Table<Envelope, string>;
   declare dashboardLayouts: Table<DashboardLayout, string>;
@@ -68,6 +74,14 @@ export class KonvertDatabase extends Dexie {
     // v4 adds the insurance policies of stage 6. Nothing is transformed again.
     this.version(4).stores({
       policies: 'id, endDate, archived',
+    });
+
+    // v5 adds the deductions of stage 7: a year of claims keyed by the year, the papers
+    // behind them, and the bytes of those papers apart, so a list never loads a scan.
+    this.version(5).stores({
+      deductionYears: 'year, status',
+      documents: 'id, year, category',
+      documentFiles: 'id',
     });
   }
 }

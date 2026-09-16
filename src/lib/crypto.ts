@@ -14,9 +14,14 @@ export class CryptoError extends Error {
   }
 }
 
+/** Bytes are turned into characters a slice at a time: one at a time takes a second on 10 MB. */
+const BASE64_SLICE = 0x8000;
+
 export function toBase64(bytes: Uint8Array): string {
   let binary = '';
-  for (const byte of bytes) binary += String.fromCharCode(byte);
+  for (let start = 0; start < bytes.length; start += BASE64_SLICE) {
+    binary += String.fromCharCode(...bytes.subarray(start, start + BASE64_SLICE));
+  }
   return btoa(binary);
 }
 

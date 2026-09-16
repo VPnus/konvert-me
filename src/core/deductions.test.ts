@@ -747,3 +747,48 @@ describe('a sale and the deductions of the same year', () => {
     expect(partsOf(summary)).toBe(summary.balanceMinor);
   });
 });
+
+describe('the tax service examples under the rules of the current year', () => {
+  // Stage 7 is done when the counts match the tax service examples of the current year: the
+  // examples above are printed for 2025, and 2026 keeps every norm they rely on.
+  const year = RULES_2026;
+  const empty = { incomeMinor: 0, social: noSpending, longTermSavingsMinor: 0 };
+
+  it('returns 19 500 for 300 000 of schooling on 100 000 a month', () => {
+    const summary = summarizeDeductionYear(
+      { ...empty, incomeMinor: r(1_200_000), social: { ...noSpending, commonMinor: r(300_000) } },
+      year,
+    );
+    expect(summary.refundMinor).toBe(r(19_500));
+  });
+
+  it('gives four children on 40 000 a month 16 200 until November, 23 166 back', () => {
+    const summary = summarizeDeductionYear(
+      {
+        ...empty,
+        incomeMinor: r(480_000),
+        children: children([child(1), child(2), child(3), child(3)]),
+      },
+      year,
+    );
+    expect(summary.childDeductionMinor).toBe(r(178_200));
+    expect(summary.refundMinor).toBe(r(23_166));
+  });
+
+  it('taxes a flat sold for 3 million at 260 000, or at 65 000 less the 2,5 million paid for it', () => {
+    expect(summarizeDeductionYear({ ...empty, sale: sale(3_000_000) }, year).sale?.taxMinor).toBe(r(260_000));
+    expect(
+      summarizeDeductionYear({ ...empty, sale: sale(3_000_000, { expensesMinor: r(2_500_000) }) }, year).sale
+        ?.taxMinor,
+    ).toBe(r(65_000));
+  });
+
+  it('taxes a flat sold for 2,1 million against a cadastral value of 3,3 million at 170 300', () => {
+    const home = sale(2_100_000, { cadastralMinor: r(3_300_000) });
+    expect(summarizeDeductionYear({ ...empty, sale: home }, year).sale?.taxMinor).toBe(r(170_300));
+  });
+
+  it('reaches three years back from 2026', () => {
+    expect(claimableYears(2026, year.deductionYearsBack.value)).toEqual([2023, 2024, 2025]);
+  });
+});

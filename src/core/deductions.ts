@@ -171,6 +171,116 @@ export function carryPropertyDeduction(deductionMinor: number, years: readonly T
   });
 }
 
+const MONTHS = 12;
+
+function assertMonth(month: number, label: string): void {
+  if (!Number.isInteger(month) || month < 1 || month > MONTHS) {
+    throw new RangeError(`${label}: месяц должен быть от 1 до 12, получено ${month}`);
+  }
+}
+
+/** One child the standard deduction is given for. */
+export interface ChildRight {
+  /** Place by birth among all the children, grown ones included: 1, 2, and 3 for the third and on. */
+  readonly order: number;
+  /** A disabled child, or a full-time student under 24 of disability group I or II. */
+  readonly disabled: boolean;
+  /**
+   * The months of the year the right lasted: from the month of birth or adoption to the end
+   * of the year the child turned 18 — or 24 for a full-time student.
+   */
+  readonly fromMonth: number;
+  readonly toMonth: number;
+}
+
+export interface ChildrenClaim {
+  readonly items: readonly ChildRight[];
+  /** The only parent, or the other parent gave theirs up: the deduction is doubled. */
+  readonly double: boolean;
+  /** A guardian, a trustee or a foster parent: before 2025, half as much for a disabled child. */
+  readonly guardian: boolean;
+  /** The employer already took it off the income through the year, so the tax paid was lower. */
+  readonly appliedByEmployer: boolean;
+}
+
+/**
+ * The standard deduction for children over a year. Tax code, art. 218 p. 1 pp. 4: an amount
+ * a month by each child's place by birth, a disabled child's amount on top of it, doubled for
+ * the only parent — and none from the month the income since January passes the border.
+ *
+ * The months of the income are not known, so it is taken as coming in evenly: a month keeps
+ * the right while that many twelfths of the year's income stay within the border.
+ */
+export function childDeductionMinor(
+  claim: ChildrenClaim,
+  incomeMinor: number,
+  rules: Pick<YearRules, 'childDeduction'>,
+): Minor {
+  assertNonNegativeMinor(incomeMinor, 'incomeMinor');
+  const norm = rules.childDeduction.value;
+
+  let total = 0;
+  for (const child of claim.items) {
+    if (!Number.isInteger(child.order) || child.order < 1) {
+      throw new RangeError(`Очерёдность ребёнка должна быть целым числом от 1, получено ${child.order}`);
+    }
+    assertMonth(child.fromMonth, 'fromMonth');
+    assertMonth(child.toMonth, 'toMonth');
+    if (child.fromMonth > child.toMonth) {
+      throw new RangeError(`Месяцы идут не по порядку: ${child.fromMonth}, затем ${child.toMonth}`);
+    }
+
+    const byOrder =
+      child.order === 1 ? norm.firstMinor : child.order === 2 ? norm.secondMinor : norm.thirdAndOnMinor;
+    const disabled = child.disabled
+      ? claim.guardian
+        ? norm.disabledGuardianMinor
+        : norm.disabledParentMinor
+      : 0;
+
+    for (let month = child.fromMonth; month <= child.toMonth; month += 1) {
+      // month × income / 12 ≤ border, kept in whole kopecks
+      if (month * incomeMinor <= norm.incomeCapMinor * MONTHS) total += byOrder + disabled;
+    }
+  }
+
+  return claim.double ? total * 2 : total;
+}
+
+/** A home sold within the year. */
+export interface HomeSale {
+  readonly priceMinor: number;
+  /** The cadastral value on 1 January of the year the sale was registered; 0 when not known. */
+  readonly cadastralMinor: number;
+  /** What buying it cost, with the papers to show for it; 0 when there are none. */
+  readonly expensesMinor: number;
+  /** Owned for the minimum term or longer: the sale is free of tax. */
+  readonly ownedLongEnough: boolean;
+}
+
+/**
+ * The income a sale is taxed on. Tax code, art. 214.10: the price, but not less than the
+ * cadastral value times its share — a home sold on paper for next to nothing is still taxed.
+ */
+export function homeSaleIncomeMinor(sale: HomeSale, rules: Pick<YearRules, 'homeSale'>): Minor {
+  assertNonNegativeMinor(sale.priceMinor, 'priceMinor');
+  assertNonNegativeMinor(sale.cadastralMinor, 'cadastralMinor');
+
+  const share = Math.round(rules.homeSale.value.cadastralShare * BASIS_POINTS);
+  return Math.max(sale.priceMinor, Math.round((sale.cadastralMinor * share) / BASIS_POINTS));
+}
+
+/**
+ * What a sale's income is reduced by. Tax code, art. 220 p. 2: the fixed amount or the cost of
+ * buying, whichever the person chooses — so whichever is more — and never more than the income.
+ */
+export function homeSaleDeductionMinor(sale: HomeSale, rules: Pick<YearRules, 'homeSale'>): Minor {
+  assertNonNegativeMinor(sale.expensesMinor, 'expensesMinor');
+
+  const deduction = Math.max(rules.homeSale.value.deductionLimitMinor, sale.expensesMinor);
+  return Math.min(deduction, homeSaleIncomeMinor(sale, rules));
+}
+
 /** Contributions to an investment account and other long-term savings, up to the yearly limit. */
 export function longTermSavingsDeductionMinor(
   contributionsMinor: number,
@@ -189,10 +299,28 @@ export interface DeductionClaim {
   readonly longTermSavingsMinor: number;
   /** A home, as this year's return states it: what earlier returns took is taken off. */
   readonly property?: PropertyClaim & { readonly usedBeforeMinor: number };
+  readonly children?: ChildrenClaim;
+  readonly sale?: HomeSale;
+}
+
+export interface HomeSaleSummary {
+  /** Owned long enough: there is no tax, and nothing about the sale to declare. */
+  readonly exempt: boolean;
+  /** A return must be filed for the sale, even if its tax comes out as nothing. */
+  readonly declarationRequired: boolean;
+  readonly incomeMinor: Minor;
+  readonly deductionMinor: Minor;
+  /** The tax on the sale before the other deductions of the year reached it. */
+  readonly taxBeforeMinor: Minor;
+  /** The tax on the sale that is left to pay. */
+  readonly taxMinor: Minor;
 }
 
 export interface DeductionSummary {
+  /** The tax taken from the income over the year — less, if the employer gave the child deduction. */
   readonly taxPaidMinor: Minor;
+  readonly childDeductionMinor: Minor;
+  readonly childRefundMinor: Minor;
   readonly socialDeductionMinor: Minor;
   readonly socialRefundMinor: Minor;
   readonly longTermSavingsDeductionMinor: Minor;
@@ -205,24 +333,69 @@ export interface DeductionSummary {
     /** What moves on to the returns of the years after. */
     readonly leftMinor: Minor;
   };
-  /** Everything the year gives back — never more than the tax it paid. */
+  readonly sale?: HomeSaleSummary;
+  /** Everything the year gives back from the tax paid — never more than that tax. */
   readonly refundMinor: Minor;
+  /** What comes back less the tax on a sale: below zero, the year owes rather than gets. */
+  readonly balanceMinor: number;
 }
 
 /**
- * One year of deductions, the way a return is counted. The deductions that die with the
- * year — social ones and long-term savings — are spent first; the home takes what income
- * is left, and its rest moves on. Each part's refund is what it takes off the tax after
- * the parts before it, so the parts add up to the whole.
+ * One year of deductions, the way a return is counted.
+ *
+ * The deductions that die with the year — for children, social ones, long-term savings —
+ * are spent first; the home takes what is left, and its rest moves on. Each comes off the
+ * top of the income; what the income cannot take goes onto the income from a sale, where
+ * the law lets it (tax code, art. 210 p. 2.2).
+ *
+ * A part's refund is what it takes off the tax — the income's and the sale's — after the
+ * parts before it. So the parts, less the tax on the sale, add up to the balance of the year.
  */
 export function summarizeDeductionYear(claim: DeductionClaim, rules: YearRules): DeductionSummary {
   const bands = rules.incomeTaxBands.value;
-  const social = socialDeductionMinor(claim.social, rules);
-  const savings = longTermSavingsDeductionMinor(claim.longTermSavingsMinor, rules);
+  const saleBands = rules.homeSaleTaxBands.value;
+  assertNonNegativeMinor(claim.incomeMinor, 'incomeMinor');
 
-  const socialRefund = refundMinor(claim.incomeMinor, social, bands);
-  const afterSocial = Math.max(0, claim.incomeMinor - social);
-  const savingsRefund = refundMinor(afterSocial, savings, bands);
+  let sale: Omit<HomeSaleSummary, 'taxMinor'> | undefined;
+  let incomeLeft = claim.incomeMinor;
+  let saleLeft = 0;
+  if (claim.sale) {
+    const income = homeSaleIncomeMinor(claim.sale, rules);
+    const deduction = claim.sale.ownedLongEnough ? 0 : homeSaleDeductionMinor(claim.sale, rules);
+    saleLeft = claim.sale.ownedLongEnough ? 0 : income - deduction;
+    sale = {
+      exempt: claim.sale.ownedLongEnough,
+      declarationRequired: !claim.sale.ownedLongEnough && income > rules.homeSale.value.deductionLimitMinor,
+      incomeMinor: income,
+      deductionMinor: deduction,
+      taxBeforeMinor: incomeTaxMinor(saleLeft, saleBands),
+    };
+  }
+
+  const taxNow = () => incomeTaxMinor(incomeLeft, bands) + incomeTaxMinor(saleLeft, saleBands);
+
+  /** Takes a deduction off the income, then what is left of it off the sale, if it may go there. */
+  const spend = (amountMinor: number, ontoSale: boolean) => {
+    const before = taxNow();
+    const fromIncome = Math.min(amountMinor, incomeLeft);
+    incomeLeft -= fromIncome;
+    const fromSale = ontoSale ? Math.min(amountMinor - fromIncome, saleLeft) : 0;
+    saleLeft -= fromSale;
+    return { usedMinor: fromIncome + fromSale, fromIncomeMinor: fromIncome, refundMinor: before - taxNow() };
+  };
+
+  const taxOnIncome = incomeTaxMinor(claim.incomeMinor, bands);
+  const childDeduction = claim.children ? childDeductionMinor(claim.children, claim.incomeMinor, rules) : 0;
+  const children = spend(childDeduction, true);
+  // What the employer already took off lowered the tax paid; it is not given back a second time.
+  const givenByEmployer = claim.children?.appliedByEmployer
+    ? taxOnIncome - incomeTaxMinor(claim.incomeMinor - children.fromIncomeMinor, bands)
+    : 0;
+
+  const social = socialDeductionMinor(claim.social, rules);
+  const socialPart = spend(social, true);
+  const savings = longTermSavingsDeductionMinor(claim.longTermSavingsMinor, rules);
+  const savingsPart = spend(savings, rules.saleIncomeInMainBase.value);
 
   let property: DeductionSummary['property'];
   if (claim.property) {
@@ -231,24 +404,30 @@ export function summarizeDeductionYear(claim: DeductionClaim, rules: YearRules):
       0,
       propertyDeductionMinor(claim.property, rules) - claim.property.usedBeforeMinor,
     );
-    const [year] = carryPropertyDeduction(available, [
-      { year: rules.year, incomeMinor: claim.incomeMinor, otherDeductionsMinor: social + savings, bands },
-    ]);
+    const part = spend(available, true);
     property = {
       availableMinor: available,
-      usedMinor: year.usedMinor,
-      refundMinor: year.refundMinor,
-      leftMinor: year.leftMinor,
+      usedMinor: part.usedMinor,
+      refundMinor: part.refundMinor,
+      leftMinor: available - part.usedMinor,
     };
   }
 
+  const taxPaid = taxOnIncome - givenByEmployer;
+  const refund = taxPaid - incomeTaxMinor(incomeLeft, bands);
+  const saleTax = incomeTaxMinor(saleLeft, saleBands);
+
   return {
-    taxPaidMinor: incomeTaxMinor(claim.incomeMinor, bands),
+    taxPaidMinor: taxPaid,
+    childDeductionMinor: childDeduction,
+    childRefundMinor: children.refundMinor - givenByEmployer,
     socialDeductionMinor: social,
-    socialRefundMinor: socialRefund,
+    socialRefundMinor: socialPart.refundMinor,
     longTermSavingsDeductionMinor: savings,
-    longTermSavingsRefundMinor: savingsRefund,
+    longTermSavingsRefundMinor: savingsPart.refundMinor,
     property,
-    refundMinor: socialRefund + savingsRefund + (property?.refundMinor ?? 0),
+    sale: sale && { ...sale, taxMinor: saleTax },
+    refundMinor: refund,
+    balanceMinor: refund - saleTax,
   };
 }

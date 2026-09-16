@@ -37,3 +37,22 @@ export function isStandaloneDisplay(): boolean {
   const iosStandalone = (window.navigator as { standalone?: boolean }).standalone === true;
   return standaloneMedia || iosStandalone;
 }
+
+/**
+ * Whether the page looks opened in a private window. There is no honest way to ask, so this is a
+ * sign, not a proof: Safari and Firefox refuse the site's private file system in a private window
+ * and allow it otherwise. Chrome's incognito gives no such sign; there the storage warning speaks.
+ */
+export async function looksPrivate(
+  storage: { getDirectory?: () => Promise<unknown> } | undefined = typeof navigator === 'undefined'
+    ? undefined
+    : navigator.storage,
+): Promise<boolean> {
+  if (!storage?.getDirectory) return false;
+  try {
+    await storage.getDirectory();
+    return false;
+  } catch {
+    return true;
+  }
+}

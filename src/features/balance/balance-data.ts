@@ -11,7 +11,7 @@ import {
   type InsuredAccount,
   type NetWorthPoint,
 } from '@/core/balance';
-import { rulesForYear, type Norm } from '@/core/rules';
+import { latestRules, rulesForYear, type Norm } from '@/core/rules';
 import { addMonths, currentMonth, monthOfDate, compareMonths, type IsoMonth } from '@/core/time';
 import { db } from '@/db/db';
 import type { Account, AccountType, InsurancePolicy } from '@/db/models';
@@ -71,7 +71,9 @@ export async function loadBalance(
     insurable: account.side === 'asset' && INSURABLE_TYPES.includes(account.type),
   }));
 
-  const limit = rulesForYear(Number(month.slice(0, 4))).depositInsuranceLimitMinor;
+  // Deposits are checked as they stand today. A clock set before the first year with
+  // rules still gets a limit to compare against, rather than no check at all.
+  const limit = (rulesForYear(Number(month.slice(0, 4))) ?? latestRules()).depositInsuranceLimitMinor;
   const series = compareMonths(from, month) <= 0 ? netWorthSeries(live, transactions, from, month) : [];
   const last = series[series.length - 1];
 

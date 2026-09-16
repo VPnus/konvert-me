@@ -1,3 +1,4 @@
+import { SOURCES } from './sources';
 import type { YearRules } from './types';
 
 /** The day every norm below was read from its source and compared with the law. */
@@ -7,7 +8,7 @@ export const RULES_2026: YearRules = {
   year: 2026,
   depositInsuranceLimitMinor: {
     value: 1_400_000 * 100,
-    source: 'https://www.klerk.ru/buh/articles/657251/',
+    source: SOURCES.depositInsurance,
     checkedAt: CHECKED,
     note:
       'Базовый лимит на одного человека в одном банке. Для счетов эскроу по недвижимости, ' +
@@ -23,8 +24,7 @@ export const RULES_2026: YearRules = {
       { fromMinor: 20_000_000 * 100, rate: 0.2 },
       { fromMinor: 50_000_000 * 100, rate: 0.22 },
     ],
-    source:
-      'https://buhguru.com/ndfl/progressivnaya-shkala-ndfl-v-2026-godu-stavki-13-15-18-20-22-i-raschyot-zarplaty.html',
+    source: SOURCES.incomeTaxFiveSteps2026,
     checkedAt: CHECKED,
     note:
       'Повышенная ставка берётся только с суммы превышения, а не со всего дохода. ' +
@@ -34,7 +34,7 @@ export const RULES_2026: YearRules = {
 
   socialDeductionLimitMinor: {
     value: 150_000 * 100,
-    source: 'https://www.nalog.gov.ru/rn77/taxation/taxes/ndfl/nalog_vichet/soc_nv/',
+    source: SOURCES.socialDeductions,
     checkedAt: CHECKED,
     note:
       'Общий лимит расходов за год: лечение, лекарства, своё обучение, спорт, взносы ' +
@@ -44,7 +44,7 @@ export const RULES_2026: YearRules = {
 
   childEducationLimitMinor: {
     value: 110_000 * 100,
-    source: 'https://www.consultant.ru/document/cons_doc_LAW_28165/946cbfc58c05e1392615a251973beb32dc79f94e/',
+    source: SOURCES.schooling,
     checkedAt: CHECKED,
     note:
       'На каждого ребёнка и на обоих родителей вместе, а не каждому. Только очная форма ' +
@@ -57,31 +57,33 @@ export const RULES_2026: YearRules = {
       secondMinor: 2_800 * 100,
       thirdAndOnMinor: 6_000 * 100,
       disabledParentMinor: 12_000 * 100,
-      disabledGuardianMinor: 6_000 * 100,
+      disabledGuardianMinor: 12_000 * 100,
       incomeCapMinor: 450_000 * 100,
     },
-    source: 'https://www.consultant.ru/document/cons_doc_LAW_67988/1878daa4c7e6ae10e61dcef3e3c28af97607e084/',
+    source: SOURCES.childDeductionsFrom2025,
     checkedAt: CHECKED,
     note:
       'Суммы за месяц. Единственному родителю — вдвое больше. Вычет за ребёнка-инвалида ' +
-      'складывается с вычетом по очерёдности рождения, а не заменяет его. С 2026 года ' +
-      'работодатель применяет вычет сам, заявление каждый год не нужно.',
+      'складывается с вычетом по очерёдности рождения, а не заменяет его, и с 2025 года ' +
+      'одинаков для родителя и опекуна. Работодатель применяет вычет сам, без ежегодного ' +
+      'заявления.',
   },
 
   longTermSavingsLimitMinor: {
     value: 400_000 * 100,
-    source: 'https://investmint.ru/iis3/',
+    source: SOURCES.longTermSavings,
     checkedAt: CHECKED,
     note:
-      'Один лимит на все долгосрочные сбережения вместе: взносы на ИИС-3, программу ' +
-      'долгосрочных сбережений и негосударственное пенсионное обеспечение. ИИС-3, открытый ' +
-      'в 2024–2026 годах, надо держать не меньше 5 лет; для открытых позже срок растёт ' +
-      'до 10 лет к 2031 году.',
+      'Один лимит на все долгосрочные сбережения вместе: ИИС-3, программу долгосрочных ' +
+      'сбережений и негосударственную пенсию. ИИС-3, открытый в 2024–2026 годах, надо держать ' +
+      'не меньше 5 лет. Редакция статьи от 1 сентября 2026 года добавляет долгосрочное ' +
+      'страхование жизни и поднимает лимит до 500 000 ₽ при взносах в пользу детей; ' +
+      'относится ли это ко всему 2026 году, источник не уточняет — приложение считает по 400 000 ₽.',
   },
 
   deductionYearsBack: {
     value: 3,
-    source: 'https://www.nalog.gov.ru/rn77/taxation/taxes/ndfl/nalog_vichet/soc_nv/',
+    source: SOURCES.threeYearsBack,
     checkedAt: CHECKED,
     note:
       'Декларацию за год можно подать в течение трёх лет после него. За более ранние годы ' +

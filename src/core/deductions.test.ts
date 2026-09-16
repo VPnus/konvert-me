@@ -7,6 +7,9 @@ import {
   socialDeductionMinor,
   type SocialSpending,
 } from './deductions';
+import { RULES_2023 } from './rules/2023';
+import { RULES_2024 } from './rules/2024';
+import { RULES_2025 } from './rules/2025';
 import { RULES_2026 } from './rules/2026';
 
 const RUB = 100;
@@ -133,8 +136,40 @@ describe('the social deduction of a year', () => {
 
 describe('the years a deduction can still be claimed', () => {
   it('reaches three years back and stops before the current one', () => {
-    // tax service: a return for a year can be filed within three years after it,
-    // and not for the year that is still going on
+    // tax service: "in 2025 a return can be filed for 2024, 2023 and 2022"
+    expect(claimableYears(2025, RULES_2025.deductionYearsBack.value)).toEqual([2022, 2023, 2024]);
     expect(claimableYears(2026, RULES_2026.deductionYearsBack.value)).toEqual([2023, 2024, 2025]);
+  });
+});
+
+describe('a year counted by its own rules', () => {
+  it('taxed 5 million at 13 % whole in 2024, and only the rest at 15 %', () => {
+    // example of the two-step scale: 650 000 plus 15 % of what lies above 5 million
+    const bands2024 = RULES_2024.incomeTaxBands.value;
+
+    expect(incomeTaxMinor(r(5_000_000), bands2024)).toBe(r(650_000));
+    expect(incomeTaxMinor(r(6_000_000), bands2024)).toBe(r(650_000 + 150_000));
+  });
+
+  it('returned 19 500 for 2024 and returns 22 500 for 2025 on the same income of 3 million', () => {
+    // example of the scale: the maximal social deduction on 3 million, a year apart
+    expect(refundMinor(r(3_000_000), r(150_000), RULES_2024.incomeTaxBands.value)).toBe(r(19_500));
+    expect(refundMinor(r(3_000_000), r(150_000), RULES_2025.incomeTaxBands.value)).toBe(r(22_500));
+  });
+
+  it('stopped the shared pot at 120 000 in 2023', () => {
+    // tax service: the limit was 120 000 for spending before 2024
+    const deduction = socialDeductionMinor({ ...noSpending, commonMinor: r(300_000) }, RULES_2023);
+
+    expect(deduction).toBe(r(120_000));
+    expect(refundMinor(r(1_200_000), deduction, RULES_2023.incomeTaxBands.value)).toBe(r(15_600));
+  });
+
+  it('limited a child’s schooling to 50 000 in 2023', () => {
+    // tax service: 50 000 per child before 2024
+    const spending: SocialSpending = { ...noSpending, childEducationMinor: [r(80_000)] };
+
+    expect(socialDeductionMinor(spending, RULES_2023)).toBe(r(50_000));
+    expect(socialDeductionMinor(spending, RULES_2024)).toBe(r(80_000));
   });
 });

@@ -57,6 +57,25 @@ export const RULES_2025: YearRules = {
       'родитель, а работодатель применяет вычет сам, без ежегодного заявления.',
   },
 
+  propertyPurchaseLimitMinor: {
+    value: 2_000_000 * 100,
+    source: SOURCES.property,
+    checkedAt: CHECKED,
+    note:
+      'Один раз в жизни, но можно добирать по нескольким объектам, пока не наберётся ' +
+      '2 000 000 ₽. Остаток переходит на следующие годы без срока; пенсионер может перенести ' +
+      'его на три года назад.',
+  },
+
+  mortgageInterestLimitMinor: {
+    value: 3_000_000 * 100,
+    source: SOURCES.property,
+    checkedAt: CHECKED,
+    note:
+      'Только по одному объекту и по кредитам, взятым с 1 января 2014 года; по более ранним ' +
+      'кредитам лимита нет. Остаток на другой объект не переносится.',
+  },
+
   longTermSavingsLimitMinor: {
     value: 400_000 * 100,
     source: SOURCES.longTermSavings,

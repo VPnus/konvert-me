@@ -26,6 +26,8 @@ export const SOURCES = {
   investmentAccountTypeA: 'https://pravo.ppt.ru/kodeks/nk/st-219.1',
   /** Tax code, art. 219.2: one limit for all long-term savings, from 2024. */
   longTermSavings: 'https://pravo.ppt.ru/kodeks/nk/st-219.2',
+  /** Tax code, art. 220: property deductions, their limits and how the rest moves on. */
+  property: 'https://pravo.ppt.ru/kodeks/nk/st-220',
   /** Tax service: a deduction can be claimed within three years after the year. */
   threeYearsBack: 'https://www.nalog.gov.ru/rn53/news/activities_fts/16256762/',
 } as const;

@@ -94,3 +94,79 @@ export function socialDeductionMinor(
 export function claimableYears(currentYear: number, yearsBack: number): number[] {
   return Array.from({ length: yearsBack }, (_, index) => currentYear - yearsBack + index);
 }
+
+/** What was spent on a home that a property deduction is made of. */
+export interface PropertyClaim {
+  /** What was paid for the home itself. */
+  readonly purchaseMinor: number;
+  /** Interest paid on the loan for it so far. */
+  readonly mortgageInterestMinor: number;
+  /** A loan taken before 2014 has no limit on its interest. */
+  readonly loanBefore2014: boolean;
+}
+
+/** The property deduction a home gives: the purchase and the interest, each up to its limit. */
+export function propertyDeductionMinor(
+  claim: PropertyClaim,
+  rules: Pick<YearRules, 'propertyPurchaseLimitMinor' | 'mortgageInterestLimitMinor'>,
+): Minor {
+  assertNonNegativeMinor(claim.purchaseMinor, 'purchaseMinor');
+  assertNonNegativeMinor(claim.mortgageInterestMinor, 'mortgageInterestMinor');
+
+  const interest = claim.loanBefore2014
+    ? claim.mortgageInterestMinor
+    : Math.min(claim.mortgageInterestMinor, rules.mortgageInterestLimitMinor.value);
+
+  return Math.min(claim.purchaseMinor, rules.propertyPurchaseLimitMinor.value) + interest;
+}
+
+/** One year a property deduction can be spent against. */
+export interface TaxYear {
+  readonly year: number;
+  readonly incomeMinor: number;
+  /**
+   * Deductions of the same year that do not carry over — social, standard. The law sets
+   * no order, but those die with their year and this one does not, so they go first.
+   */
+  readonly otherDeductionsMinor: number;
+  /** The tax scale of that year: a refund is counted by the rules it was paid under. */
+  readonly bands: readonly TaxBand[];
+}
+
+export interface CarriedYear {
+  readonly year: number;
+  /** How much of the deduction the year took. */
+  readonly usedMinor: number;
+  /** What that part gives back. */
+  readonly refundMinor: number;
+  /** What is left for the years after. */
+  readonly leftMinor: number;
+}
+
+/**
+ * Tax code, art. 220 p. 10: a year takes as much of the property deduction as its
+ * income allows, and the rest moves on until it is used in full. Years go oldest first.
+ */
+export function carryPropertyDeduction(deductionMinor: number, years: readonly TaxYear[]): CarriedYear[] {
+  assertNonNegativeMinor(deductionMinor, 'deductionMinor');
+
+  let left = deductionMinor;
+  return years.map((taxYear, index) => {
+    if (index > 0 && taxYear.year <= years[index - 1].year) {
+      throw new RangeError(`Годы должны идти по порядку: ${years[index - 1].year}, затем ${taxYear.year}`);
+    }
+    assertNonNegativeMinor(taxYear.incomeMinor, 'incomeMinor');
+    assertNonNegativeMinor(taxYear.otherDeductionsMinor, 'otherDeductionsMinor');
+
+    const base = Math.max(0, taxYear.incomeMinor - taxYear.otherDeductionsMinor);
+    const used = Math.min(left, base);
+    left -= used;
+
+    return {
+      year: taxYear.year,
+      usedMinor: used,
+      refundMinor: refundMinor(base, used, taxYear.bands),
+      leftMinor: left,
+    };
+  });
+}

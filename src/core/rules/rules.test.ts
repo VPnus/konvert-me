@@ -114,6 +114,22 @@ describe('rules', () => {
     });
   });
 
+  describe('property deductions over the years', () => {
+    it('allow 2 million for a home and 3 million of its loan interest in every year', () => {
+      for (const rules of KNOWN_RULES) {
+        expect(rules.propertyPurchaseLimitMinor.value).toBe(2_000_000 * 100);
+        expect(rules.mortgageInterestLimitMinor.value).toBe(3_000_000 * 100);
+      }
+    });
+
+    it('say what the limits do not cover', () => {
+      for (const rules of KNOWN_RULES) {
+        expect(rules.propertyPurchaseLimitMinor.note).toBeTruthy();
+        expect(rules.mortgageInterestLimitMinor.note).toBeTruthy();
+      }
+    });
+  });
+
   describe('long-term savings over the years', () => {
     it('allow 400 000 a year', () => {
       for (const rules of KNOWN_RULES) expect(rules.longTermSavingsLimitMinor.value).toBe(400_000 * 100);

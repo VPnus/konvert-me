@@ -52,6 +52,10 @@ export interface YearRules {
   /** Schooling of one child has its own pot, outside the shared one. */
   readonly childEducationLimitMinor: Norm<number>;
   readonly childDeduction: Norm<ChildDeduction>;
+  /** Buying or building a home: once in a life, but over one home or several. */
+  readonly propertyPurchaseLimitMinor: Norm<number>;
+  /** Interest on the loan for a home: for one home only. */
+  readonly mortgageInterestLimitMinor: Norm<number>;
   /** A year of money put away for the long term — an investment account and its kin. */
   readonly longTermSavingsLimitMinor: Norm<number>;
   /** How many years back a deduction can still be claimed. */

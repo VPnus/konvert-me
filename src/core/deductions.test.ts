@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  carryPropertyDeduction,
   claimableYears,
   incomeTaxMinor,
+  propertyDeductionMinor,
   refundMinor,
   socialDeductionMinor,
   type SocialSpending,
@@ -171,5 +173,117 @@ describe('a year counted by its own rules', () => {
 
     expect(socialDeductionMinor(spending, RULES_2023)).toBe(r(50_000));
     expect(socialDeductionMinor(spending, RULES_2024)).toBe(r(80_000));
+  });
+});
+
+describe('the property deduction', () => {
+  const property = (purchase: number, interest: number, loanBefore2014 = false) =>
+    propertyDeductionMinor(
+      { purchaseMinor: r(purchase), mortgageInterestMinor: r(interest), loanBefore2014 },
+      RULES_2025,
+    );
+
+  it('stops the purchase at 2 million and the mortgage interest at 3 million', () => {
+    // tax code, art. 220 p. 3 and p. 4
+    expect(property(3_000_000, 0)).toBe(r(2_000_000));
+    expect(property(0, 3_500_000)).toBe(r(3_000_000));
+    expect(property(5_000_000, 4_000_000)).toBe(r(5_000_000));
+  });
+
+  it('puts no limit on the interest of a loan taken before 2014', () => {
+    // tax code, art. 220: the 3 million limit applies to loans from 1 January 2014
+    expect(property(0, 4_000_000, true)).toBe(r(4_000_000));
+  });
+
+  it('refuses a negative amount', () => {
+    expect(() => property(-1, 0)).toThrow();
+    expect(() => property(0, -1)).toThrow();
+  });
+
+  it('returns 282 000 on 3,5 million for a purchase of 2 million in 2025', () => {
+    // example of the scale: 477 000 of tax, 195 000 after the deduction
+    const years = carryPropertyDeduction(property(2_000_000, 0), [
+      {
+        year: 2025,
+        incomeMinor: r(3_500_000),
+        otherDeductionsMinor: 0,
+        bands: RULES_2025.incomeTaxBands.value,
+      },
+    ]);
+
+    expect(years).toEqual([{ year: 2025, usedMinor: r(2_000_000), refundMinor: r(282_000), leftMinor: 0 }]);
+  });
+
+  it('returns 438 000 on 3,5 million for a purchase and 1,2 million of interest in 2025', () => {
+    // example of the scale: 477 000 of tax, 39 000 after a deduction of 3,2 million
+    expect(refundMinor(r(3_500_000), property(2_000_000, 1_200_000), RULES_2025.incomeTaxBands.value)).toBe(
+      r(438_000),
+    );
+  });
+
+  it('returns 752 000 on 6 million for both deductions in full in 2025', () => {
+    // example of the scale: 882 000 of tax, 130 000 after a deduction of 5 million
+    expect(refundMinor(r(6_000_000), property(5_000_000, 4_000_000), RULES_2025.incomeTaxBands.value)).toBe(
+      r(752_000),
+    );
+  });
+});
+
+describe('carrying the property deduction over the years', () => {
+  const year = (value: number, income: number, other = 0) => ({
+    year: value,
+    incomeMinor: r(income),
+    otherDeductionsMinor: r(other),
+    bands: [RULES_2023, RULES_2024, RULES_2025, RULES_2026].find((rules) => rules.year === value)!
+      .incomeTaxBands.value,
+  });
+
+  it('takes a salary’s worth each year until 2 million is used up', () => {
+    // tax code, art. 220 p. 10: what a year cannot use moves on until it is used in full
+    const years = carryPropertyDeduction(r(2_000_000), [
+      year(2023, 600_000),
+      year(2024, 600_000),
+      year(2025, 600_000),
+      year(2026, 600_000),
+    ]);
+
+    expect(years.map((item) => item.usedMinor)).toEqual([r(600_000), r(600_000), r(600_000), r(200_000)]);
+    expect(years.map((item) => item.refundMinor)).toEqual([r(78_000), r(78_000), r(78_000), r(26_000)]);
+    expect(years.map((item) => item.leftMinor)).toEqual([r(1_400_000), r(800_000), r(200_000), 0]);
+    expect(years.reduce((total, item) => total + item.refundMinor, 0)).toBe(r(260_000));
+  });
+
+  it('lets a year without taxed income use nothing, and keeps the rest waiting', () => {
+    // a source on the rest of the deduction: no taxed income that year, the rest came later
+    const years = carryPropertyDeduction(r(500_000), [year(2024, 0), year(2025, 1_000_000)]);
+
+    expect(years).toEqual([
+      { year: 2024, usedMinor: 0, refundMinor: 0, leftMinor: r(500_000) },
+      { year: 2025, usedMinor: r(500_000), refundMinor: r(65_000), leftMinor: 0 },
+    ]);
+  });
+
+  it('comes after the deductions that would be lost, and never returns more than was paid', () => {
+    // no order is set by law; a social deduction dies with its year and this one does not,
+    // so the social one goes first
+    const [only] = carryPropertyDeduction(r(2_000_000), [year(2026, 1_200_000, 150_000)]);
+
+    expect(only).toEqual({
+      year: 2026,
+      usedMinor: r(1_050_000),
+      refundMinor: r(136_500),
+      leftMinor: r(950_000),
+    });
+    // with the social refund, the year gives back exactly the tax it paid
+    const social = refundMinor(r(1_200_000), r(150_000), RULES_2026.incomeTaxBands.value);
+    expect(social + only.refundMinor).toBe(incomeTaxMinor(r(1_200_000), RULES_2026.incomeTaxBands.value));
+  });
+
+  it('refuses years out of order', () => {
+    expect(() => carryPropertyDeduction(r(100_000), [year(2025, 100_000), year(2024, 100_000)])).toThrow();
+  });
+
+  it('refuses a negative income instead of treating it as none', () => {
+    expect(() => carryPropertyDeduction(r(100_000), [year(2025, -1)])).toThrow();
   });
 });

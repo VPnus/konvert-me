@@ -138,6 +138,11 @@ export function withDayOfMonth(month: IsoMonth, day: number): IsoDate {
   return `${month}-${String(clamped).padStart(2, '0')}`;
 }
 
+/** The same day some months later or earlier; a day the month does not have becomes its last. */
+export function addMonthsToDate(date: IsoDate, months: number): IsoDate {
+  return withDayOfMonth(addMonths(monthOfDate(date), months), dayOfMonth(date));
+}
+
 /** Local calendar date of an instant — never the UTC one. */
 export function todayIso(now: Date = new Date()): IsoDate {
   const year = String(now.getFullYear()).padStart(4, '0');

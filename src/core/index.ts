@@ -2,6 +2,7 @@ export * from './balance';
 export * from './budget';
 export * from './deductions';
 export * from './education';
+export * from './financial-plan';
 export * from './goals';
 export * from './money';
 export * from './pension';

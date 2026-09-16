@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   TimeError,
   addMonths,
+  addMonthsToDate,
   assertIsoDate,
   assertIsoMonth,
   compareMonths,
@@ -90,5 +91,18 @@ describe('time: current moment uses local calendar, never UTC shifts', () => {
   it('pads single digit months and days', () => {
     expect(todayIso(new Date(2026, 8, 5))).toBe('2026-09-05');
     expect(currentMonth(new Date(2026, 8, 5))).toBe('2026-09');
+  });
+});
+
+describe('time: a date some months later', () => {
+  it('keeps the day of the month', () => {
+    expect(addMonthsToDate('2026-09-16', 3)).toBe('2026-12-16');
+    expect(addMonthsToDate('2026-11-05', 12)).toBe('2027-11-05');
+    expect(addMonthsToDate('2026-03-10', -3)).toBe('2025-12-10');
+  });
+
+  it('moves a day the month does not have to its last day', () => {
+    expect(addMonthsToDate('2026-11-30', 3)).toBe('2027-02-28');
+    expect(addMonthsToDate('2027-11-29', 3)).toBe('2028-02-29');
   });
 });

@@ -4,6 +4,7 @@
  */
 
 import type { Account, AppSettings, InsurancePolicy } from '@/db/models';
+import { holdsMoney } from '@/db/repositories/accounts';
 import { RESERVE_GOAL_ID } from '@/db/repositories/goals';
 import type { GoalView } from '@/features/goals/goals-data';
 import type { ReserveState } from '@/core/balance';
@@ -59,9 +60,11 @@ export function planActions({
     actions.push({ key: 'insurance', kind: 'insurance', to: '/balance' });
   }
 
+  const money = new Set(accounts.filter(holdsMoney).map((account) => account.id));
   for (const view of goals) {
     if (view.goal.id === RESERVE_GOAL_ID || view.goal.status !== 'active') continue;
-    if (view.envelopes.length === 0) {
+    // an envelope on a home or a car is no account chosen for the money of the goal
+    if (!view.envelopes.some((envelope) => money.has(envelope.accountId))) {
       actions.push({ key: `account:${view.goal.id}`, kind: 'account', name: view.goal.name, to: '/goals' });
     }
     if (view.plan?.status === 'active' && view.plan.contributionMinor > 0) {

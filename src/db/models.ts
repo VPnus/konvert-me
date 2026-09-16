@@ -34,6 +34,7 @@ export const ASSET_TYPES = [
   'iis',
   'realty',
   'vehicle',
+  'business',
   'other_asset',
 ] as const;
 
@@ -41,6 +42,12 @@ export const LIABILITY_TYPES = ['credit_card', 'mortgage', 'consumer', 'car', 'o
 
 /** Liquid by default, per section 4 of the plan. */
 export const LIQUID_BY_DEFAULT: readonly string[] = ['cash', 'debit', 'savings'];
+
+/**
+ * Assets that are things rather than money: a home, a car, a share in a business. They are worth
+ * money, but none of it is put aside for a goal, so no envelope lies on them.
+ */
+export const THING_ASSET_TYPES: readonly string[] = ['realty', 'vehicle', 'business'];
 
 export const accountSchema = z
   .object({

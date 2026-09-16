@@ -193,6 +193,77 @@ describe('envelopes', () => {
   });
 });
 
+describe('envelopes: only on money', () => {
+  it('puts no envelope on a home, a car or a share in a business, and lets one left from before be emptied', async () => {
+    const goal = await createGoal({
+      name: 'Капитал',
+      kind: 'other',
+      costMinor: 100,
+      costAsOf: '2026-01',
+      targetMonth: '2036-01',
+    });
+    const card = await createAccount({
+      name: 'Карта',
+      side: 'asset',
+      type: 'debit',
+      openingBalanceMinor: 300_000 * RUB,
+    });
+
+    for (const type of ['realty', 'vehicle', 'business'] as const) {
+      const thing = await createAccount({
+        name: `Имущество ${type}`,
+        side: 'asset',
+        type,
+        openingBalanceMinor: 9_000_000 * RUB,
+      });
+      await expect(setEnvelope(goal.id, thing.id, 1_000 * RUB)).rejects.toBeInstanceOf(RepositoryError);
+    }
+    expect(await db.envelopes.count()).toBe(0);
+
+    // an envelope written on a flat before the rule: it counts for nothing, and it can be emptied
+    const flat = (await db.accounts.where('type').equals('realty').first())!;
+    await db.envelopes.add({ id: 'old', goalId: goal.id, accountId: flat.id, amountMinor: 5_000_000 * RUB });
+    await setEnvelope(goal.id, card.id, 100_000 * RUB);
+
+    expect(await getGoalSavingsMinor(goal.id)).toBe(100_000 * RUB);
+    await deleteEnvelope(goal.id, flat.id);
+    expect(await db.envelopes.count()).toBe(1);
+  });
+
+  it('refuses to grow an envelope on a thing by a contribution, and moves no money for it', async () => {
+    const goal = await createGoal({
+      name: 'Капитал',
+      kind: 'other',
+      costMinor: 100,
+      costAsOf: '2026-01',
+      targetMonth: '2036-01',
+    });
+    const card = await createAccount({
+      name: 'Карта',
+      side: 'asset',
+      type: 'debit',
+      openingBalanceMinor: 300_000 * RUB,
+    });
+    const share = await createAccount({
+      name: 'Доля в ООО',
+      side: 'asset',
+      type: 'business',
+      openingBalanceMinor: 50_000_000 * RUB,
+    });
+
+    await expect(
+      contributeToGoal({
+        goalId: goal.id,
+        accountId: share.id,
+        fromAccountId: card.id,
+        amountMinor: 10_000 * RUB,
+      }),
+    ).rejects.toBeInstanceOf(RepositoryError);
+    expect(await db.transactions.count()).toBe(0);
+    expect(await getAccountBalanceMinor(card.id)).toBe(300_000 * RUB);
+  });
+});
+
 describe('goals: putting money in', () => {
   async function setUp() {
     const card = await createAccount({

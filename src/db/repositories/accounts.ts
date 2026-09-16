@@ -8,7 +8,13 @@ import type { CoreAccount, CoreTransaction } from '@/core/types';
 import { todayIso } from '@/core/time';
 import { db } from '@/db/db';
 import { RepositoryError } from '@/db/errors';
-import { LIQUID_BY_DEFAULT, accountSchema, type Account, type AccountType } from '@/db/models';
+import {
+  LIQUID_BY_DEFAULT,
+  THING_ASSET_TYPES,
+  accountSchema,
+  type Account,
+  type AccountType,
+} from '@/db/models';
 import { parseOrThrow } from '@/db/validate';
 import { publishAppEvent } from '@/lib/broadcast';
 
@@ -36,6 +42,11 @@ function newId(): string {
 
 export function isLiquidByDefault(type: AccountType): boolean {
   return LIQUID_BY_DEFAULT.includes(type);
+}
+
+/** An account the money of a goal can lie on: an asset that is money, not a thing. */
+export function holdsMoney(account: Pick<Account, 'side' | 'type'>): boolean {
+  return account.side === 'asset' && !THING_ASSET_TYPES.includes(account.type);
 }
 
 export async function listAccounts(options: { includeArchived?: boolean } = {}): Promise<Account[]> {

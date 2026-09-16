@@ -4,6 +4,7 @@ import { formatForecast, minorToRubles, rublesToMinor } from '@/core/money';
 import { Button } from '@/components/ui/button';
 import { NumberInput } from '@/components/ui/number-input';
 import type { Account, Envelope } from '@/db/models';
+import { holdsMoney } from '@/db/repositories/accounts';
 import { deleteEnvelope, setEnvelope } from '@/db/repositories/goals';
 import { ru } from '@/i18n/ru';
 import { parseNumericInput } from '@/lib/numeric-input';
@@ -25,6 +26,8 @@ export function EnvelopesPanel({ goalId, envelopes, accounts, balances }: Envelo
 
   const amountOf = (accountId: string): number =>
     envelopes.find((envelope) => envelope.accountId === accountId)?.amountMinor ?? 0;
+  // Money accounts, and a thing only while an envelope of this goal still lies on it, to be emptied.
+  const shown = accounts.filter((account) => holdsMoney(account) || amountOf(account.id) > 0);
 
   const save = async (accountId: string) => {
     const draft = drafts[accountId];
@@ -55,11 +58,11 @@ export function EnvelopesPanel({ goalId, envelopes, accounts, balances }: Envelo
         <p className="text-xs text-muted-foreground">{ru.goals.envelopesHint}</p>
       </div>
 
-      {accounts.length === 0 ? (
+      {shown.length === 0 ? (
         <p className="text-sm text-muted-foreground">{ru.goals.envelopeEmpty}</p>
       ) : (
         <ul className="flex flex-col">
-          {accounts.map((account) => {
+          {shown.map((account) => {
             const stored = amountOf(account.id);
             const value = drafts[account.id] ?? (stored === 0 ? '' : String(minorToRubles(stored)));
 
@@ -73,6 +76,11 @@ export function EnvelopesPanel({ goalId, envelopes, accounts, balances }: Envelo
                   <p className="truncate text-xs text-muted-foreground">
                     {ru.accounts.balance}: {formatForecast(balances.get(account.id) ?? 0)}
                   </p>
+                  {holdsMoney(account) ? null : (
+                    <p className="text-xs text-warning" data-testid={`envelope-not-money-${account.name}`}>
+                      {ru.goals.envelopeNotMoney}
+                    </p>
+                  )}
                 </div>
 
                 <NumberInput
@@ -110,8 +118,9 @@ interface ContributeFormProps {
   }) => Promise<void>;
 }
 
-/** Putting money in: a transfer plus a bigger envelope, never an expense. */
-export function ContributeForm({ accounts, onContribute }: ContributeFormProps) {
+/** Putting money in: a transfer plus a bigger envelope, never an expense. Only between accounts of money. */
+export function ContributeForm({ accounts: all, onContribute }: ContributeFormProps) {
+  const accounts = all.filter(holdsMoney);
   const [amount, setAmount] = useState('');
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? '');
   const [fromAccountId, setFromAccountId] = useState('');

@@ -13,6 +13,7 @@ import {
   remainingMonths,
   returnBeatsInflation,
   goalProjection,
+  savingsByGoalMinor,
 } from './goals';
 
 const RUB = 100;
@@ -314,6 +315,25 @@ describe('goals: real return (formula 6)', () => {
     expect(returnBeatsInflation(0.05, 0.08)).toBe(false);
     expect(returnBeatsInflation(0.08, 0.08)).toBe(true);
     expect(returnBeatsInflation(0, 0)).toBe(false);
+  });
+});
+
+describe('goals: what a goal has saved (S of formulas 4 and 5)', () => {
+  it('adds up the envelopes of each goal that lie on money, and leaves out those on a thing', () => {
+    // the scenario report: an envelope on a flat lowered the contribution with no money behind it
+    const envelopes = [
+      { goalId: 'car', accountId: 'savings', amountMinor: r(300_000) },
+      { goalId: 'car', accountId: 'broker', amountMinor: r(200_000) },
+      { goalId: 'car', accountId: 'flat', amountMinor: r(5_000_000) },
+      { goalId: 'trip', accountId: 'savings', amountMinor: r(50_000) },
+      { goalId: 'house', accountId: 'business', amountMinor: r(1_000_000) },
+    ];
+
+    const saved = savingsByGoalMinor(envelopes, new Set(['savings', 'broker']));
+
+    expect(saved.get('car')).toBe(r(500_000));
+    expect(saved.get('trip')).toBe(r(50_000));
+    expect(saved.has('house')).toBe(false);
   });
 });
 

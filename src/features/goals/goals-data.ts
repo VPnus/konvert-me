@@ -17,6 +17,7 @@ import {
   allocateFreeCash,
   contributionPlan,
   realReturnRate,
+  savingsByGoalMinor,
   returnBeatsInflation,
   type Allocation,
   type ContributionPlan,
@@ -25,7 +26,7 @@ import { currentMonth, type IsoMonth } from '@/core/time';
 import type { CoreAccount, CoreCategory } from '@/core/types';
 import { db } from '@/db/db';
 import { DEFAULT_SETTINGS, type Account, type AppSettings, type Envelope, type Goal } from '@/db/models';
-import { getAccountBalancesMinor } from '@/db/repositories/accounts';
+import { getAccountBalancesMinor, holdsMoney } from '@/db/repositories/accounts';
 import { LOAN_INTEREST_CATEGORY } from '@/db/repositories/categories';
 import { listGoals, RESERVE_GOAL_ID } from '@/db/repositories/goals';
 
@@ -101,10 +102,13 @@ export async function loadGoals(now: Date = new Date()): Promise<GoalsData> {
   const plan = planTotals(plans, month, coreCategories);
   const basis = budgetBasis({ transactions, currentMonth: month, plan });
 
-  const savedByGoal = new Map<string, number>();
+  const savedByGoal = savingsByGoalMinor(
+    envelopes,
+    new Set(accounts.filter(holdsMoney).map((account) => account.id)),
+  );
+  // every envelope stays in sight, one on a thing too: it counts for nothing, and can be emptied
   const envelopesByGoal = new Map<string, Envelope[]>();
   for (const envelope of envelopes) {
-    savedByGoal.set(envelope.goalId, (savedByGoal.get(envelope.goalId) ?? 0) + envelope.amountMinor);
     envelopesByGoal.set(envelope.goalId, [...(envelopesByGoal.get(envelope.goalId) ?? []), envelope]);
   }
 

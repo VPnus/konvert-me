@@ -19,13 +19,18 @@ import {
 } from '@/core/balance';
 import { budgetBasis, monthTotals, planTotals, type BudgetBasis, type MonthTotals } from '@/core/budget';
 import { upcomingEvents, type UpcomingEvent } from '@/core/upcoming';
-import { contributionPlan, returnBeatsInflation, type ContributionPlan } from '@/core/goals';
+import {
+  contributionPlan,
+  returnBeatsInflation,
+  savingsByGoalMinor,
+  type ContributionPlan,
+} from '@/core/goals';
 import { currentMonth, todayIso, type IsoMonth } from '@/core/time';
 import type { CoreAccount, CoreCategory, CoreTransaction } from '@/core/types';
 import { db } from '@/db/db';
 import type { Account, AppSettings, Goal } from '@/db/models';
 import { DEFAULT_SETTINGS } from '@/db/models';
-import { getAccountBalancesMinor } from '@/db/repositories/accounts';
+import { getAccountBalancesMinor, holdsMoney } from '@/db/repositories/accounts';
 import { RESERVE_GOAL_ID } from '@/db/repositories/goals';
 import {
   deductionsAtGlance,
@@ -119,10 +124,10 @@ export async function loadOverview(now: Date = new Date()): Promise<OverviewData
   const plan = planTotals(plans, month, coreCategories);
   const basis = budgetBasis({ transactions: coreTransactions, currentMonth: month, plan });
 
-  const savingsByGoal = new Map<string, number>();
-  for (const envelope of envelopes) {
-    savingsByGoal.set(envelope.goalId, (savingsByGoal.get(envelope.goalId) ?? 0) + envelope.amountMinor);
-  }
+  const savingsByGoal = savingsByGoalMinor(
+    envelopes,
+    new Set(accounts.filter(holdsMoney).map((account) => account.id)),
+  );
 
   const averageExpenses = averageMonthlyExpenses({
     transactions: coreTransactions,

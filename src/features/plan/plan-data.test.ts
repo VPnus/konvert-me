@@ -214,6 +214,28 @@ describe('plan: what there is to do', () => {
     expect(debt?.kind === 'debt' ? debt.name : null).toBe('Кредитка');
   });
 
+  it('still asks to choose an account for a goal whose only envelope lies on a home', async () => {
+    const flat = await createAccount({
+      name: 'Квартира',
+      side: 'asset',
+      type: 'realty',
+      openingBalanceMinor: 9_000_000 * RUB,
+      openingDate: '2026-01-01',
+    });
+    const goal = await createGoal({
+      name: 'Дача',
+      kind: 'purchase',
+      costMinor: 2_000_000 * RUB,
+      targetMonth: '2031-09',
+    });
+    // written before envelopes were kept to money
+    await db.envelopes.add({ id: 'old', goalId: goal.id, accountId: flat.id, amountMinor: 1_000_000 * RUB });
+
+    const data = await loadPlan(NOW);
+
+    expect(data.actions.map((action) => action.key)).toContain(`account:${goal.id}`);
+  });
+
   it('builds the same list from its parts', () => {
     const actions = planActions({
       goals: [],

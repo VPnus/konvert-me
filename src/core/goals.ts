@@ -7,6 +7,7 @@
 
 import type { IsoMonth } from './time';
 import { addMonths, monthsBetween } from './time';
+import type { CoreEnvelope } from './types';
 
 export const MAX_GOAL_MONTHS = 1200;
 
@@ -207,6 +208,22 @@ export function goalProjection(params: GoalProjectionParams): ProjectionPoint[] 
       targetMinor: costMinor * Math.pow(1 + params.inflationRate, (elapsed + offset) / 12),
     };
   });
+}
+
+/**
+ * The S of formulas 4 and 5, goal by goal: the envelopes that lie on money. An envelope on a home or
+ * a car puts nothing aside — the thing is not sold to reach the goal — so it counts for nothing.
+ */
+export function savingsByGoalMinor(
+  envelopes: readonly CoreEnvelope[],
+  moneyAccountIds: ReadonlySet<string>,
+): Map<string, number> {
+  const totals = new Map<string, number>();
+  for (const envelope of envelopes) {
+    if (!moneyAccountIds.has(envelope.accountId)) continue;
+    totals.set(envelope.goalId, (totals.get(envelope.goalId) ?? 0) + envelope.amountMinor);
+  }
+  return totals;
 }
 
 export interface AllocationRequest {

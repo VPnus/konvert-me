@@ -7,11 +7,12 @@
  */
 
 import { liquidEnvelopesMinor } from '@/core/balance';
+import { savingsByGoalMinor } from '@/core/goals';
 import { currentMonth, todayIso, type IsoMonth } from '@/core/time';
 import { db } from '@/db/db';
 import { RepositoryError } from '@/db/errors';
 import { envelopeSchema, goalSchema, type Envelope, type Goal } from '@/db/models';
-import { assertEnvelopesFit } from '@/db/repositories/accounts';
+import { assertEnvelopesFit, holdsMoney } from '@/db/repositories/accounts';
 import { createTransaction, deleteTransaction } from '@/db/repositories/transactions';
 import { getSettings } from '@/db/repositories/settings';
 import { ru } from '@/i18n/ru';
@@ -128,19 +129,24 @@ export async function listEnvelopes(): Promise<Envelope[]> {
   return db.envelopes.toArray();
 }
 
-/** Sum of the envelopes of a goal — the S of the contribution formulas. */
+/** The accounts the money of a goal can lie on. */
+async function moneyAccountIds(): Promise<Set<string>> {
+  const accounts = await db.accounts.toArray();
+  return new Set(accounts.filter(holdsMoney).map((account) => account.id));
+}
+
+/** Sum of the envelopes of a goal that lie on money — the S of the contribution formulas. */
 export async function getGoalSavingsMinor(goalId: string): Promise<number> {
-  const envelopes = await db.envelopes.where('goalId').equals(goalId).toArray();
-  return envelopes.reduce((total, envelope) => total + envelope.amountMinor, 0);
+  const [envelopes, money] = await Promise.all([
+    db.envelopes.where('goalId').equals(goalId).toArray(),
+    moneyAccountIds(),
+  ]);
+  return savingsByGoalMinor(envelopes, money).get(goalId) ?? 0;
 }
 
 export async function getSavingsByGoal(): Promise<Map<string, number>> {
-  const envelopes = await db.envelopes.toArray();
-  const totals = new Map<string, number>();
-  for (const envelope of envelopes) {
-    totals.set(envelope.goalId, (totals.get(envelope.goalId) ?? 0) + envelope.amountMinor);
-  }
-  return totals;
+  const [envelopes, money] = await Promise.all([db.envelopes.toArray(), moneyAccountIds()]);
+  return savingsByGoalMinor(envelopes, money);
 }
 
 /** Envelopes of the other goals on liquid accounts — what formula 9 subtracts. */
@@ -150,6 +156,14 @@ export async function getOtherGoalsEnvelopesMinor(excludeGoalId: string = RESERV
 }
 
 export async function setEnvelope(goalId: string, accountId: string, amountMinor: number): Promise<Envelope> {
+  const account = await db.accounts.get(accountId);
+  if (account && amountMinor > 0 && !holdsMoney(account)) {
+    throw new RepositoryError(
+      'Конверт кладут только на счёт с деньгами: не на недвижимость, автомобиль или долю в бизнесе.',
+      'envelopes',
+    );
+  }
+
   const existing = await db.envelopes.where('[goalId+accountId]').equals([goalId, accountId]).first();
   const envelope = parseOrThrow(
     envelopeSchema,

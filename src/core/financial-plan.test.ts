@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { budgetBalance, reviewState } from './financial-plan';
 
-describe('financial plan: the kind of budget (lesson 2.4)', () => {
+describe('financial plan: the kind of budget', () => {
   it('is in deficit when income is below the spending, balanced when equal, in surplus above', () => {
     expect(budgetBalance(-1)).toBe('deficit');
     expect(budgetBalance(0)).toBe('balanced');
@@ -10,7 +10,7 @@ describe('financial plan: the kind of budget (lesson 2.4)', () => {
   });
 });
 
-describe('financial plan: when to look at it again (lesson 2.7, step 8)', () => {
+describe('financial plan: when to look at it again', () => {
   it('a plan made today is reviewed in a quarter and in a year', () => {
     const state = reviewState({ startedOn: '2026-09-16', today: '2026-09-16' });
 

@@ -12,7 +12,7 @@ const A = r(240_032 * 12);
 const RETURN = 0.0873;
 const INFLATION = 0.069;
 
-describe('pension: what a year on retirement costs (lesson 7.4, steps 1–5)', () => {
+describe('pension: what a year on retirement costs', () => {
   it('70 % of the spending, less the state pension, in the prices of the year of retiring', () => {
     // 70 % of 116 149 is the 81 304 of the lesson, the state pension for two is 26 000;
     // the lesson counts the prices 22 years ahead and gets 240 032 a month.
@@ -171,7 +171,7 @@ describe('pension: year by year on retirement', () => {
 });
 
 describe('pension: how much to put aside (formula 4)', () => {
-  it('lesson 7.4, step 7: 32 994 090 over 22 years at 8.73 % is 41 544 a month', () => {
+  it('32 994 090 over 22 years at 8.73 % is 41 544 a month', () => {
     const payment = monthlyContribution({
       futureValueMinor: r(32_994_090),
       savedMinor: 0,

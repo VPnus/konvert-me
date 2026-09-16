@@ -17,7 +17,7 @@ const shares = (stocks: number, bonds: number, realEstate: number, gold: number)
 });
 
 describe('portfolio: the horizon of a goal', () => {
-  it('falls into the four terms of lesson 6.2', () => {
+  it('falls into the four terms of the allocation table', () => {
     expect(horizonBand(1)).toBe('upTo5');
     expect(horizonBand(60)).toBe('upTo5');
     expect(horizonBand(61)).toBe('from5To10');
@@ -33,7 +33,7 @@ describe('portfolio: the horizon of a goal', () => {
   });
 });
 
-describe('portfolio: strategic allocation of lesson 6.2', () => {
+describe('portfolio: strategic allocation', () => {
   it('up to 5 years', () => {
     expect(strategicAllocation(48, 'conservative')).toEqual(shares(10, 90, 0, 0));
     expect(strategicAllocation(48, 'moderate')).toEqual(shares(10, 80, 5, 5));

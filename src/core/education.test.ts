@@ -28,7 +28,7 @@ const CHILD_2 = lesson('2031-09');
 const contribution = (target: number, months: number) =>
   roundToMinor(monthlyContribution({ futureValueMinor: target, savedMinor: 0, returnRate: 0.0883, months }));
 
-describe('education as the course counts it: the whole sum by the start (lesson 7.3)', () => {
+describe('education as one sum by the start', () => {
   it('child 1: 3 600 000 in 96 months is 6 139 374.73, or 44 227.02 a month', () => {
     const target = educationLumpSumMinor(CHILD_1);
     expect(roundToMinor(target)).toBe(r(6_139_374.73));

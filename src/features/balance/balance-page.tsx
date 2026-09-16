@@ -70,13 +70,19 @@ function AccountRow({
           {formatForecast(balanceMinor)}
         </span>
 
-        <Button variant="ghost" size="icon" aria-label={ru.common.edit} onClick={() => onEdit(account)}>
+        {/* each button names its account: a screen reader reads a long list of them one after another */}
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={`${ru.common.edit}: ${account.name}`}
+          onClick={() => onEdit(account)}
+        >
           <Pencil className="size-4" aria-hidden />
         </Button>
         <Button
           variant="ghost"
           size="icon"
-          aria-label={account.archived ? ru.common.unarchive : ru.common.archive}
+          aria-label={`${account.archived ? ru.common.unarchive : ru.common.archive}: ${account.name}`}
           onClick={() => void setAccountArchived(account.id, !account.archived)}
         >
           {account.archived ? (
@@ -85,7 +91,12 @@ function AccountRow({
             <Archive className="size-4" aria-hidden />
           )}
         </Button>
-        <Button variant="ghost" size="icon" aria-label={ru.common.delete} onClick={() => onDelete(account)}>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={`${ru.common.delete}: ${account.name}`}
+          onClick={() => onDelete(account)}
+        >
           <Trash2 className="size-4" aria-hidden />
         </Button>
       </div>

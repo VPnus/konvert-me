@@ -68,13 +68,14 @@ test.describe('accounts', () => {
     await page.goto('/balance');
     await addAccount(page, { name: 'Наличные', side: 'asset', type: 'cash', balance: '5000' });
 
-    await page.getByRole('button', { name: 'В архив' }).click();
+    // the buttons name their account, so a screen reader tells one row from another
+    await page.getByRole('button', { name: 'В архив: Наличные', exact: true }).click();
     await expect(page.getByTestId('balance-Наличные')).toBeHidden();
 
     await page.getByLabel('Показывать архив').check();
     await expect(page.getByText('В архиве')).toBeVisible();
 
-    await page.getByRole('button', { name: 'Удалить' }).first().click();
+    await page.getByRole('button', { name: 'Удалить: Наличные', exact: true }).click();
     await page.getByTestId('confirm-action').click();
     await expect(page.getByText('Счетов пока нет.', { exact: false })).toBeVisible();
   });

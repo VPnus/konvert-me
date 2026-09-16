@@ -52,6 +52,8 @@ const backupDataSchema = z
     deductionYears: z.array(TABLE_SCHEMAS.deductionYears).default([]),
     documents: z.array(TABLE_SCHEMAS.documents).default([]),
     documentFiles: z.array(backupDocumentFileSchema).default([]),
+    // Added in schema 6.
+    financialPlans: z.array(TABLE_SCHEMAS.financialPlans).default([]),
     feeds: z.array(TABLE_SCHEMAS.feeds).default([]),
     feedItems: z.array(TABLE_SCHEMAS.feedItems).default([]),
   })
@@ -112,6 +114,7 @@ export async function collectBackup(now: number = Date.now()): Promise<BackupFil
     deductionYears,
     documents,
     documentFiles,
+    financialPlans,
   ] = await Promise.all([
     db.settings.toArray(),
     db.accounts.toArray(),
@@ -129,6 +132,7 @@ export async function collectBackup(now: number = Date.now()): Promise<BackupFil
     db.deductionYears.toArray(),
     db.documents.toArray(),
     db.documentFiles.toArray(),
+    db.financialPlans.toArray(),
   ]);
 
   return {
@@ -155,6 +159,7 @@ export async function collectBackup(now: number = Date.now()): Promise<BackupFil
         id: file.id,
         content: toBase64(new Uint8Array(file.content)),
       })),
+      financialPlans,
     },
   };
 }

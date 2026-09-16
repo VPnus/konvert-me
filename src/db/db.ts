@@ -15,6 +15,7 @@ import type {
   Envelope,
   Feed,
   FeedItem,
+  FinancialPlan,
   Goal,
   IncomeSource,
   InsurancePolicy,
@@ -36,6 +37,7 @@ export class KonvertDatabase extends Dexie {
   declare deductionYears: Table<DeductionYear, number>;
   declare documents: Table<TaxDocument, string>;
   declare documentFiles: Table<DocumentFile, string>;
+  declare financialPlans: Table<FinancialPlan, string>;
   declare goals: Table<Goal, string>;
   declare envelopes: Table<Envelope, string>;
   declare dashboardLayouts: Table<DashboardLayout, string>;
@@ -82,6 +84,12 @@ export class KonvertDatabase extends Dexie {
       deductionYears: 'year, status',
       documents: 'id, year, category',
       documentFiles: 'id',
+    });
+
+    // v6 adds the financial plan of stage 8: one row with what the plan adds to the rest of
+    // the data. Nothing is transformed: the table simply starts empty.
+    this.version(6).stores({
+      financialPlans: 'id',
     });
   }
 }

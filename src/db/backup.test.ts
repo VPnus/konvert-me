@@ -15,6 +15,7 @@ import {
 import { SCHEMA_VERSION, TABLE_NAMES } from '@/db/models';
 import { createAccount } from '@/db/repositories/accounts';
 import { getDeductionYear, saveDeductionYear } from '@/db/repositories/deductions';
+import { getFinancialPlan, saveEducationPlan, setRiskProfile } from '@/db/repositories/financial-plan';
 import { addDocument, listDocuments, readDocumentContent } from '@/db/repositories/documents';
 import { getSettings } from '@/db/repositories/settings';
 import { CryptoError } from '@/lib/crypto';
@@ -335,5 +336,37 @@ describe('backup: deductions and their documents', () => {
     };
 
     await expect(parseBackup(JSON.stringify(broken))).rejects.toBeInstanceOf(ValidationError);
+  });
+});
+
+describe('backup: the financial plan', () => {
+  it('carries the plan through export and import', async () => {
+    await setRiskProfile('moderate', '2026-09-16');
+    await saveEducationPlan({
+      name: 'Маша',
+      yearlyCostMinor: 600_000 * RUB,
+      years: 6,
+      costAsOf: '2026-09',
+      startMonth: '2034-09',
+      returnRate: 0.0883,
+      inflationRate: 0.069,
+    });
+    const before = await getFinancialPlan();
+
+    const text = await serializeBackup(await collectBackup());
+    await clearAllData();
+    await restoreBackup(await parseBackup(text));
+
+    expect(await getFinancialPlan()).toEqual(before);
+  });
+
+  it('takes a file from schema 5, which knows nothing of the plan', async () => {
+    const backup = await collectBackup();
+    const data = { ...backup.data } as Record<string, unknown>;
+    delete data.financialPlans;
+
+    const parsed = await parseBackup(JSON.stringify({ ...backup, schemaVersion: 5, data }));
+
+    expect(parsed.data.financialPlans).toEqual([]);
   });
 });

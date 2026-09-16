@@ -116,12 +116,42 @@ describe('schema migration', () => {
     opened.push(v5);
     await v5.open();
 
-    expect(v5.verno).toBe(5);
+    // The app is past schema 5 by now; what matters is that it went through it.
+    expect(v5.verno).toBeGreaterThanOrEqual(5);
     expect(await v5.policies.count()).toBe(1);
     expect(await v5.incomeSources.count()).toBe(1);
     expect(await v5.deductionYears.count()).toBe(0);
     expect(await v5.documents.count()).toBe(0);
     expect(await v5.documentFiles.count()).toBe(0);
+  });
+
+  it('keeps the data of schema 5 when schema 6 adds the financial plan', async () => {
+    const name = `konvert-me-v6-${crypto.randomUUID()}`;
+
+    // schema 5 exactly as the app declared it before stage 8
+    const v5 = open(name, (database) => {
+      database.version(1).stores(V1_STORES);
+      database
+        .version(2)
+        .stores({ links: 'id, sortOrder', feeds: 'id, enabled', feedItems: 'id, feedId, publishedAt' });
+      database.version(3).stores({ incomeSources: 'id, sortOrder, archived' });
+      database.version(4).stores({ policies: 'id, endDate, archived' });
+      database
+        .version(5)
+        .stores({ deductionYears: 'year, status', documents: 'id, year, category', documentFiles: 'id' });
+    });
+    await v5.table('deductionYears').add({ year: 2025, status: 'draft' });
+    await v5.table('documentFiles').add({ id: 'd1', content: new Uint8Array([1, 2, 3]).buffer });
+    v5.close();
+
+    const v6 = new KonvertDatabase(name);
+    opened.push(v6);
+    await v6.open();
+
+    expect(v6.verno).toBe(6);
+    expect(await v6.deductionYears.count()).toBe(1);
+    expect(await v6.documentFiles.count()).toBe(1);
+    expect(await v6.financialPlans.count()).toBe(0);
   });
 
   it('closes the old connection when another tab upgrades the schema', async () => {

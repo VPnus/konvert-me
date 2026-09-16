@@ -7,9 +7,10 @@
 
 import { z } from 'zod';
 
+import { RISK_PROFILES } from '@/core/portfolio';
 import { isIsoDate, isIsoMonth } from '@/core/time';
 
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 
 const isoDate = z.string().refine(isIsoDate, { message: 'Дата должна быть в формате ГГГГ-ММ-ДД' });
 const isoMonth = z.string().refine(isIsoMonth, { message: 'Месяц должен быть в формате ГГГГ-ММ' });
@@ -452,6 +453,73 @@ export const feedItemSchema = z.object({
   fetchedAt: timestamp,
 });
 
+/** The education of one child, counted year by year (stage 8, lesson 7.3). */
+export const educationPlanSchema = z.object({
+  id,
+  name,
+  /** A year of studies — the fee and, away from home, the living — in the prices of costAsOf. */
+  yearlyCostMinor: nonNegativeMinor,
+  years: z.number().int('Срок учёбы — целое число лет').min(1, 'Учёба длится хотя бы год').max(10),
+  costAsOf: isoMonth,
+  startMonth: isoMonth,
+  returnRate: rate,
+  inflationRate: rate,
+  /** The goal the calculation was saved as, if it was. */
+  goalId: id.nullable(),
+});
+
+/** Retirement (stage 8, lesson 7.4 and formula 12). */
+export const pensionPlanSchema = z
+  .object({
+    birthMonth: isoMonth,
+    /** When the person wants to stop working — not the legal age, a choice. */
+    retirementAge: z.number().int('Возраст — целое число лет').min(18).max(100),
+    /** Until what age the money has to last. */
+    lifeAge: z.number().int('Возраст — целое число лет').min(19).max(120),
+    /** What is spent in a month now, in the prices of costAsOf. */
+    monthlyExpensesMinor: nonNegativeMinor,
+    replacementRate: z.number().min(0).max(2),
+    /** The state pension a month, in the prices of costAsOf. */
+    statePensionMinor: nonNegativeMinor,
+    costAsOf: isoMonth,
+    returnRate: rate,
+    inflationRate: rate,
+    strategy: z.enum(['keep-capital', 'spend-capital']),
+    goalId: id.nullable(),
+  })
+  .refine((pension) => pension.lifeAge > pension.retirementAge, {
+    message: 'Возраст, до которого должно хватить денег, должен быть больше возраста выхода на пенсию',
+    path: ['lifeAge'],
+  });
+
+const planNote = z.string().max(2000);
+
+/**
+ * The financial plan of lesson 2.7 (stage 8). One per person, so the key is fixed. Most of
+ * the plan is read from the rest of the app; here lives only what the plan adds to it.
+ */
+export const financialPlanSchema = z.object({
+  id: z.literal('plan'),
+  /** When the plan was put together: the reviews are counted from it. */
+  startedOn: isoDate,
+  riskProfile: z.enum(RISK_PROFILES).nullable(),
+  education: z.array(educationPlanSchema).max(10),
+  pension: pensionPlanSchema.nullable(),
+  notes: z.object({
+    mechanisms: planNote,
+    protection: planNote,
+    optimization: planNote,
+  }),
+  /** The steps of carrying the plan out that are done, by their keys. */
+  doneActions: z.array(z.string().min(1).max(64)).max(200),
+  quarterlyReviewedOn: isoDate.nullable(),
+  yearlyReviewedOn: isoDate.nullable(),
+  /** The review reminder hidden last, as 'kind:due date'; the next review brings it back. */
+  reviewReminderDismissed: z.string().max(32).nullable(),
+  createdAt: timestamp,
+  updatedAt: timestamp,
+});
+
 export const settingsSchema = z.object({
   id: z.literal('app'),
   inflationRate: rate,
@@ -492,6 +560,9 @@ export type Link = z.infer<typeof linkSchema>;
 export type Feed = z.infer<typeof feedSchema>;
 export type FeedAuth = z.infer<typeof feedAuthSchema>;
 export type FeedItem = z.infer<typeof feedItemSchema>;
+export type EducationPlan = z.infer<typeof educationPlanSchema>;
+export type PensionPlan = z.infer<typeof pensionPlanSchema>;
+export type FinancialPlan = z.infer<typeof financialPlanSchema>;
 export type AppSettings = z.infer<typeof settingsSchema>;
 export type AccountSide = Account['side'];
 export type AccountType = Account['type'];
@@ -525,6 +596,7 @@ export const TABLE_SCHEMAS = {
   deductionYears: deductionYearSchema,
   documents: documentSchema,
   documentFiles: documentFileSchema,
+  financialPlans: financialPlanSchema,
   dashboardLayouts: dashboardLayoutSchema,
   links: linkSchema,
   feeds: feedSchema,

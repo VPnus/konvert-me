@@ -5,6 +5,7 @@
 
 import type { DeductionClaim } from '@/core/deductions';
 import { db } from '@/db/db';
+import { RepositoryError } from '@/db/errors';
 import { deductionYearSchema, type DeductionYear } from '@/db/models';
 import { parseOrThrow } from '@/db/validate';
 import { publishAppEvent } from '@/lib/broadcast';
@@ -26,11 +27,38 @@ export async function saveDeductionYear(input: DeductionYearInput): Promise<Dedu
   const next = parseOrThrow(deductionYearSchema, { ...input, createdAt: now, updatedAt: now }, 'Год вычетов');
 
   const current = await db.deductionYears.get(next.year);
-  const saved = current ? { ...next, createdAt: current.createdAt } : next;
+  // The answers are saved from the form, the papers gathered are ticked one by one: saving the
+  // answers keeps the ticks.
+  const saved = current
+    ? { ...next, checklist: next.checklist ?? current.checklist, createdAt: current.createdAt }
+    : next;
 
   await db.deductionYears.put(saved);
   publishAppEvent({ type: 'data-changed' });
   return saved;
+}
+
+/**
+ * Ticks a paper of the checklist as gathered or not. Read and written in one transaction, so two
+ * quick ticks never lose one another.
+ */
+export async function setChecklistItem(year: number, key: string, gathered: boolean): Promise<void> {
+  await db.transaction('rw', db.deductionYears, async () => {
+    const current = await db.deductionYears.get(year);
+    if (!current) throw new RepositoryError(`Анкета за ${year} год ещё не сохранена`);
+
+    const keys = new Set(current.checklist ?? []);
+    if (gathered) keys.add(key);
+    else keys.delete(key);
+
+    const next = parseOrThrow(
+      deductionYearSchema,
+      { ...current, checklist: [...keys].sort(), updatedAt: Date.now() },
+      'Год вычетов',
+    );
+    await db.deductionYears.put(next);
+  });
+  publishAppEvent({ type: 'data-changed' });
 }
 
 /** A year goes with its papers: a receipt for a year nobody claims is only taking room. */

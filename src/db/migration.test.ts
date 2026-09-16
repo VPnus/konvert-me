@@ -92,7 +92,9 @@ describe('schema migration', () => {
     // schema 4 exactly as the app declared it before stage 7
     const v4 = open(name, (database) => {
       database.version(1).stores(V1_STORES);
-      database.version(2).stores({ links: 'id, sortOrder', feeds: 'id, enabled', feedItems: 'id, feedId, publishedAt' });
+      database
+        .version(2)
+        .stores({ links: 'id, sortOrder', feeds: 'id, enabled', feedItems: 'id, feedId, publishedAt' });
       database.version(3).stores({ incomeSources: 'id, sortOrder, archived' });
       database.version(4).stores({ policies: 'id, endDate, archived' });
     });
@@ -105,7 +107,9 @@ describe('schema migration', () => {
       createdAt: 1,
       updatedAt: 1,
     });
-    await v4.table('incomeSources').add({ id: 's1', name: 'Зарплата', day: 10, sortOrder: 0, archived: false });
+    await v4
+      .table('incomeSources')
+      .add({ id: 's1', name: 'Зарплата', day: 10, sortOrder: 0, archived: false });
     v4.close();
 
     const v5 = new KonvertDatabase(name);

@@ -9,6 +9,7 @@ import {
   getDeductionYear,
   listDeductionYears,
   saveDeductionYear,
+  setChecklistItem,
   toDeductionClaim,
   type DeductionYearInput,
 } from '@/db/repositories/deductions';
@@ -191,6 +192,32 @@ describe('deduction years', () => {
     await expect(
       saveDeductionYear(yearInput(2025, { children: { ...children(1, 12), items: [] } })),
     ).rejects.toBeInstanceOf(ValidationError);
+    expect(await db.deductionYears.count()).toBe(0);
+  });
+
+  it('ticks papers as gathered one by one, loses none of quick ticks, and keeps them when the answers are saved', async () => {
+    await saveDeductionYear(yearInput(2025));
+
+    await Promise.all([
+      setChecklistItem(2025, 'general.passport', true),
+      setChecklistItem(2025, 'general.declaration', true),
+      setChecklistItem(2025, 'treatment.treatmentCertificate', true),
+    ]);
+    await setChecklistItem(2025, 'general.declaration', false);
+    expect((await getDeductionYear(2025))?.checklist).toEqual([
+      'general.passport',
+      'treatment.treatmentCertificate',
+    ]);
+
+    await saveDeductionYear(yearInput(2025, { incomeMinor: 900_000 * RUB }));
+    expect(await getDeductionYear(2025)).toMatchObject({
+      incomeMinor: 900_000 * RUB,
+      checklist: ['general.passport', 'treatment.treatmentCertificate'],
+    });
+  });
+
+  it('refuses to tick a paper of a year whose answers were never saved', async () => {
+    await expect(setChecklistItem(2025, 'general.passport', true)).rejects.toBeInstanceOf(RepositoryError);
     expect(await db.deductionYears.count()).toBe(0);
   });
 

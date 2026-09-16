@@ -282,6 +282,8 @@ export const deductionYearSchema = z.object({
     })
     .optional(),
   status: z.enum(DEDUCTION_STATUSES),
+  /** The papers already gathered, as 'group.item' keys of the checklist. */
+  checklist: z.array(z.string().min(1).max(64)).max(200).optional(),
   note,
   createdAt: timestamp,
   updatedAt: timestamp,

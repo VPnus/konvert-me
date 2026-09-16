@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { clearAllData } from '@/db/backup';
 import { saveDeductionYear, type DeductionYearInput } from '@/db/repositories/deductions';
 import { addDocument } from '@/db/repositories/documents';
-import { loadDeductions } from '@/features/deductions/deductions-data';
+import { deductionsAtGlance, loadDeductions } from '@/features/deductions/deductions-data';
 
 const RUB = 100;
 // The middle of September: no year boundary is anywhere near.
@@ -89,5 +89,56 @@ describe('the deductions screen', () => {
       'договор.pdf',
     ]);
     expect(data.documentsSizeBytes).toBe(5);
+  });
+
+  describe('at a glance, for the overview', () => {
+    it('is empty when no year has answers', async () => {
+      expect(deductionsAtGlance(await loadDeductions(NOW))).toEqual({ years: [], toComeMinor: 0 });
+    });
+
+    it('adds up what the open years still give back, and leaves out the money already paid back', async () => {
+      await saveDeductionYear(year(2025));
+      await saveDeductionYear(year(2024, { status: 'filed' }));
+      await saveDeductionYear(year(2023, { status: 'refunded' }));
+
+      const glance = deductionsAtGlance(await loadDeductions(NOW));
+
+      // 19 500 for 2025 and for 2024 alike; 2023 has already come back
+      expect(glance.toComeMinor).toBe(39_000 * RUB);
+      expect(glance.years.map((item) => [item.year, item.status, item.balanceMinor])).toEqual([
+        [2025, 'draft', 19_500 * RUB],
+        [2024, 'filed', 19_500 * RUB],
+      ]);
+    });
+
+    it('shows the year going on and a year that owes, and counts neither as money to come', async () => {
+      await saveDeductionYear(year(2026));
+      await saveDeductionYear(
+        year(2025, {
+          spending: { ...year(2025).spending, educationMinor: 0 },
+          // the tax service example: 65 000 to pay on the sale
+          sale: {
+            priceMinor: 3_000_000 * RUB,
+            cadastralMinor: 0,
+            expensesMinor: 2_500_000 * RUB,
+            ownedLongEnough: false,
+          },
+        }),
+      );
+
+      const glance = deductionsAtGlance(await loadDeductions(NOW));
+
+      expect(glance.years.map((item) => [item.year, item.stage, item.balanceMinor])).toEqual([
+        [2026, 'current', 19_500 * RUB],
+        [2025, 'open', -65_000 * RUB],
+      ]);
+      expect(glance.toComeMinor).toBe(0);
+    });
+
+    it('leaves out a year whose time is up', async () => {
+      await saveDeductionYear(year(2022));
+
+      expect(deductionsAtGlance(await loadDeductions(NOW)).years).toEqual([]);
+    });
   });
 });

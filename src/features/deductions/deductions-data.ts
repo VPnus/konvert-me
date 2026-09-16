@@ -6,7 +6,7 @@
 import { claimableYears, summarizeDeductionYear, type DeductionSummary } from '@/core/deductions';
 import { latestRules, rulesForYear, type YearRules } from '@/core/rules';
 import { todayIso } from '@/core/time';
-import type { DeductionYear, TaxDocument } from '@/db/models';
+import type { DeductionStatus, DeductionYear, TaxDocument } from '@/db/models';
 import { listDeductionYears, toDeductionClaim } from '@/db/repositories/deductions';
 import { listDocuments } from '@/db/repositories/documents';
 
@@ -59,5 +59,43 @@ export async function loadDeductions(now: Date = new Date()): Promise<Deductions
     currentYear,
     years,
     documentsSizeBytes: documents.reduce((total, paper) => total + paper.sizeBytes, 0),
+  };
+}
+
+export interface YearAtGlance {
+  readonly year: number;
+  readonly stage: YearStage;
+  readonly status: DeductionStatus;
+  /** What comes back less the tax on a sale: below zero, the year owes. */
+  readonly balanceMinor: number;
+}
+
+export interface DeductionsAtGlance {
+  /** The years with answers that still matter: going on, or open and not yet paid back. Newest first. */
+  readonly years: YearAtGlance[];
+  /** What the open years still give back. The year going on is not claimable yet and is not counted. */
+  readonly toComeMinor: number;
+}
+
+/** The deductions in a few lines, for the overview. */
+export function deductionsAtGlance(data: DeductionsData): DeductionsAtGlance {
+  const years = data.years.flatMap((view): YearAtGlance[] =>
+    view.saved && view.summary && view.stage !== 'expired' && view.saved.status !== 'refunded'
+      ? [
+          {
+            year: view.year,
+            stage: view.stage,
+            status: view.saved.status,
+            balanceMinor: view.summary.balanceMinor,
+          },
+        ]
+      : [],
+  );
+
+  return {
+    years,
+    toComeMinor: years
+      .filter((item) => item.stage === 'open' && item.balanceMinor > 0)
+      .reduce((total, item) => total + item.balanceMinor, 0),
   };
 }

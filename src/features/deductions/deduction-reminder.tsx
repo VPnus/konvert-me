@@ -1,10 +1,9 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { CalendarClock } from 'lucide-react';
-import { Link } from 'react-router-dom';
 
 import { formatMinor } from '@/core/money';
 import { todayIso } from '@/core/time';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Notice } from '@/components/common/notice';
 import { listDeductionYears } from '@/db/repositories/deductions';
 import { updateSettings } from '@/db/repositories/settings';
 import { dateOfYear } from '@/features/deductions/dates';
@@ -41,26 +40,15 @@ export function DeductionReminderBanner() {
   if (!reminder) return null;
 
   return (
-    <div
-      role="status"
-      data-testid="deduction-reminder"
-      className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm"
+    <Notice
+      testId="deduction-reminder"
+      icon={CalendarClock}
+      tone="reminder"
+      action={{ to: '/deductions', label: t.action }}
+      dismiss={{ label: t.dismiss, testId: 'deduction-reminder-dismiss' }}
+      onDismiss={() => void updateSettings({ deductionReminderDismissed: reminderKey(reminder) })}
     >
-      <CalendarClock className="size-4 shrink-0" aria-hidden />
-      <span className="min-w-0 flex-1 basis-64">{textOf(reminder)}</span>
-      <div className="flex gap-2">
-        <Link to="/deductions" className={buttonVariants({ size: 'sm', variant: 'outline' })}>
-          {t.action}
-        </Link>
-        <Button
-          size="sm"
-          variant="ghost"
-          data-testid="deduction-reminder-dismiss"
-          onClick={() => void updateSettings({ deductionReminderDismissed: reminderKey(reminder) })}
-        >
-          {t.dismiss}
-        </Button>
-      </div>
-    </div>
+      {textOf(reminder)}
+    </Notice>
   );
 }

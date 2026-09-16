@@ -1,8 +1,7 @@
 import { ShieldAlert } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Notice } from '@/components/common/notice';
 import { updateSettings } from '@/db/repositories/settings';
 import { useDataVersion } from '@/hooks/use-data-version';
 import { useSettingsState } from '@/hooks/use-settings';
@@ -26,6 +25,11 @@ function textOf(risk: DataRisk): string {
     case 'not-persisted':
       return t.notPersisted;
   }
+}
+
+/** Hides a kind of warning from this moment: it comes back after a while, the risk has not gone. */
+function hideRisk(kind: DataRisk['kind']): void {
+  void updateSettings({ dataRiskDismissed: { kind, at: Date.now() } });
 }
 
 /**
@@ -72,27 +76,16 @@ export function DataRiskBanner() {
   if (!risk) return null;
 
   return (
-    <div
-      role="status"
-      data-testid="data-risk"
-      data-kind={risk.kind}
-      className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-sm"
+    <Notice
+      testId="data-risk"
+      kind={risk.kind}
+      icon={ShieldAlert}
+      tone="warning"
+      action={{ to: '/settings', label: t.action }}
+      dismiss={{ label: t.dismiss, testId: 'data-risk-dismiss' }}
+      onDismiss={() => hideRisk(risk.kind)}
     >
-      <ShieldAlert className="size-4 shrink-0 text-warning" aria-hidden />
-      <span className="min-w-0 flex-1 basis-64">{textOf(risk)}</span>
-      <div className="flex gap-2">
-        <Link to="/settings" className={buttonVariants({ size: 'sm', variant: 'outline' })}>
-          {t.action}
-        </Link>
-        <Button
-          size="sm"
-          variant="ghost"
-          data-testid="data-risk-dismiss"
-          onClick={() => void updateSettings({ dataRiskDismissed: { kind: risk.kind, at: Date.now() } })}
-        >
-          {t.dismiss}
-        </Button>
-      </div>
-    </div>
+      {textOf(risk)}
+    </Notice>
   );
 }

@@ -1,7 +1,6 @@
 import { AlertTriangle } from 'lucide-react';
-import { Link } from 'react-router-dom';
 
-import { buttonVariants } from '@/components/ui/button';
+import { Notice } from '@/components/common/notice';
 import { isBackupDue } from '@/db/repositories/settings';
 import { useSettingsState } from '@/hooks/use-settings';
 import { ru } from '@/i18n/ru';
@@ -12,18 +11,13 @@ export function BackupReminder() {
   if (loading || !isBackupDue(settings)) return null;
 
   return (
-    <div
-      role="status"
-      data-testid="backup-reminder"
-      className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-sm"
+    <Notice
+      testId="backup-reminder"
+      icon={AlertTriangle}
+      tone="warning"
+      action={{ to: '/settings', label: ru.settings.backupReminderAction }}
     >
-      <AlertTriangle className="size-4 shrink-0 text-warning" aria-hidden />
-      <span className="min-w-0 flex-1">
-        {settings.lastBackupAt === null ? ru.settings.backupReminderNever : ru.settings.backupReminder}
-      </span>
-      <Link to="/settings" className={buttonVariants({ size: 'sm', variant: 'outline' })}>
-        {ru.settings.backupReminderAction}
-      </Link>
-    </div>
+      {settings.lastBackupAt === null ? ru.settings.backupReminderNever : ru.settings.backupReminder}
+    </Notice>
   );
 }

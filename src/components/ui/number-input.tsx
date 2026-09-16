@@ -31,7 +31,12 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
       onPaste={(event) => {
         event.preventDefault();
         const pasted = event.clipboardData.getData('text');
-        onValueChange(sanitizeNumericInput(value + pasted, { integer, allowNegative }));
+        // The pasted text takes the place of the selection, as in any other field.
+        const start = event.currentTarget.selectionStart ?? value.length;
+        const end = event.currentTarget.selectionEnd ?? value.length;
+        onValueChange(
+          sanitizeNumericInput(value.slice(0, start) + pasted + value.slice(end), { integer, allowNegative }),
+        );
       }}
       {...props}
     />

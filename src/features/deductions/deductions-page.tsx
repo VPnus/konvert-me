@@ -5,17 +5,18 @@ import { formatMinor } from '@/core/money';
 import { Button } from '@/components/ui/button';
 import { loadDeductions, type DeductionYearView } from '@/features/deductions/deductions-data';
 import { DocumentsCard } from '@/features/deductions/documents-card';
+import { fill } from '@/features/deductions/fill';
 import { YearPanel } from '@/features/deductions/year-panel';
 import { useDataVersion } from '@/hooks/use-data-version';
 import { ru } from '@/i18n/ru';
 
 const t = ru.deductions;
 
-/** Under the year: what it gives back, or where it stands if it gives nothing yet. */
+/** Under the year: what it gives back or owes, or where it stands if neither yet. */
 function yearCaption(view: DeductionYearView): string {
-  if (view.summary && view.summary.refundMinor > 0) {
-    return formatMinor(view.summary.refundMinor, { fractionDigits: 0 });
-  }
+  const balance = view.summary?.balanceMinor ?? 0;
+  if (balance > 0) return formatMinor(balance, { fractionDigits: 0 });
+  if (balance < 0) return fill(t.captionToPay, { amount: formatMinor(-balance, { fractionDigits: 0 }) });
   if (view.stage === 'current') return t.captionCurrent;
   if (view.stage === 'expired') return t.captionExpired;
   return t.captionNothing;

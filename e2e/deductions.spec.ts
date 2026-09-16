@@ -53,6 +53,69 @@ test.describe('deductions', () => {
     await expect(page.getByTestId('refund-property-left')).toContainText(String(year + 1));
   });
 
+  test('the children of the tax service example give back 23 166 only when the employer did not', async ({
+    page,
+  }) => {
+    await openDeductions(page);
+
+    // tax service: four children, 40 000 a month, 16 200 a month until November
+    await page.getByTestId('deduction-income').fill('480000');
+    await page.getByTestId('had-kids').check();
+    await page.getByTestId('kid-add').click();
+    await page.getByTestId('kid-add').click();
+    await page.getByTestId('kid-add').click();
+    await expect(page.getByTestId('kid')).toHaveCount(4);
+    // the place by birth follows the list: first, second, then the third and on
+    await expect(page.getByTestId('kid-order-1')).toHaveValue('2');
+    await expect(page.getByTestId('kid-order-3')).toHaveValue('3');
+
+    // most employers give it on their own, so nothing is promised until told otherwise
+    await expect(page.getByTestId('kids-at-work')).toBeChecked();
+    await expect(page.getByTestId('refund-children')).toHaveText('учтено работодателем');
+    await expect(page.getByTestId('refund-tax-paid')).toHaveText(/39\s?234/);
+
+    await page.getByTestId('kids-at-work').uncheck();
+    await expect(page.getByTestId('refund-children')).toHaveText(/23\s?166/);
+    await expect(page.getByTestId('refund-total')).toHaveText(/23\s?166/);
+
+    await page.getByTestId('deduction-save').click();
+    await page.reload();
+    await expect(page.getByTestId('kid')).toHaveCount(4);
+    await expect(page.getByTestId('refund-total')).toHaveText(/23\s?166/);
+  });
+
+  test('a home sold is a tax to pay, until a home bought in the same year takes it off', async ({ page }) => {
+    const year = await openDeductions(page);
+
+    // tax service: sold for 3 million, bought for 2,5 million — 65 000 of tax
+    await page.getByTestId('deduction-income').fill('1200000');
+    await page.getByTestId('had-sale').check();
+    await page.getByTestId('sale-price').fill('3000000');
+    await page.getByTestId('sale-expenses').fill('2500000');
+
+    await expect(page.getByTestId('refund-title')).toHaveText('Нужно доплатить');
+    await expect(page.getByTestId('refund-total')).toHaveText(/65\s?000/);
+    await expect(page.getByTestId('refund-sale-deadline')).toContainText(`30 апреля ${year + 1}`);
+    await expect(page.getByTestId('refund-sale-deadline')).toContainText(`15 июля ${year + 1}`);
+
+    // a flat of 2 million bought the same year: the salary takes 1,2 million, the sale the rest
+    await page.getByTestId('had-property').check();
+    await page.getByTestId('deduction-purchase').fill('2000000');
+
+    await expect(page.getByTestId('refund-title')).toHaveText('Можно вернуть');
+    await expect(page.getByTestId('refund-total')).toHaveText(/156\s?000/);
+    await expect(page.getByTestId('refund-sale-deadline')).toContainText('даже если налога не осталось');
+    await expect(page.getByTestId('refund-property-left')).toContainText(/300\s?000/);
+
+    await page.getByTestId('deduction-save').click();
+    await expect(page.getByTestId(`deduction-year-${year}`)).toContainText(/156\s?000/);
+
+    // owned long enough, the sale is no one's business but the owner's
+    await page.getByTestId('sale-owned-long').check();
+    await expect(page.getByTestId('sale-expenses')).toBeHidden();
+    await expect(page.getByTestId('refund-sale-notes')).toContainText('налога с продажи нет');
+  });
+
   test('the answers of one year do not leak into another', async ({ page }) => {
     const year = await openDeductions(page);
 

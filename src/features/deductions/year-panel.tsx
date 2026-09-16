@@ -17,13 +17,33 @@ import {
   type DeductionYearInput,
 } from '@/db/repositories/deductions';
 import type { DeductionYearView } from '@/features/deductions/deductions-data';
+import { fill } from '@/features/deductions/fill';
+import { RefundCard } from '@/features/deductions/refund-card';
 import { ru } from '@/i18n/ru';
 import { parseNumericInput } from '@/lib/numeric-input';
 
 const t = ru.deductions;
 
 type HadKey =
-  'treatment' | 'education' | 'sport' | 'insurance' | 'children' | 'expensive' | 'savings' | 'property';
+  | 'treatment'
+  | 'education'
+  | 'sport'
+  | 'insurance'
+  | 'children'
+  | 'expensive'
+  | 'savings'
+  | 'property'
+  | 'kids'
+  | 'sale';
+
+/** A child the standard deduction is given for, as the questions ask about it. */
+interface KidForm {
+  /** 3 stands for the third child and every one after. */
+  order: 1 | 2 | 3;
+  disabled: boolean;
+  from: number;
+  to: number;
+}
 
 interface FormState {
   income: string;
@@ -39,8 +59,19 @@ interface FormState {
   interest: string;
   loanBefore2014: boolean;
   usedBefore: string;
+  kids: KidForm[];
+  kidsDouble: boolean;
+  kidsGuardian: boolean;
+  kidsAtWork: boolean;
+  salePrice: string;
+  saleCadastral: string;
+  saleExpenses: string;
+  saleOwnedLong: boolean;
   status: DeductionStatus;
 }
+
+const KID_ORDERS = [1, 2, 3] as const;
+const WHOLE_YEAR: KidForm = { order: 1, disabled: false, from: 1, to: 12 };
 
 /** A stored sum as the field shows it: nothing typed rather than a zero to erase. */
 function field(minor: number | undefined): string {
@@ -50,6 +81,8 @@ function field(minor: number | undefined): string {
 function formOf(saved: DeductionYear | undefined): FormState {
   const spending = saved?.spending;
   const property = saved?.property;
+  const children = saved?.children;
+  const sale = saved?.sale;
 
   return {
     income: field(saved?.incomeMinor),
@@ -62,6 +95,8 @@ function formOf(saved: DeductionYear | undefined): FormState {
       expensive: Boolean(spending?.expensiveTreatmentMinor),
       savings: Boolean(saved?.longTermSavingsMinor),
       property: Boolean(property),
+      kids: Boolean(children),
+      sale: Boolean(sale),
     },
     treatment: field(spending?.treatmentMinor),
     education: field(spending?.educationMinor),
@@ -74,6 +109,21 @@ function formOf(saved: DeductionYear | undefined): FormState {
     interest: field(property?.mortgageInterestMinor),
     loanBefore2014: property?.loanBefore2014 ?? false,
     usedBefore: field(property?.usedBeforeMinor),
+    kids:
+      children?.items.map((kid) => ({
+        order: Math.min(kid.order, 3) as KidForm['order'],
+        disabled: kid.disabled,
+        from: kid.fromMonth,
+        to: kid.toMonth,
+      })) ?? [],
+    kidsDouble: children?.double ?? false,
+    kidsGuardian: children?.guardian ?? false,
+    // Most employers give it on their own; a refund is promised only when told it was not given.
+    kidsAtWork: children?.appliedByEmployer ?? true,
+    salePrice: field(sale?.priceMinor),
+    saleCadastral: field(sale?.cadastralMinor),
+    saleExpenses: field(sale?.expensesMinor),
+    saleOwnedLong: sale?.ownedLongEnough ?? false,
     status: saved?.status ?? 'draft',
   };
 }
@@ -104,122 +154,59 @@ function inputOf(year: number, form: FormState): DeductionYearInput {
           usedBeforeMinor: minor(form.usedBefore),
         }
       : undefined,
+    children:
+      form.had.kids && form.kids.length > 0
+        ? {
+            items: form.kids.map((kid) => ({
+              order: kid.order,
+              disabled: kid.disabled,
+              fromMonth: kid.from,
+              toMonth: kid.to,
+            })),
+            double: form.kidsDouble,
+            guardian: form.kidsGuardian,
+            appliedByEmployer: form.kidsAtWork,
+          }
+        : undefined,
+    sale: form.had.sale
+      ? {
+          priceMinor: minor(form.salePrice),
+          cadastralMinor: minor(form.saleCadastral),
+          expensesMinor: minor(form.saleExpenses),
+          ownedLongEnough: form.saleOwnedLong,
+        }
+      : undefined,
     status: form.status,
   };
-}
-
-function fill(template: string, values: Record<string, string | number>): string {
-  return Object.entries(values).reduce(
-    (text, [key, value]) => text.replace(`{${key}}`, String(value)),
-    template,
-  );
-}
-
-function RefundRow({ label, value, testId }: { label: string; value: number; testId: string }) {
-  return (
-    <div className="flex items-baseline justify-between gap-3 text-sm">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="shrink-0 tabular-nums" data-testid={testId}>
-        {formatMinor(value, { fractionDigits: 0 })}
-      </span>
-    </div>
-  );
-}
-
-function RefundCard({ view, summary }: { view: DeductionYearView; summary: DeductionSummary | undefined }) {
-  const notes: string[] = [];
-  if (view.stage === 'current') notes.push(fill(t.currentHint, { next: view.year + 1 }));
-  if (view.stage === 'expired') notes.push(fill(t.expiredHint, { year: view.year }));
-  if (!view.rules) notes.push(fill(t.rulesMissing, { year: view.year }));
-  else if (view.rules.year !== view.year)
-    notes.push(fill(t.rulesBorrowed, { year: view.year, rulesYear: view.rules.year }));
-
-  const property = summary?.property;
-  const usedBefore = view.saved?.property?.usedBeforeMinor ?? 0;
-
-  return (
-    <Card data-testid="refund-card">
-      <CardHeader className="pb-0">
-        <CardTitle className="text-base">{t.refundTitle}</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3 pt-3">
-        {notes.map((note) => (
-          <p key={note} className="text-sm text-muted-foreground" data-testid="year-note">
-            {note}
-          </p>
-        ))}
-
-        {summary && summary.taxPaidMinor > 0 ? (
-          <>
-            <p className="text-3xl font-semibold tabular-nums" data-testid="refund-total">
-              {formatMinor(summary.refundMinor, { fractionDigits: 0 })}
-            </p>
-            <div className="flex flex-col gap-1.5">
-              <RefundRow label={t.taxPaid} value={summary.taxPaidMinor} testId="refund-tax-paid" />
-              {summary.socialRefundMinor > 0 ? (
-                <RefundRow label={t.partSocial} value={summary.socialRefundMinor} testId="refund-social" />
-              ) : null}
-              {summary.longTermSavingsRefundMinor > 0 ? (
-                <RefundRow
-                  label={t.partSavings}
-                  value={summary.longTermSavingsRefundMinor}
-                  testId="refund-savings"
-                />
-              ) : null}
-              {property ? (
-                <RefundRow label={t.partProperty} value={property.refundMinor} testId="refund-property" />
-              ) : null}
-            </div>
-
-            {property && property.availableMinor === 0 ? (
-              <p className="text-sm text-muted-foreground" data-testid="refund-property-left">
-                {t.propertyUsedUp}
-              </p>
-            ) : null}
-            {property && property.leftMinor > 0 ? (
-              <p className="text-sm" data-testid="refund-property-left">
-                {fill(t.propertyLeft, { amount: formatMinor(property.leftMinor, { fractionDigits: 0 }) })}{' '}
-                {fill(t.propertyNext, {
-                  year: view.year + 1,
-                  amount: formatMinor(usedBefore + property.usedMinor, { fractionDigits: 0 }),
-                })}
-              </p>
-            ) : null}
-
-            <p className="text-xs text-muted-foreground">{t.refundHint}</p>
-          </>
-        ) : view.rules ? (
-          <p className="text-sm text-muted-foreground" data-testid="refund-empty">
-            {t.refundEmpty}
-          </p>
-        ) : null}
-      </CardContent>
-    </Card>
-  );
 }
 
 function Tick({
   checked,
   label,
+  hint,
   testId,
   onChange,
 }: {
   checked: boolean;
   label: string;
+  hint?: string;
   testId: string;
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label className="flex items-start gap-2 text-sm">
-      <input
-        type="checkbox"
-        checked={checked}
-        className="mt-0.5 size-4 shrink-0 accent-[var(--color-primary)]"
-        data-testid={testId}
-        onChange={(event) => onChange(event.target.checked)}
-      />
-      <span>{label}</span>
-    </label>
+    <div className="flex flex-col gap-1">
+      <label className="flex items-start gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={checked}
+          className="mt-0.5 size-4 shrink-0 accent-[var(--color-primary)]"
+          data-testid={testId}
+          onChange={(event) => onChange(event.target.checked)}
+        />
+        <span>{label}</span>
+      </label>
+      {hint ? <p className="pl-6 text-xs text-muted-foreground">{hint}</p> : null}
+    </div>
   );
 }
 
@@ -265,6 +252,37 @@ function MoneyField({
   );
 }
 
+function MonthSelect({
+  label,
+  value,
+  testId,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  testId: string;
+  onChange: (month: number) => void;
+}) {
+  return (
+    <Field label={label}>
+      {(id) => (
+        <Select
+          id={id}
+          value={String(value)}
+          data-testid={testId}
+          onChange={(event) => onChange(Number(event.target.value))}
+        >
+          {ru.budget.months.map((name, index) => (
+            <option key={name} value={index + 1}>
+              {name}
+            </option>
+          ))}
+        </Select>
+      )}
+    </Field>
+  );
+}
+
 /**
  * One year: what can come back, and the questions it comes from. The refund follows the
  * answers as they are typed; saving only keeps them.
@@ -285,9 +303,12 @@ export function YearPanel({ view }: { view: DeductionYearView }) {
       had: { ...current.had, [key]: had },
       // a first child appears with the question, so there is somewhere to type
       children: key === 'children' && had && current.children.length === 0 ? [''] : current.children,
+      kids: key === 'kids' && had && current.kids.length === 0 ? [WHOLE_YEAR] : current.kids,
     }));
     setSavedNote(false);
   };
+  const updateKid = (index: number, patch: Partial<KidForm>) =>
+    update({ kids: form.kids.map((kid, at) => (at === index ? { ...kid, ...patch } : kid)) });
 
   const input = inputOf(view.year, form);
   let summary: DeductionSummary | undefined;
@@ -301,6 +322,8 @@ export function YearPanel({ view }: { view: DeductionYearView }) {
   const rules = view.rules;
   const limit = (value: number | undefined) =>
     value === undefined ? '' : formatMinor(value, { fractionDigits: 0 });
+  const childNorm = rules?.childDeduction.value;
+  const saleNorm = rules?.homeSale.value;
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -315,7 +338,12 @@ export function YearPanel({ view }: { view: DeductionYearView }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <RefundCard view={view} summary={summary} />
+      <RefundCard
+        view={view}
+        summary={summary}
+        childrenAtWork={form.kidsAtWork}
+        usedBeforeMinor={input.property?.usedBeforeMinor ?? 0}
+      />
 
       <Card>
         <CardHeader className="pb-0">
@@ -333,6 +361,130 @@ export function YearPanel({ view }: { view: DeductionYearView }) {
             />
 
             <div className="flex flex-col gap-3">
+              <Question
+                had={form.had.kids}
+                label={t.had.kids}
+                testId="had-kids"
+                onToggle={(had) => toggle('kids', had)}
+              >
+                {form.kids.map((kid, index) => (
+                  <div
+                    key={index}
+                    className="flex flex-col gap-3 rounded-md border border-border p-3"
+                    data-testid="kid"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-medium">{fill(t.kid, { n: index + 1 })}</span>
+                      {form.kids.length > 1 ? (
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="size-8 shrink-0"
+                          aria-label={fill(t.kidRemove, { n: index + 1 })}
+                          onClick={() => update({ kids: form.kids.filter((_, at) => at !== index) })}
+                        >
+                          <X className="size-4" aria-hidden />
+                        </Button>
+                      ) : null}
+                    </div>
+                    <Field label={t.kidOrder}>
+                      {(id) => (
+                        <Select
+                          id={id}
+                          value={String(kid.order)}
+                          data-testid={`kid-order-${index}`}
+                          onChange={(event) =>
+                            updateKid(index, { order: Number(event.target.value) as KidForm['order'] })
+                          }
+                        >
+                          {KID_ORDERS.map((order) => (
+                            <option key={order} value={order}>
+                              {t.kidOrders[order]}
+                            </option>
+                          ))}
+                        </Select>
+                      )}
+                    </Field>
+                    <div className="grid grid-cols-2 gap-2">
+                      {/* the months never cross: moving one end past the other drags it along */}
+                      <MonthSelect
+                        label={t.kidFrom}
+                        value={kid.from}
+                        testId={`kid-from-${index}`}
+                        onChange={(from) => updateKid(index, { from, to: Math.max(kid.to, from) })}
+                      />
+                      <MonthSelect
+                        label={t.kidTo}
+                        value={kid.to}
+                        testId={`kid-to-${index}`}
+                        onChange={(to) => updateKid(index, { to, from: Math.min(kid.from, to) })}
+                      />
+                    </div>
+                    <Tick
+                      checked={kid.disabled}
+                      label={t.kidDisabled}
+                      testId={`kid-disabled-${index}`}
+                      onChange={(disabled) => updateKid(index, { disabled })}
+                    />
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="w-fit"
+                  data-testid="kid-add"
+                  onClick={() =>
+                    update({
+                      kids: [
+                        ...form.kids,
+                        { ...WHOLE_YEAR, order: Math.min(form.kids.length + 1, 3) as KidForm['order'] },
+                      ],
+                    })
+                  }
+                >
+                  <Plus className="size-4" aria-hidden />
+                  {t.kidAdd}
+                </Button>
+                <p className="text-xs text-muted-foreground">{t.kidsHint}</p>
+                {childNorm ? (
+                  <p className="text-xs text-muted-foreground">
+                    {fill(t.kidsAmounts, {
+                      first: limit(childNorm.firstMinor),
+                      second: limit(childNorm.secondMinor),
+                      third: limit(childNorm.thirdAndOnMinor),
+                      disabled: limit(
+                        form.kidsGuardian ? childNorm.disabledGuardianMinor : childNorm.disabledParentMinor,
+                      ),
+                      cap: limit(childNorm.incomeCapMinor),
+                    })}
+                  </p>
+                ) : null}
+                <Tick
+                  checked={form.kidsAtWork}
+                  label={t.kidsAtWork}
+                  hint={t.kidsAtWorkHint}
+                  testId="kids-at-work"
+                  onChange={(kidsAtWork) => update({ kidsAtWork })}
+                />
+                <Tick
+                  checked={form.kidsDouble}
+                  label={t.kidsDouble}
+                  hint={t.kidsDoubleHint}
+                  testId="kids-double"
+                  onChange={(kidsDouble) => update({ kidsDouble })}
+                />
+                {form.kids.some((kid) => kid.disabled) ? (
+                  <Tick
+                    checked={form.kidsGuardian}
+                    label={t.kidsGuardian}
+                    testId="kids-guardian"
+                    onChange={(kidsGuardian) => update({ kidsGuardian })}
+                  />
+                ) : null}
+              </Question>
+
               <Question
                 had={form.had.treatment}
                 label={t.had.treatment}
@@ -504,6 +656,57 @@ export function YearPanel({ view }: { view: DeductionYearView }) {
                   testId="deduction-used-before"
                   onChange={(usedBefore) => update({ usedBefore })}
                 />
+              </Question>
+
+              <Question
+                had={form.had.sale}
+                label={t.had.sale}
+                testId="had-sale"
+                onToggle={(had) => toggle('sale', had)}
+              >
+                <MoneyField
+                  label={t.salePrice}
+                  hint={t.salePriceHint}
+                  value={form.salePrice}
+                  testId="sale-price"
+                  onChange={(salePrice) => update({ salePrice })}
+                />
+                <Tick
+                  checked={form.saleOwnedLong}
+                  label={t.saleOwnedLong}
+                  hint={
+                    saleNorm
+                      ? fill(t.saleOwnedLongHint, {
+                          special: saleNorm.minimumYearsSpecial,
+                          general: saleNorm.minimumYears,
+                        })
+                      : undefined
+                  }
+                  testId="sale-owned-long"
+                  onChange={(saleOwnedLong) => update({ saleOwnedLong })}
+                />
+                {form.saleOwnedLong ? null : (
+                  <>
+                    <MoneyField
+                      label={t.saleCadastral}
+                      hint={
+                        saleNorm
+                          ? fill(t.saleCadastralHint, { share: Math.round(saleNorm.cadastralShare * 100) })
+                          : undefined
+                      }
+                      value={form.saleCadastral}
+                      testId="sale-cadastral"
+                      onChange={(saleCadastral) => update({ saleCadastral })}
+                    />
+                    <MoneyField
+                      label={t.saleExpenses}
+                      hint={fill(t.saleExpensesHint, { limit: limit(saleNorm?.deductionLimitMinor) })}
+                      value={form.saleExpenses}
+                      testId="sale-expenses"
+                      onChange={(saleExpenses) => update({ saleExpenses })}
+                    />
+                  </>
+                )}
               </Question>
             </div>
 

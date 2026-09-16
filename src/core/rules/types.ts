@@ -41,6 +41,21 @@ export interface ChildDeduction {
   readonly incomeCapMinor: number;
 }
 
+/** Selling a home: what the income is reduced by, and when it is not taxed at all. */
+export interface HomeSaleRules {
+  /** Taken off the income from the homes sold in a year, unless buying them cost more. */
+  readonly deductionLimitMinor: number;
+  /** A home sold below this share of its cadastral value is taxed as if sold for that share. */
+  readonly cadastralShare: number;
+  /** Owned this many years, a home sells free of tax. */
+  readonly minimumYears: number;
+  /** Or this many, if it was inherited, given by family, privatized, or was the only home. */
+  readonly minimumYearsSpecial: number;
+}
+
+/** A day that comes back every year, as 'MM-DD'. */
+export type MonthDay = string;
+
 export interface YearRules {
   readonly year: number;
   /** Deposit insurance: what one bank pays back per person if it fails. */
@@ -60,4 +75,16 @@ export interface YearRules {
   readonly longTermSavingsLimitMinor: Norm<number>;
   /** How many years back a deduction can still be claimed. */
   readonly deductionYearsBack: Norm<number>;
+  readonly homeSale: Norm<HomeSaleRules>;
+  /** The scale the income from a sale is taxed on, cheapest band first. */
+  readonly homeSaleTaxBands: Norm<readonly TaxBand[]>;
+  /**
+   * Whether a sale was counted together with the salary. If it was, every deduction the
+   * salary could not take reduced the sale; if not, only those the law names.
+   */
+  readonly saleIncomeInMainBase: Norm<boolean>;
+  /** A return that must be filed is due by this day of the year after. */
+  readonly declarationDeadline: Norm<MonthDay>;
+  /** And the tax it shows, by this one. */
+  readonly taxPaymentDeadline: Norm<MonthDay>;
 }

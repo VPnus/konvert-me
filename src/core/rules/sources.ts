@@ -30,4 +30,14 @@ export const SOURCES = {
   property: 'https://pravo.ppt.ru/kodeks/nk/st-220',
   /** Tax service: a deduction can be claimed within three years after the year. */
   threeYearsBack: 'https://www.nalog.gov.ru/rn53/news/activities_fts/16256762/',
+  /** Tax service: selling a home — 1 million, the cost of buying, 70 % of the cadastral value, 3 or 5 years. */
+  homeSale: 'https://www.nalog.gov.ru/rn77/taxation/taxes/ndfl/nalog_vichet/im_nv/im_nv_pri/',
+  /** The rate on a sale: 13 % whatever its size until 2024, 13 % and 15 % above 2,4 million from 2025. */
+  homeSaleRate: 'https://audit-reshenie.ru/journal/ndfl/prodazha-kvartiri-v-2025-godu-deklaratsi/',
+  /** Tax code, art. 210: the bases of the tax, and which deductions reach the income from a sale. */
+  taxBases: 'https://pravo.ppt.ru/kodeks/nk/st-210',
+  /** Tax code, art. 229: a return is filed by 30 April. */
+  declarationDeadline: 'https://pravo.ppt.ru/kodeks/nk/st-229',
+  /** Tax code, art. 228: the tax it shows is paid by 15 July. */
+  taxPaymentDeadline: 'https://pravo.ppt.ru/kodeks/nk/st-228',
 } as const;

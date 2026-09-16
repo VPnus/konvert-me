@@ -144,6 +144,45 @@ describe('rules', () => {
     for (const rules of KNOWN_RULES) expect(rules.deductionYearsBack.value).toBe(3);
   });
 
+  describe('selling a home over the years', () => {
+    it('takes 1 000 000 off the price, 70 % of the cadastral value at the least, and frees a home after 3 or 5 years', () => {
+      for (const rules of KNOWN_RULES) {
+        expect(rules.homeSale.value).toEqual({
+          deductionLimitMinor: 1_000_000 * 100,
+          cadastralShare: 0.7,
+          minimumYears: 5,
+          minimumYearsSpecial: 3,
+        });
+        expect(rules.homeSale.note).toBeTruthy();
+      }
+    });
+
+    it('taxed a sale at 13 % whatever its size until 2025, and at 15 % above 2,4 million from then', () => {
+      for (const rules of [RULES_2023, RULES_2024]) {
+        expect(rules.homeSaleTaxBands.value).toEqual([{ fromMinor: 0, rate: 0.13 }]);
+      }
+      for (const rules of [RULES_2025, RULES_2026]) {
+        expect(rules.homeSaleTaxBands.value).toEqual([
+          { fromMinor: 0, rate: 0.13 },
+          { fromMinor: 2_400_000 * 100, rate: 0.15 },
+        ]);
+      }
+    });
+
+    it('counted a sale with the salary until 2025, and as a base of its own from then', () => {
+      for (const rules of [RULES_2023, RULES_2024]) expect(rules.saleIncomeInMainBase.value).toBe(true);
+      for (const rules of [RULES_2025, RULES_2026]) expect(rules.saleIncomeInMainBase.value).toBe(false);
+      for (const rules of KNOWN_RULES) expect(rules.saleIncomeInMainBase.note).toBeTruthy();
+    });
+  });
+
+  it('asks for a return by 30 April and for its tax by 15 July of the year after', () => {
+    for (const rules of KNOWN_RULES) {
+      expect(rules.declarationDeadline.value).toBe('04-30');
+      expect(rules.taxPaymentDeadline.value).toBe('07-15');
+    }
+  });
+
   describe('the income tax scale', () => {
     it('had two steps, 13 % and 15 % above 5 million, until 2025', () => {
       for (const rules of [RULES_2023, RULES_2024]) {

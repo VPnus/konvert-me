@@ -9,7 +9,7 @@ import { RULES_2025 } from './2025';
 import { RULES_2026 } from './2026';
 import type { YearRules } from './types';
 
-export type { ChildDeduction, Norm, TaxBand, YearRules } from './types';
+export type { ChildDeduction, HomeSaleRules, MonthDay, Norm, TaxBand, YearRules } from './types';
 
 /** Oldest first. A year is added when a refund for it can still be claimed. */
 export const KNOWN_RULES: readonly YearRules[] = [RULES_2023, RULES_2024, RULES_2025, RULES_2026];

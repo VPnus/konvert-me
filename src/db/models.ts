@@ -463,6 +463,8 @@ export const settingsSchema = z.object({
   storagePersisted: z.boolean(),
   /** Off by default: nothing leaves the device until the user turns this on. */
   externalFeedsEnabled: z.boolean().default(false),
+  /** The deduction reminder hidden last, as 'year:kind'; it stays hidden until something else comes up. */
+  deductionReminderDismissed: z.string().max(32).nullable().default(null),
   schemaVersion: z.number().int().positive(),
 });
 
@@ -499,6 +501,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   backupReminderDays: 30,
   storagePersisted: false,
   externalFeedsEnabled: false,
+  deductionReminderDismissed: null,
   schemaVersion: SCHEMA_VERSION,
 };
 

@@ -47,7 +47,7 @@ export function DeductionReminderBanner() {
       className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm"
     >
       <CalendarClock className="size-4 shrink-0" aria-hidden />
-      <span className="min-w-0 flex-1">{textOf(reminder)}</span>
+      <span className="min-w-0 flex-1 basis-64">{textOf(reminder)}</span>
       <div className="flex gap-2">
         <Link to="/deductions" className={buttonVariants({ size: 'sm', variant: 'outline' })}>
           {t.action}

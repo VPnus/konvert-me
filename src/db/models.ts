@@ -205,7 +205,12 @@ export const envelopeSchema = z.object({
 export const dashboardWidgetSchema = z.object({
   instanceId: id,
   widgetType: z.string().min(1).max(60),
+  /** Kept for the layouts written before widgets could be resized by hand. */
   size: z.enum(['S', 'M', 'L']),
+  /** Columns on a wide screen, 1 to 4 — set by dragging the corner of the widget. */
+  width: z.number().int().min(1).max(4).optional(),
+  /** Rows, 1 to 3. */
+  height: z.number().int().min(1).max(3).optional(),
   order: z.number().int().nonnegative(),
   settings: z.record(z.string(), z.unknown()).default({}),
 });

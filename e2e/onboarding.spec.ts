@@ -86,14 +86,20 @@ test.describe('dashboard', () => {
     await page.getByTestId('catalog-add-goal-progress').click();
     await expect(page.getByTestId('widget-goal-progress')).toBeVisible();
 
-    // resize
-    await page.getByTestId('size-net-worth-M').click();
-    await expect(page.getByTestId('widget-net-worth')).toHaveAttribute('data-size', 'M');
+    // resize from the keyboard: the corner is a button, not only a grip
+    const netWorth = page.getByTestId('widget-net-worth');
+    await expect(netWorth).toHaveAttribute('data-width', '1');
+    await page.getByTestId('resize-net-worth').focus();
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('ArrowDown');
+    await expect(netWorth).toHaveAttribute('data-width', '2');
+    await expect(netWorth).toHaveAttribute('data-height', '2');
 
     await page.reload();
     await expect(page.getByTestId('widget-quick-add')).toBeHidden();
     await expect(page.getByTestId('widget-goal-progress')).toBeVisible();
-    await expect(page.getByTestId('widget-net-worth')).toHaveAttribute('data-size', 'M');
+    await expect(netWorth).toHaveAttribute('data-width', '2');
+    await expect(netWorth).toHaveAttribute('data-height', '2');
   });
 
   test('the order can be changed with the keyboard and comes back to standard on reset', async ({
@@ -162,5 +168,37 @@ test.describe('narrow screen', () => {
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     );
     expect(overflow).toBeLessThanOrEqual(0);
+  });
+});
+
+test.describe('dashboard: a widget is resized by its corner', () => {
+  test.skip(({ viewport }) => (viewport?.width ?? 0) < 768, 'dragging a corner needs a wide screen');
+
+  test('dragging the corner makes a widget wider, and it stays that way', async ({ page }) => {
+    await passOnboarding(page);
+    await page.getByTestId('customize-dashboard').click();
+
+    // the first widget of the layout: its corner is on screen without scrolling
+    const widget = page.getByTestId('widget-free-cash');
+    await widget.scrollIntoViewIfNeeded();
+    await expect(widget).toHaveAttribute('data-width', '2');
+
+    const handle = page.getByTestId('resize-free-cash');
+    const corner = await handle.boundingBox();
+    const cell = await widget.boundingBox();
+    if (!corner || !cell) throw new Error('виджет не отрисовался');
+
+    // one column to the right: two columns become three
+    const from = { x: corner.x + corner.width / 2, y: corner.y + corner.height / 2 };
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down();
+    await page.mouse.move(from.x + cell.width / 2, from.y, { steps: 10 });
+    await expect(widget).toHaveAttribute('data-width', '3');
+    await page.mouse.up();
+
+    await expect(widget).toHaveAttribute('data-width', '3');
+
+    await page.reload();
+    await expect(page.getByTestId('widget-free-cash')).toHaveAttribute('data-width', '3');
   });
 });

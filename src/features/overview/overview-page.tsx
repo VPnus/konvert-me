@@ -1,13 +1,13 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { LayoutGrid, Plus, RotateCcw } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useDataVersion } from '@/hooks/use-data-version';
 import { useSettingsState } from '@/hooks/use-settings';
-import { DashboardGrid } from '@/features/overview/dashboard-grid';
+import { DashboardGrid, type SizeUpdate } from '@/features/overview/dashboard-grid';
 import { WidgetCatalog } from '@/features/overview/widget-catalog';
 import { loadOverview } from '@/features/overview/overview-data';
 import { findWidget } from '@/features/overview/widgets/registry';
@@ -15,9 +15,11 @@ import {
   buildDefaultLayout,
   getDashboardLayout,
   resetDashboardLayout,
+  resizeWidget,
   saveDashboardLayout,
+  widgetHeight,
+  widgetWidth,
   type WidgetInstance,
-  type WidgetSize,
 } from '@/db/repositories/dashboard';
 import { ru } from '@/i18n/ru';
 
@@ -27,6 +29,7 @@ export default function OverviewPage() {
   const [editing, setEditing] = useState(false);
   const [catalogOpen, setCatalogOpen] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
+  const writes = useRef<Promise<unknown>>(Promise.resolve());
 
   const data = useLiveQuery(() => loadOverview(), [dataVersion]);
   // A liveQuery may only read, so the missing layout is filled in by an effect.
@@ -46,15 +49,39 @@ export default function OverviewPage() {
 
   const items = [...layout.items].sort((a, b) => a.order - b.order) as WidgetInstance[];
 
-  const persist = async (next: WidgetInstance[]) => {
-    await saveDashboardLayout({ ...layout, items: next });
+  /**
+   * Every change to the layout goes through one queue. Two arrow presses in a row are
+   * two writes to the same row: without the queue the second one reads the layout
+   * before the first one has saved, and the first change is lost.
+   */
+  const enqueue = (work: () => Promise<unknown>): void => {
+    writes.current = writes.current.then(work, work);
+  };
+
+  const persist = (next: WidgetInstance[]) => {
+    enqueue(() => saveDashboardLayout({ ...layout, items: next }));
+  };
+
+  /** Resizing reads the layout back first, so a change builds on the saved size. */
+  const resize = (instanceId: string, update: SizeUpdate) => {
+    enqueue(async () => {
+      const current = (await getDashboardLayout()) ?? layout;
+      const item = current.items.find((widget) => widget.instanceId === instanceId);
+      if (!item) return;
+
+      const next = update({ width: widgetWidth(item), height: widgetHeight(item) });
+      await saveDashboardLayout({
+        ...current,
+        items: resizeWidget(current.items as WidgetInstance[], instanceId, next.width, next.height),
+      });
+    });
   };
 
   const addWidget = (widgetType: string) => {
     const definition = findWidget(widgetType);
     if (!definition) return;
 
-    void persist([
+    persist([
       ...items,
       {
         instanceId: crypto.randomUUID(),
@@ -123,11 +150,9 @@ export default function OverviewPage() {
           items={items}
           data={data}
           editing={editing}
-          onReorder={(next) => void persist(next)}
-          onResize={(instanceId, size: WidgetSize) =>
-            void persist(items.map((item) => (item.instanceId === instanceId ? { ...item, size } : item)))
-          }
-          onRemove={(instanceId) => void persist(items.filter((item) => item.instanceId !== instanceId))}
+          onReorder={(next) => persist(next)}
+          onResize={resize}
+          onRemove={(instanceId) => persist(items.filter((item) => item.instanceId !== instanceId))}
         />
       )}
 

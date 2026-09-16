@@ -9,6 +9,9 @@ import {
   getDashboardLayout,
   resetDashboardLayout,
   saveDashboardLayout,
+  widgetWidth,
+  widgetHeight,
+  resizeWidget,
 } from '@/db/repositories/dashboard';
 import { WIDGET_REGISTRY } from '@/features/overview/widgets/registry';
 
@@ -73,5 +76,44 @@ describe('dashboard layout', () => {
 
     const reset = await resetDashboardLayout();
     expect(reset.items).toHaveLength(DEFAULT_WIDGETS.length);
+  });
+});
+
+describe('dashboard: the size of a widget', () => {
+  const item = { instanceId: 'w1', widgetType: 'net-worth', size: 'S' as const, order: 0, settings: {} };
+
+  it('reads the width of a layout written before free resizing', () => {
+    expect(widgetWidth({ size: 'S' })).toBe(1);
+    expect(widgetWidth({ size: 'M' })).toBe(2);
+    expect(widgetWidth({ size: 'L' })).toBe(4);
+    expect(widgetHeight({})).toBe(1);
+  });
+
+  it('prefers the width the user set over the old three-step size', () => {
+    expect(widgetWidth({ size: 'S', width: 3 })).toBe(3);
+    expect(widgetHeight({ height: 2 })).toBe(2);
+  });
+
+  it('keeps the old size in step with the width, so both agree', () => {
+    const [resized] = resizeWidget([item], 'w1', 3, 2);
+
+    expect(resized.width).toBe(3);
+    expect(resized.height).toBe(2);
+    // one column is S, the full width is L, everything between is M
+    expect(resized.size).toBe('M');
+    expect(resizeWidget([item], 'w1', 4, 1)[0].size).toBe('L');
+    expect(resizeWidget([item], 'w1', 1, 1)[0].size).toBe('S');
+  });
+
+  it('never lets a widget out of the grid', () => {
+    expect(resizeWidget([item], 'w1', 99, 99)[0]).toMatchObject({ width: 4, height: 3 });
+    expect(resizeWidget([item], 'w1', -5, 0)[0]).toMatchObject({ width: 1, height: 1 });
+  });
+
+  it('leaves every other widget alone', () => {
+    const other = { ...item, instanceId: 'w2' };
+    const items = resizeWidget([item, other], 'w1', 4, 1);
+
+    expect(items[1]).toBe(other);
   });
 });

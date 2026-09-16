@@ -16,6 +16,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, X } from 'lucide-react';
+import { useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { ErrorBoundary } from '@/components/common/error-boundary';
@@ -23,54 +24,164 @@ import { ru } from '@/i18n/ru';
 import { cn } from '@/lib/utils';
 import { findWidget } from '@/features/overview/widgets/registry';
 import type { OverviewData } from '@/features/overview/overview-data';
-import type { WidgetInstance, WidgetSize } from '@/db/repositories/dashboard';
+import {
+  MAX_WIDGET_HEIGHT,
+  MAX_WIDGET_WIDTH,
+  clampHeight,
+  clampWidth,
+  widgetHeight,
+  widgetWidth,
+  type WidgetInstance,
+} from '@/db/repositories/dashboard';
 
-const SIZE_CLASS: Record<WidgetSize, string> = {
-  S: 'sm:col-span-1 xl:col-span-1',
-  M: 'sm:col-span-2 xl:col-span-2',
-  L: 'sm:col-span-2 xl:col-span-4',
+/** One row of the grid; a widget one row tall is at least this high. */
+const ROW_HEIGHT_REM = 11;
+
+/**
+ * The column span per width. A phone always shows one column and a tablet at most
+ * two, whatever the widget asks for — the layout is free, the readable width is not.
+ */
+const WIDTH_CLASS: Record<number, string> = {
+  1: 'sm:col-span-1 xl:col-span-1',
+  2: 'sm:col-span-2 xl:col-span-2',
+  3: 'sm:col-span-2 xl:col-span-3',
+  4: 'sm:col-span-2 xl:col-span-4',
 };
+
+const HEIGHT_CLASS: Record<number, string> = {
+  1: 'row-span-1',
+  2: 'row-span-2',
+  3: 'row-span-3',
+};
+
+export interface Size {
+  readonly width: number;
+  readonly height: number;
+}
+
+/**
+ * A resize is asked for as a change to whatever the widget is right now, not as a
+ * fixed pair of numbers: two keystrokes in a row must not race the saved layout.
+ */
+export type SizeUpdate = (current: Size) => Size;
 
 interface GridProps {
   readonly items: WidgetInstance[];
   readonly data: OverviewData;
   readonly editing: boolean;
   readonly onReorder: (items: WidgetInstance[]) => void;
-  readonly onResize: (instanceId: string, size: WidgetSize) => void;
+  readonly onResize: (instanceId: string, update: SizeUpdate) => void;
   readonly onRemove: (instanceId: string) => void;
 }
 
-function WidgetCell({
-  item,
-  data,
-  editing,
-  onResize,
-  onRemove,
-}: {
-  item: WidgetInstance;
-  data: OverviewData;
-  editing: boolean;
-  onResize: (instanceId: string, size: WidgetSize) => void;
-  onRemove: (instanceId: string) => void;
-}) {
+interface WidgetCellProps {
+  readonly item: WidgetInstance;
+  readonly data: OverviewData;
+  readonly editing: boolean;
+  readonly onResize: (instanceId: string, update: SizeUpdate) => void;
+  readonly onRemove: (instanceId: string) => void;
+}
+
+function WidgetCell({ item, data, editing, onResize, onRemove }: WidgetCellProps) {
   const definition = findWidget(item.widgetType);
+  const cellRef = useRef<HTMLDivElement | null>(null);
+  // While the corner is dragged the widget shows the size it will get, not the one
+  // it has: the layout is only written once the pointer is released.
+  const [preview, setPreview] = useState<Size | null>(null);
+  const previewRef = useRef<Size | null>(null);
+
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.instanceId,
     disabled: !editing,
   });
 
-  const style = { transform: CSS.Translate.toString(transform), transition };
+  const stored: Size = { width: widgetWidth(item), height: widgetHeight(item) };
+  const size = preview ?? stored;
+  const title = definition?.title ?? item.widgetType;
+
+  const setRefs = (node: HTMLDivElement | null) => {
+    cellRef.current = node;
+    setNodeRef(node);
+  };
+
+  const showPreview = (next: Size | null) => {
+    previewRef.current = next;
+    setPreview(next);
+  };
+
+  const startResize = (event: React.PointerEvent<HTMLButtonElement>) => {
+    const cell = cellRef.current;
+    const grid = cell?.parentElement;
+    if (!cell || !grid) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+
+    const style = getComputedStyle(grid);
+    const columns = style.gridTemplateColumns.split(' ').filter(Boolean).length;
+    const gap = Number.parseFloat(style.columnGap) || 16;
+    const step = (grid.getBoundingClientRect().width - gap * (columns - 1)) / columns + gap;
+    const rowStep = ROW_HEIGHT_REM * Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
+
+    const startX = event.clientX;
+    const startY = event.clientY;
+
+    const move = (moveEvent: React.PointerEvent<HTMLButtonElement> | PointerEvent) => {
+      const width = clampWidth(stored.width + Math.round((moveEvent.clientX - startX) / step));
+      const height = clampHeight(stored.height + Math.round((moveEvent.clientY - startY) / (rowStep + gap)));
+      showPreview({ width: Math.min(width, columns === 1 ? 1 : MAX_WIDGET_WIDTH), height });
+    };
+
+    const handleMove = (moveEvent: PointerEvent) => move(moveEvent);
+    const handleUp = () => {
+      window.removeEventListener('pointermove', handleMove);
+      window.removeEventListener('pointerup', handleUp);
+
+      const next = previewRef.current;
+      showPreview(null);
+      if (next && (next.width !== stored.width || next.height !== stored.height)) {
+        onResize(item.instanceId, () => next);
+      }
+    };
+
+    window.addEventListener('pointermove', handleMove);
+    window.addEventListener('pointerup', handleUp);
+  };
+
+  /** The same resizing from the keyboard: the corner is a button, not just a grip. */
+  const onHandleKey = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    const step: Record<string, Size> = {
+      ArrowRight: { width: 1, height: 0 },
+      ArrowLeft: { width: -1, height: 0 },
+      ArrowDown: { width: 0, height: 1 },
+      ArrowUp: { width: 0, height: -1 },
+    };
+    const delta = step[event.key];
+    if (!delta) return;
+
+    event.preventDefault();
+    // Asked as a change, so holding an arrow down counts every press.
+    onResize(item.instanceId, (current) => ({
+      width: clampWidth(current.width + delta.width),
+      height: clampHeight(current.height + delta.height),
+    }));
+  };
 
   return (
     <div
-      ref={setNodeRef}
-      style={style}
+      ref={setRefs}
+      style={{ transform: CSS.Translate.toString(transform), transition }}
       data-testid={`widget-${item.widgetType}`}
       data-size={item.size}
+      data-width={size.width}
+      data-height={size.height}
       className={cn(
-        'col-span-1 rounded-xl border border-border bg-card text-card-foreground shadow-sm',
-        SIZE_CLASS[item.size],
+        'relative col-span-1 flex flex-col rounded-xl border border-border bg-card text-card-foreground shadow-sm',
+        WIDTH_CLASS[size.width],
+        HEIGHT_CLASS[size.height],
         isDragging && 'z-10 opacity-80 shadow-lg',
+        preview && 'ring-2 ring-ring',
       )}
     >
       {editing ? (
@@ -78,34 +189,23 @@ function WidgetCell({
           <button
             type="button"
             className="flex cursor-grab items-center gap-1 rounded-md px-1 py-1 text-xs text-muted-foreground hover:bg-accent active:cursor-grabbing"
-            aria-label={`${ru.overview.drag}: ${definition?.title ?? item.widgetType}`}
+            aria-label={`${ru.overview.drag}: ${title}`}
             {...attributes}
             {...listeners}
           >
             <GripVertical className="size-4" aria-hidden />
-            <span className="max-w-[10rem] truncate">{definition?.title ?? item.widgetType}</span>
+            <span className="max-w-[10rem] truncate">{title}</span>
           </button>
 
           <div className="flex items-center gap-1">
-            {(definition?.sizes ?? (['S', 'M', 'L'] as const)).map((size) => (
-              <Button
-                key={size}
-                size="sm"
-                variant={item.size === size ? 'default' : 'outline'}
-                className="h-7 w-8 px-0 text-xs"
-                aria-label={`${ru.overview.size} ${size}`}
-                aria-pressed={item.size === size}
-                data-testid={`size-${item.widgetType}-${size}`}
-                onClick={() => onResize(item.instanceId, size)}
-              >
-                {size}
-              </Button>
-            ))}
+            <span className="text-[11px] text-muted-foreground tabular-nums">
+              {size.width} × {size.height}
+            </span>
             <Button
               size="icon"
               variant="ghost"
               className="size-7"
-              aria-label={`${ru.overview.remove}: ${definition?.title ?? item.widgetType}`}
+              aria-label={`${ru.overview.remove}: ${title}`}
               data-testid={`remove-${item.widgetType}`}
               onClick={() => onRemove(item.instanceId)}
             >
@@ -123,12 +223,31 @@ function WidgetCell({
           </div>
         )}
       >
-        {definition ? (
-          <definition.Component data={data} settings={item.settings} />
-        ) : (
-          <div className="p-4 text-sm text-muted-foreground">{ru.overview.widgetBroken}</div>
-        )}
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          {definition ? (
+            <definition.Component data={data} settings={item.settings} />
+          ) : (
+            <div className="p-4 text-sm text-muted-foreground">{ru.overview.widgetBroken}</div>
+          )}
+        </div>
       </ErrorBoundary>
+
+      {editing ? (
+        <button
+          type="button"
+          aria-label={`${ru.overview.resize}: ${title}`}
+          title={ru.overview.resizeHint}
+          data-testid={`resize-${item.widgetType}`}
+          className="absolute right-0 bottom-0 flex size-6 cursor-se-resize items-center justify-center rounded-tl-md rounded-br-xl bg-accent text-muted-foreground hover:text-foreground"
+          onPointerDown={startResize}
+          onKeyDown={onHandleKey}
+        >
+          <svg viewBox="0 0 10 10" className="size-3 fill-current" aria-hidden>
+            <path d="M9 1v8H1z" opacity="0.35" />
+            <path d="M9 5v4H5z" />
+          </svg>
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -161,7 +280,11 @@ export function DashboardGrid({ items, data, editing, onReorder, onResize, onRem
       onDragEnd={handleDragEnd}
     >
       <SortableContext items={items.map((item) => item.instanceId)} strategy={rectSortingStrategy}>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4" data-testid="dashboard-grid">
+        <div
+          className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
+          style={{ gridAutoRows: `minmax(${ROW_HEIGHT_REM}rem, auto)` }}
+          data-testid="dashboard-grid"
+        >
           {items.map((item) => (
             <WidgetCell
               key={item.instanceId}
@@ -177,3 +300,5 @@ export function DashboardGrid({ items, data, editing, onReorder, onResize, onRem
     </DndContext>
   );
 }
+
+export { MAX_WIDGET_HEIGHT, MAX_WIDGET_WIDTH };

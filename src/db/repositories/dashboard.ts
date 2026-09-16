@@ -1,6 +1,7 @@
 /**
- * The layout of the "Обзор" dashboard: an ordered list of widgets of size S, M or L.
- * A free grid with coordinates is deliberately out of scope (section 8.3 of the plan).
+ * The layout of the "Обзор" dashboard: an ordered list of widgets, each with a width
+ * in columns and a height in rows. Widgets flow in that order — a free grid with
+ * coordinates is deliberately out of scope (section 8.3 of the plan).
  */
 
 import { db } from '@/db/db';
@@ -16,8 +17,52 @@ export interface WidgetInstance {
   instanceId: string;
   widgetType: string;
   size: WidgetSize;
+  /** Columns on a wide screen; missing in layouts written before free resizing. */
+  width?: number;
+  height?: number;
   order: number;
   settings: Record<string, unknown>;
+}
+
+export const MAX_WIDGET_WIDTH = 4;
+export const MAX_WIDGET_HEIGHT = 3;
+
+const WIDTH_BY_SIZE: Record<WidgetSize, number> = { S: 1, M: 2, L: 4 };
+
+export function widgetWidth(item: Pick<WidgetInstance, 'size' | 'width'>): number {
+  return item.width ?? WIDTH_BY_SIZE[item.size];
+}
+
+export function widgetHeight(item: Pick<WidgetInstance, 'height'>): number {
+  return item.height ?? 1;
+}
+
+/** The old three-step size that matches a width, so both stay in agreement. */
+export function sizeForWidth(width: number): WidgetSize {
+  if (width <= 1) return 'S';
+  return width >= 4 ? 'L' : 'M';
+}
+
+export function clampWidth(width: number): number {
+  return Math.min(Math.max(Math.round(width), 1), MAX_WIDGET_WIDTH);
+}
+
+export function clampHeight(height: number): number {
+  return Math.min(Math.max(Math.round(height), 1), MAX_WIDGET_HEIGHT);
+}
+
+/** Gives one widget a new size, leaving the rest of the layout alone. */
+export function resizeWidget(
+  items: readonly WidgetInstance[],
+  instanceId: string,
+  width: number,
+  height: number,
+): WidgetInstance[] {
+  return items.map((item) => {
+    if (item.instanceId !== instanceId) return item;
+    const next = { width: clampWidth(width), height: clampHeight(height) };
+    return { ...item, ...next, size: sizeForWidth(next.width) };
+  });
 }
 
 /** The layout a user sees right after the onboarding: never an empty screen. */

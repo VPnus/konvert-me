@@ -79,6 +79,7 @@ test.describe('deductions', () => {
     await expect(page.getByTestId('refund-total')).toHaveText(/23\s?166/);
 
     await page.getByTestId('deduction-save').click();
+    await expect(page.getByTestId('deduction-saved')).toBeVisible();
     await page.reload();
     await expect(page.getByTestId('kid')).toHaveCount(4);
     await expect(page.getByTestId('refund-total')).toHaveText(/23\s?166/);

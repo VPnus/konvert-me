@@ -52,6 +52,7 @@ test.describe('financial plan', () => {
     await expect(page.getByTestId('plan-step-title')).toHaveText('Цели');
 
     await page.getByTestId('plan-step-8').click();
+    await expect(page).toHaveURL(/\/plan\?step=8$/);
     await page.reload();
     await expect(page.getByTestId('plan-step-title')).toHaveText('Пересмотр');
     await expect(page.getByTestId('plan-next')).toBeDisabled();

@@ -6,12 +6,14 @@
  * important the smaller its priority is.
  */
 
-import { currentMonth, type IsoMonth } from '@/core/time';
+import { currentMonth, todayIso, type IsoMonth } from '@/core/time';
 import { db } from '@/db/db';
 import { RepositoryError } from '@/db/errors';
 import { envelopeSchema, goalSchema, type Envelope, type Goal } from '@/db/models';
 import { assertEnvelopesFit } from '@/db/repositories/accounts';
+import { createTransaction, deleteTransaction } from '@/db/repositories/transactions';
 import { getSettings } from '@/db/repositories/settings';
+import { ru } from '@/i18n/ru';
 import { parseOrThrow } from '@/db/validate';
 import { publishAppEvent } from '@/lib/broadcast';
 
@@ -169,4 +171,64 @@ export async function setEnvelope(goalId: string, accountId: string, amountMinor
 
   publishAppEvent({ type: 'data-changed' });
   return envelope;
+}
+
+export async function deleteEnvelope(goalId: string, accountId: string): Promise<void> {
+  const existing = await db.envelopes.where('[goalId+accountId]').equals([goalId, accountId]).first();
+  if (!existing) return;
+
+  await db.envelopes.delete(existing.id);
+  publishAppEvent({ type: 'data-changed' });
+}
+
+export interface ContributionInput {
+  goalId: string;
+  /** The account the money will sit on, envelope and all. */
+  accountId: string;
+  amountMinor: number;
+  /** Set when the money still has to travel: a transfer is recorded first. */
+  fromAccountId?: string;
+  date?: string;
+  note?: string;
+}
+
+/**
+ * Putting money into a goal, as section 4 of the plan defines it: a transfer between
+ * own accounts plus a bigger envelope — never an expense. When the money is already
+ * on the account, only the envelope grows.
+ */
+export async function contributeToGoal(input: ContributionInput): Promise<Envelope> {
+  if (!(input.amountMinor > 0)) {
+    throw new RepositoryError('Взнос должен быть больше нуля');
+  }
+
+  const goal = await db.goals.get(input.goalId);
+  if (!goal) throw new RepositoryError('Цель не найдена');
+
+  const moves = Boolean(input.fromAccountId && input.fromAccountId !== input.accountId);
+  const transfer = moves
+    ? await createTransaction({
+        date: input.date ?? todayIso(),
+        amountMinor: input.amountMinor,
+        kind: 'transfer',
+        accountId: input.fromAccountId as string,
+        toAccountId: input.accountId,
+        note: input.note ?? ru.goals.contributionNote.replace('{name}', goal.name),
+      })
+    : null;
+
+  const current = await getEnvelopeMinor(input.goalId, input.accountId);
+
+  try {
+    return await setEnvelope(input.goalId, input.accountId, current + input.amountMinor);
+  } catch (error) {
+    // The envelope did not fit, so the transfer that was meant to feed it goes back.
+    if (transfer) await deleteTransaction(transfer.id);
+    throw error;
+  }
+}
+
+export async function getEnvelopeMinor(goalId: string, accountId: string): Promise<number> {
+  const existing = await db.envelopes.where('[goalId+accountId]').equals([goalId, accountId]).first();
+  return existing?.amountMinor ?? 0;
 }

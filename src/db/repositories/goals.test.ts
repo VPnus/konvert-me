@@ -2,9 +2,12 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { db } from '@/db/db';
 import { RepositoryError, ValidationError } from '@/db/errors';
-import { createAccount } from '@/db/repositories/accounts';
+import { createAccount, getAccountBalanceMinor } from '@/db/repositories/accounts';
+import { seedDefaultCategories } from '@/db/repositories/categories';
 import {
+  contributeToGoal,
   createGoal,
+  deleteEnvelope,
   deleteGoal,
   ensureReserveGoal,
   getGoalSavingsMinor,
@@ -15,11 +18,20 @@ import {
   setEnvelope,
   updateGoal,
 } from '@/db/repositories/goals';
+import { createTransaction } from '@/db/repositories/transactions';
 
 const RUB = 100;
 
 beforeEach(async () => {
-  await Promise.all([db.goals.clear(), db.envelopes.clear(), db.accounts.clear(), db.settings.clear()]);
+  await Promise.all([
+    db.goals.clear(),
+    db.envelopes.clear(),
+    db.accounts.clear(),
+    db.settings.clear(),
+    db.transactions.clear(),
+    db.categories.clear(),
+  ]);
+  await seedDefaultCategories();
 });
 
 describe('goals', () => {
@@ -169,5 +181,138 @@ describe('envelopes', () => {
     await setEnvelope(RESERVE_GOAL_ID, account.id, 100_000 * RUB);
 
     expect(await getOtherGoalsEnvelopesMinor()).toBe(150_000 * RUB);
+  });
+});
+
+describe('goals: putting money in', () => {
+  async function setUp() {
+    const card = await createAccount({
+      name: 'Карта',
+      side: 'asset',
+      type: 'debit',
+      openingBalanceMinor: 100_000 * RUB,
+      openingDate: '2026-09-01',
+    });
+    const savings = await createAccount({
+      name: 'Накопительный',
+      side: 'asset',
+      type: 'savings',
+      openingBalanceMinor: 0,
+      openingDate: '2026-09-01',
+    });
+    const goal = await createGoal({
+      name: 'Квартира',
+      kind: 'purchase',
+      costMinor: 3_000_000 * RUB,
+      costAsOf: '2026-09',
+      targetMonth: '2031-09',
+    });
+    return { card, savings, goal };
+  }
+
+  it('moves the money and grows the envelope in one go', async () => {
+    const { card, savings, goal } = await setUp();
+
+    await contributeToGoal({
+      goalId: goal.id,
+      accountId: savings.id,
+      fromAccountId: card.id,
+      amountMinor: 30_000 * RUB,
+      date: '2026-09-10',
+    });
+
+    expect(await getAccountBalanceMinor(card.id)).toBe(70_000 * RUB);
+    expect(await getAccountBalanceMinor(savings.id)).toBe(30_000 * RUB);
+    expect(await getGoalSavingsMinor(goal.id)).toBe(30_000 * RUB);
+
+    // a contribution is a transfer, so it never counts as an expense
+    const [transfer] = await db.transactions.toArray();
+    expect(transfer.kind).toBe('transfer');
+    expect(transfer.note).toContain('Квартира');
+  });
+
+  it('only grows the envelope when the money is already there', async () => {
+    const { savings, goal } = await setUp();
+    await createTransaction({
+      date: '2026-09-02',
+      amountMinor: 50_000 * RUB,
+      kind: 'income',
+      accountId: savings.id,
+      categoryId: 'salary',
+    });
+
+    await contributeToGoal({ goalId: goal.id, accountId: savings.id, amountMinor: 20_000 * RUB });
+
+    expect(await getGoalSavingsMinor(goal.id)).toBe(20_000 * RUB);
+    expect(await db.transactions.count()).toBe(1);
+  });
+
+  it('adds up to what is already in the envelope', async () => {
+    const { savings, card, goal } = await setUp();
+
+    await contributeToGoal({
+      goalId: goal.id,
+      accountId: savings.id,
+      fromAccountId: card.id,
+      amountMinor: 10_000 * RUB,
+    });
+    await contributeToGoal({
+      goalId: goal.id,
+      accountId: savings.id,
+      fromAccountId: card.id,
+      amountMinor: 5_000 * RUB,
+    });
+
+    expect(await getGoalSavingsMinor(goal.id)).toBe(15_000 * RUB);
+  });
+
+  it('takes the transfer back when the envelope would not fit', async () => {
+    const { card, savings, goal } = await setUp();
+    const other = await createGoal({
+      name: 'Отпуск',
+      kind: 'purchase',
+      costMinor: 100,
+      costAsOf: '2026-09',
+      targetMonth: '2027-06',
+    });
+    await contributeToGoal({
+      goalId: other.id,
+      accountId: savings.id,
+      fromAccountId: card.id,
+      amountMinor: 40_000 * RUB,
+    });
+
+    // the savings account holds 40 000, so a 50 000 envelope cannot stand on it
+    await expect(
+      contributeToGoal({ goalId: goal.id, accountId: savings.id, amountMinor: 50_000 * RUB }),
+    ).rejects.toThrow(/конверт/i);
+
+    expect(await getGoalSavingsMinor(goal.id)).toBe(0);
+    expect(await getAccountBalanceMinor(savings.id)).toBe(40_000 * RUB);
+  });
+
+  it('refuses a contribution that is not a sum of money', async () => {
+    const { savings, goal } = await setUp();
+    await expect(
+      contributeToGoal({ goalId: goal.id, accountId: savings.id, amountMinor: 0 }),
+    ).rejects.toBeInstanceOf(RepositoryError);
+    await expect(
+      contributeToGoal({ goalId: 'нет-такой', accountId: savings.id, amountMinor: 100 }),
+    ).rejects.toBeInstanceOf(RepositoryError);
+  });
+
+  it('frees an envelope when it is emptied', async () => {
+    const { card, savings, goal } = await setUp();
+    await contributeToGoal({
+      goalId: goal.id,
+      accountId: savings.id,
+      fromAccountId: card.id,
+      amountMinor: 10_000 * RUB,
+    });
+
+    await deleteEnvelope(goal.id, savings.id);
+    expect(await getGoalSavingsMinor(goal.id)).toBe(0);
+    // deleting what is not there is quietly fine
+    await expect(deleteEnvelope(goal.id, savings.id)).resolves.toBeUndefined();
   });
 });

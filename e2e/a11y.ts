@@ -198,10 +198,14 @@ export async function keyboardReport(
   // Tab goes on from wherever the focus was last, even after a blur: the walk starts from a
   // mark put at the very beginning of the area instead.
   await page.evaluate((root) => {
-    for (const element of document.querySelectorAll('[data-a11y-reached]')) {
+    for (const element of document.querySelectorAll('[data-a11y-reached], [data-a11y-present]')) {
       element.removeAttribute('data-a11y-reached');
+      element.removeAttribute('data-a11y-present');
     }
     const area = document.querySelector(root) ?? document.body;
+    // Only what is on the screen when the walk starts is expected to be reached: a toast that
+    // shows up halfway through, like «ready to work offline», was not there to be reached.
+    for (const element of area.querySelectorAll('*')) element.setAttribute('data-a11y-present', '');
     const start = document.createElement('span');
     start.tabIndex = -1;
     start.setAttribute('data-a11y-start', '');
@@ -270,6 +274,7 @@ export async function keyboardReport(
           box.width > 0 &&
           box.height > 0 &&
           style.visibility !== 'hidden' &&
+          element.hasAttribute('data-a11y-present') &&
           !element.hasAttribute('data-a11y-reached')
         );
       })

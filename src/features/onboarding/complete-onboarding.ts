@@ -26,9 +26,13 @@ export interface OnboardingAnswers {
   readonly debtBalanceRub: number;
   readonly debtPaymentRub: number;
   readonly debtPaymentDay?: number;
+  /** Percent a year, as typed; left out when the user does not know it. */
+  readonly debtRatePercent?: number;
   readonly goalName: string;
   readonly goalCostRub: number;
   readonly goalTargetMonth?: IsoMonth;
+  /** A round sum is wanted by the date, not today's price grown with inflation. */
+  readonly goalExactSum?: boolean;
 }
 
 export const EMPTY_ANSWERS: OnboardingAnswers = {
@@ -75,6 +79,7 @@ export async function completeOnboarding(answers: OnboardingAnswers): Promise<vo
       openingBalanceMinor: rublesToMinor(answers.debtBalanceRub),
       monthlyPaymentMinor: answers.debtPaymentRub > 0 ? rublesToMinor(answers.debtPaymentRub) : undefined,
       paymentDay: answers.debtPaymentDay,
+      rate: answers.debtRatePercent !== undefined ? answers.debtRatePercent / 100 : undefined,
     });
   }
 
@@ -88,6 +93,7 @@ export async function completeOnboarding(answers: OnboardingAnswers): Promise<vo
       costAsOf: month,
       // A goal without a date cannot be planned, so a sensible default is used.
       targetMonth: answers.goalTargetMonth ?? addMonths(month, 36),
+      inflationRate: answers.goalExactSum ? 0 : undefined,
     });
   }
 

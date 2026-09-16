@@ -21,6 +21,7 @@ const ANSWERS = {
   debtBalanceRub: 300_000,
   debtPaymentRub: 12_000,
   debtPaymentDay: 15,
+  debtRatePercent: 21.9,
   goalName: 'Квартира',
   goalCostRub: 4_000_000,
   goalTargetMonth: '2029-09',
@@ -50,6 +51,8 @@ describe('onboarding', () => {
     const debt = accounts.find((account) => account.side === 'liability');
     expect(debt?.monthlyPaymentMinor).toBe(12_000 * RUB);
     expect(debt?.paymentDay).toBe(15);
+    // without the rate the plan cannot tell a dear debt from a cheap one
+    expect(debt?.rate).toBeCloseTo(0.219, 10);
 
     const goals = await db.goals.toArray();
     expect(goals.map((goal) => goal.id)).toContain(RESERVE_GOAL_ID);
@@ -57,11 +60,24 @@ describe('onboarding', () => {
     expect(flat?.costMinor).toBe(4_000_000 * RUB);
     expect(flat?.targetMonth).toBe('2029-09');
     expect(flat?.priority).toBeGreaterThan(0);
+    expect(flat?.inflationRate).toBeGreaterThan(0);
 
     const layout = await db.dashboardLayouts.get('default');
     expect(layout?.items).toHaveLength(DEFAULT_WIDGETS.length);
 
     expect((await getSettings()).onboardingDone).toBe(true);
+  });
+
+  it('keeps a round sum round when the user asks for exactly that sum', async () => {
+    await completeOnboarding({
+      ...ANSWERS,
+      goalName: 'Первый миллион',
+      goalCostRub: 1_000_000,
+      goalExactSum: true,
+    });
+
+    const goal = (await db.goals.toArray()).find((item) => item.name === 'Первый миллион');
+    expect(goal?.inflationRate).toBe(0);
   });
 
   it('skipping still leaves categories, the reserve and a dashboard', async () => {

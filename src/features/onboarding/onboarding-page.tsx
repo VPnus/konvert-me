@@ -40,6 +40,7 @@ export default function OnboardingPage() {
   const [error, setError] = useState<string | null>(null);
 
   // The fields keep their own text so a half-typed "12," is not thrown away.
+  const [debtRate, setDebtRate] = useState('');
   const [numbers, setNumbers] = useState<Record<NumericKey, string>>({
     incomeRub: '',
     mandatoryRub: '',
@@ -195,6 +196,22 @@ export default function OnboardingPage() {
                   />
                 )}
               </Field>
+              <Field label={ru.onboarding.debtRateLabel}>
+                {(id) => (
+                  <NumberInput
+                    id={id}
+                    value={debtRate}
+                    data-testid="onboarding-debt-rate"
+                    onValueChange={(value) => {
+                      setDebtRate(value);
+                      setAnswers((current) => ({
+                        ...current,
+                        debtRatePercent: value.trim() ? parseNumericInput(value) : undefined,
+                      }));
+                    }}
+                  />
+                )}
+              </Field>
             </div>
           </>
         ) : null}
@@ -242,6 +259,23 @@ export default function OnboardingPage() {
                   />
                 )}
               </Field>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="flex items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 size-4 shrink-0 accent-[var(--color-primary)]"
+                  checked={answers.goalExactSum ?? false}
+                  data-testid="onboarding-goal-exact"
+                  onChange={(event) =>
+                    setAnswers((current) => ({ ...current, goalExactSum: event.target.checked }))
+                  }
+                />
+                {ru.onboarding.goalExactLabel}
+              </label>
+              {answers.goalExactSum ? null : (
+                <p className="pl-6 text-xs text-muted-foreground">{ru.onboarding.goalInflationNote}</p>
+              )}
             </div>
             <div className="rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
               <p className="font-medium text-foreground">{ru.onboarding.summaryTitle}</p>

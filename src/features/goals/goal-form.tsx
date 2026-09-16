@@ -23,6 +23,8 @@ interface FormState {
   targetMonth: string;
   returnRate: string;
   inflationRate: string;
+  /** Exactly the typed sum by the date: inflation is left out of the calculation. */
+  exact: boolean;
   note: string;
 }
 
@@ -39,6 +41,7 @@ function initialState(settings: AppSettings, goal?: Goal): FormState {
       targetMonth: goal.targetMonth ?? '',
       returnRate: percent(goal.returnRate),
       inflationRate: percent(goal.inflationRate),
+      exact: goal.kind !== 'reserve' && goal.inflationRate === 0,
       note: goal.note ?? '',
     };
   }
@@ -51,6 +54,7 @@ function initialState(settings: AppSettings, goal?: Goal): FormState {
     targetMonth: addMonths(currentMonth(), 36),
     returnRate: percent(settings.defaultReturnRate),
     inflationRate: percent(settings.inflationRate),
+    exact: false,
     note: '',
   };
 }
@@ -81,7 +85,7 @@ export function GoalForm({ goal, settings, open, onOpenChange }: GoalFormProps) 
       costMinor: rublesToMinor(parseNumericInput(state.cost)),
       targetMonth: isReserve ? undefined : state.targetMonth,
       returnRate: parseNumericInput(state.returnRate) / 100,
-      inflationRate: parseNumericInput(state.inflationRate) / 100,
+      inflationRate: state.exact ? 0 : parseNumericInput(state.inflationRate) / 100,
       note: state.note.trim() || undefined,
     };
 
@@ -189,14 +193,42 @@ export function GoalForm({ goal, settings, open, onOpenChange }: GoalFormProps) 
                 {(id) => (
                   <NumberInput
                     id={id}
-                    required
-                    value={state.inflationRate}
+                    required={!state.exact}
+                    disabled={state.exact}
+                    value={state.exact ? '0' : state.inflationRate}
                     data-testid="goal-inflation"
                     onValueChange={(inflationRate) => patch({ inflationRate })}
                   />
                 )}
               </Field>
             </div>
+
+            {isReserve ? null : (
+              <div className="flex flex-col gap-1">
+                <label className="flex items-start gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5 size-4 shrink-0 accent-[var(--color-primary)]"
+                    checked={state.exact}
+                    data-testid="goal-exact"
+                    onChange={(event) =>
+                      patch({
+                        exact: event.target.checked,
+                        // Unticked again: back to the inflation of the settings, not to a zero.
+                        inflationRate:
+                          !event.target.checked && parseNumericInput(state.inflationRate) === 0
+                            ? percent(settings.inflationRate)
+                            : state.inflationRate,
+                      })
+                    }
+                  />
+                  {ru.goals.exactSum}
+                </label>
+                {state.exact ? (
+                  <p className="pl-6 text-xs text-muted-foreground">{ru.goals.exactSumHint}</p>
+                ) : null}
+              </div>
+            )}
 
             <Field label={`${ru.goals.note} (${ru.common.optional})`}>
               {(id) => (

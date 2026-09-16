@@ -240,6 +240,17 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
               </label>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2">
+                <Field label={`${ru.accounts.rate} (${ru.common.optional})`} hint={ru.accounts.debtRateHint}>
+                  {(id) => (
+                    <NumberInput
+                      id={id}
+                      value={state.rate}
+                      data-testid="account-rate"
+                      onValueChange={(rate) => patch({ rate })}
+                    />
+                  )}
+                </Field>
+
                 <Field label={`${ru.accounts.monthlyPayment} (${ru.common.optional})`}>
                   {(id) => (
                     <NumberInput

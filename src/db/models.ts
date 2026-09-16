@@ -9,7 +9,7 @@ import { z } from 'zod';
 
 import { isIsoDate, isIsoMonth } from '@/core/time';
 
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 const isoDate = z.string().refine(isIsoDate, { message: 'Дата должна быть в формате ГГГГ-ММ-ДД' });
 const isoMonth = z.string().refine(isIsoMonth, { message: 'Месяц должен быть в формате ГГГГ-ММ' });
@@ -172,6 +172,29 @@ export const goalSchema = z
     path: ['targetMonth'],
   });
 
+export const POLICY_TYPES = ['life', 'health', 'property', 'vehicle', 'travel', 'other'] as const;
+
+/**
+ * An insurance policy (lesson 2.6). It holds no money of its own: the balance screen
+ * keeps it to show what is covered and when it runs out.
+ */
+export const insurancePolicySchema = z.object({
+  id,
+  name,
+  type: z.enum(POLICY_TYPES),
+  insurer: z.string().trim().max(120).optional(),
+  /** What the insurer pays at most. */
+  sumInsuredMinor: nonNegativeMinor.optional(),
+  /** What the policy costs for its whole term. */
+  premiumMinor: nonNegativeMinor.optional(),
+  startDate: isoDate.optional(),
+  endDate: isoDate,
+  archived: z.boolean(),
+  note,
+  createdAt: timestamp,
+  updatedAt: timestamp,
+});
+
 export const envelopeSchema = z.object({
   id,
   goalId: id,
@@ -297,6 +320,8 @@ export type BudgetPlan = z.infer<typeof budgetPlanSchema>;
 export type IncomeSource = z.infer<typeof incomeSourceSchema>;
 export type Goal = z.infer<typeof goalSchema>;
 export type Envelope = z.infer<typeof envelopeSchema>;
+export type InsurancePolicy = z.infer<typeof insurancePolicySchema>;
+export type PolicyType = InsurancePolicy['type'];
 export type DashboardLayout = z.infer<typeof dashboardLayoutSchema>;
 export type Link = z.infer<typeof linkSchema>;
 export type Feed = z.infer<typeof feedSchema>;
@@ -329,6 +354,7 @@ export const TABLE_SCHEMAS = {
   incomeSources: incomeSourceSchema,
   goals: goalSchema,
   envelopes: envelopeSchema,
+  policies: insurancePolicySchema,
   dashboardLayouts: dashboardLayoutSchema,
   links: linkSchema,
   feeds: feedSchema,

@@ -28,6 +28,8 @@ const backupDataSchema = z.object({
   links: z.array(TABLE_SCHEMAS.links).default([]),
   // Added in schema 3.
   incomeSources: z.array(TABLE_SCHEMAS.incomeSources).default([]),
+  // Added in schema 4.
+  policies: z.array(TABLE_SCHEMAS.policies).default([]),
   feeds: z.array(TABLE_SCHEMAS.feeds).default([]),
   feedItems: z.array(TABLE_SCHEMAS.feedItems).default([]),
 });
@@ -70,6 +72,7 @@ export async function collectBackup(now: number = Date.now()): Promise<BackupFil
     feeds,
     feedItems,
     incomeSources,
+    policies,
   ] = await Promise.all([
     db.settings.toArray(),
     db.accounts.toArray(),
@@ -83,6 +86,7 @@ export async function collectBackup(now: number = Date.now()): Promise<BackupFil
     db.feeds.toArray(),
     db.feedItems.toArray(),
     db.incomeSources.toArray(),
+    db.policies.toArray(),
   ]);
 
   return {
@@ -102,6 +106,7 @@ export async function collectBackup(now: number = Date.now()): Promise<BackupFil
       feeds,
       feedItems,
       incomeSources,
+      policies,
     },
   };
 }

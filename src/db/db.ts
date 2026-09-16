@@ -15,6 +15,7 @@ import type {
   FeedItem,
   Goal,
   IncomeSource,
+  InsurancePolicy,
   Link,
   Transaction,
 } from '@/db/models';
@@ -28,6 +29,7 @@ export class KonvertDatabase extends Dexie {
   declare transactions: Table<Transaction, string>;
   declare budgetPlans: Table<BudgetPlan, string>;
   declare incomeSources: Table<IncomeSource, string>;
+  declare policies: Table<InsurancePolicy, string>;
   declare goals: Table<Goal, string>;
   declare envelopes: Table<Envelope, string>;
   declare dashboardLayouts: Table<DashboardLayout, string>;
@@ -61,6 +63,11 @@ export class KonvertDatabase extends Dexie {
     // nothing is transformed: the table simply starts empty.
     this.version(3).stores({
       incomeSources: 'id, sortOrder, archived',
+    });
+
+    // v4 adds the insurance policies of stage 6. Nothing is transformed again.
+    this.version(4).stores({
+      policies: 'id, endDate, archived',
     });
   }
 }

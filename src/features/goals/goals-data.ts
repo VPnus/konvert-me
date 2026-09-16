@@ -1,0 +1,167 @@
+/**
+ * Everything the goals screen shows, in one read. The screen never does money
+ * arithmetic of its own: every number below comes from src/core.
+ */
+
+import { averageMonthlyExpenses, liquidAssetsMinor, reserveState, type ReserveState } from '@/core/balance';
+import { monthTotals, planTotals } from '@/core/budget';
+import {
+  allocateFreeCash,
+  contributionPlan,
+  realReturnRate,
+  returnBeatsInflation,
+  type Allocation,
+  type ContributionPlan,
+} from '@/core/goals';
+import { currentMonth, type IsoMonth } from '@/core/time';
+import type { CoreAccount, CoreCategory } from '@/core/types';
+import { db } from '@/db/db';
+import { DEFAULT_SETTINGS, type Account, type AppSettings, type Envelope, type Goal } from '@/db/models';
+import { getAccountBalancesMinor } from '@/db/repositories/accounts';
+import { listGoals, RESERVE_GOAL_ID } from '@/db/repositories/goals';
+
+export interface GoalView {
+  readonly goal: Goal;
+  /** Sum of the envelopes of this goal — the S of formulas 4 and 5. */
+  readonly savedMinor: number;
+  /** The reserve has no stored cost: it is derived from the average expenses. */
+  readonly costMinor: number;
+  readonly plan: ContributionPlan | null;
+  readonly realReturnRate: number;
+  readonly beatsInflation: boolean;
+  readonly envelopes: Envelope[];
+  readonly progress: number;
+}
+
+export interface GoalsData {
+  readonly month: IsoMonth;
+  readonly settings: AppSettings;
+  readonly goals: GoalView[];
+  readonly accounts: Account[];
+  readonly balances: Map<string, number>;
+  readonly reserve: ReserveState;
+  readonly freeCashMinor: number;
+  readonly freeCashFromFact: boolean;
+  readonly allocations: Allocation[];
+  readonly leftoverMinor: number;
+  readonly totalDeficitMinor: number;
+}
+
+function toCoreAccount(account: Account): CoreAccount {
+  return {
+    id: account.id,
+    side: account.side,
+    isLiquid: account.isLiquid,
+    openingBalanceMinor: account.openingBalanceMinor,
+    openingDate: account.openingDate,
+    archived: account.archived,
+    monthlyPaymentMinor: account.monthlyPaymentMinor,
+  };
+}
+
+export async function loadGoals(now: Date = new Date()): Promise<GoalsData> {
+  const month = currentMonth(now);
+
+  const [settingsRow, goals, accounts, envelopes, transactions, plans, categories, balances] =
+    await Promise.all([
+      db.settings.get('app'),
+      listGoals({ includeDone: true }),
+      db.accounts.toArray(),
+      db.envelopes.toArray(),
+      db.transactions.toArray(),
+      db.budgetPlans.where('month').equals(month).toArray(),
+      db.categories.toArray(),
+      getAccountBalancesMinor(),
+    ]);
+
+  const settings = settingsRow ?? DEFAULT_SETTINGS;
+  const coreAccounts = accounts.map(toCoreAccount);
+  const coreCategories: CoreCategory[] = categories.map((category) => ({
+    id: category.id,
+    kind: category.kind,
+    group: category.group,
+  }));
+
+  const fact = monthTotals(transactions, month);
+  const plan = planTotals(plans, month, coreCategories);
+
+  const savedByGoal = new Map<string, number>();
+  const envelopesByGoal = new Map<string, Envelope[]>();
+  for (const envelope of envelopes) {
+    savedByGoal.set(envelope.goalId, (savedByGoal.get(envelope.goalId) ?? 0) + envelope.amountMinor);
+    envelopesByGoal.set(envelope.goalId, [...(envelopesByGoal.get(envelope.goalId) ?? []), envelope]);
+  }
+
+  const reserve = reserveState({
+    liquidMinor: liquidAssetsMinor(coreAccounts, transactions),
+    otherGoalsEnvelopesMinor: envelopes
+      .filter((envelope) => envelope.goalId !== RESERVE_GOAL_ID)
+      .reduce((total, envelope) => total + envelope.amountMinor, 0),
+    averageExpenses: averageMonthlyExpenses({
+      transactions,
+      currentMonth: month,
+      planExpenseMinor: plan.expenseMinor,
+    }),
+    targetMonths: settings.reserveTargetMonths,
+  });
+
+  const views: GoalView[] = goals.map((goal) => {
+    const isReserve = goal.kind === 'reserve';
+    const savedMinor = isReserve ? reserve.reserveMinor : (savedByGoal.get(goal.id) ?? 0);
+    const costMinor = isReserve ? (reserve.targetMinor ?? 0) : goal.costMinor;
+
+    // The reserve has no date, so it has no contribution schedule of its own.
+    const plannable = !isReserve && Boolean(goal.targetMonth) && goal.status === 'active';
+    const contribution = plannable
+      ? contributionPlan(
+          {
+            costMinor: goal.costMinor,
+            costAsOf: goal.costAsOf,
+            targetMonth: goal.targetMonth as IsoMonth,
+            returnRate: goal.returnRate,
+            inflationRate: goal.inflationRate,
+          },
+          { currentMonth: month, savedMinor },
+        )
+      : null;
+
+    return {
+      goal,
+      savedMinor,
+      costMinor,
+      plan: contribution,
+      realReturnRate: realReturnRate(goal.returnRate, goal.inflationRate),
+      beatsInflation: returnBeatsInflation(goal.returnRate, goal.inflationRate),
+      envelopes: envelopesByGoal.get(goal.id) ?? [],
+      progress: costMinor > 0 ? Math.min(savedMinor / costMinor, 1) : 0,
+    };
+  });
+
+  // Formula 8: the free balance of the month goes to the goals by priority.
+  const freeCashFromFact = fact.incomeMinor > 0 || fact.expenseMinor > 0;
+  const freeCashMinor = freeCashFromFact ? fact.freeCashMinor : plan.freeCashMinor;
+
+  const requests = views
+    .filter((view) => view.plan?.status === 'active' && view.goal.status === 'active')
+    .map((view) => ({
+      goalId: view.goal.id,
+      priority: view.goal.priority,
+      requiredMinor: view.plan?.contributionMinor ?? 0,
+    }));
+
+  const allocation = allocateFreeCash(requests, freeCashMinor);
+
+  return {
+    month,
+    settings,
+    goals: views,
+    accounts: accounts.filter((account) => !account.archived && account.side === 'asset'),
+    balances,
+    reserve,
+    freeCashMinor,
+    freeCashFromFact,
+    allocations: allocation.allocations,
+    leftoverMinor: allocation.leftoverMinor,
+    totalDeficitMinor: allocation.totalDeficitMinor,
+  };
+}

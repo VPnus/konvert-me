@@ -1,8 +1,9 @@
 import type { DeductionSummary } from '@/core/deductions';
 import { formatMinor } from '@/core/money';
-import type { MonthDay, YearRules } from '@/core/rules';
+import type { YearRules } from '@/core/rules';
 import { todayIso, type IsoDate } from '@/core/time';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { dateOfYear } from '@/features/deductions/dates';
 import type { DeductionYearView } from '@/features/deductions/deductions-data';
 import { fill } from '@/features/deductions/fill';
 import { ru } from '@/i18n/ru';
@@ -10,14 +11,6 @@ import { ru } from '@/i18n/ru';
 const t = ru.deductions;
 
 const rubles = (minor: number) => formatMinor(minor, { fractionDigits: 0 });
-
-const DAY_MONTH = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long' });
-
-/** A day that comes back every year, in the year given: '04-30', 2027 → «30 апреля 2027 года». */
-function dateOfYear(day: MonthDay, year: number): string {
-  const [month, date] = day.split('-').map(Number);
-  return fill(t.dateOfYear, { dayMonth: DAY_MONTH.format(new Date(year, month - 1, date)), year });
-}
 
 /**
  * When the return for a sale is due, and its tax. A year still open may have its dates behind

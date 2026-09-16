@@ -5,6 +5,7 @@ import { ErrorBoundary } from '@/components/common/error-boundary';
 import { CatLogo } from '@/components/brand/cat-logo';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { NAV_ITEMS } from '@/app/navigation';
+import { DeductionReminderBanner } from '@/features/deductions/deduction-reminder';
 import { ru } from '@/i18n/ru';
 import { cn } from '@/lib/utils';
 
@@ -77,6 +78,7 @@ export function AppShell() {
       <main className="mx-auto min-w-0 w-full max-w-6xl flex-1 px-4 pt-4 pb-8 md:px-8 md:py-8">
         <ErrorBoundary>
           <BackupReminder />
+          <DeductionReminderBanner />
           <Outlet />
         </ErrorBoundary>
       </main>

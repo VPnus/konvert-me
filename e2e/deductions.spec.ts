@@ -164,6 +164,43 @@ test.describe('deductions', () => {
     await expect(page.getByTestId('checklist-progress')).toHaveText('Собрано 1 из 10');
   });
 
+  test('in January the year that ended is brought up, and hiding it keeps it hidden', async ({ page }) => {
+    await page.clock.setFixedTime(new Date(2027, 0, 15, 12));
+    await skipOnboarding(page);
+
+    const reminder = page.getByTestId('deduction-reminder');
+    await expect(reminder).toContainText('налог за 2026');
+    await reminder.getByRole('link', { name: 'Открыть вычеты' }).click();
+    await expect(page).toHaveURL(/\/deductions$/);
+
+    await page.getByTestId('deduction-reminder-dismiss').click();
+    await expect(reminder).toHaveCount(0);
+    await page.reload();
+    await expect(page.getByTestId('deduction-year-2026')).toBeVisible();
+    await expect(reminder).toHaveCount(0);
+  });
+
+  test('a year written but not filed is brought up with its money until the end of April', async ({
+    page,
+  }) => {
+    await page.clock.setFixedTime(new Date(2027, 2, 10, 12));
+    const year = await openDeductions(page);
+    expect(year).toBe(2026);
+
+    // nothing to say in March about a year nobody wrote anything for
+    await expect(page.getByTestId('deduction-reminder')).toHaveCount(0);
+
+    await page.getByTestId('deduction-income').fill('1200000');
+    await page.getByTestId('had-education').check();
+    await page.getByTestId('deduction-education').fill('300000');
+    await page.getByTestId('deduction-save').click();
+    await expect(page.getByTestId('deduction-reminder')).toContainText(/2026 год можно вернуть 19\s?500/);
+
+    await page.getByTestId('deduction-status').selectOption('filed');
+    await page.getByTestId('deduction-save').click();
+    await expect(page.getByTestId('deduction-reminder')).toHaveCount(0);
+  });
+
   test('the answers of one year do not leak into another', async ({ page }) => {
     const year = await openDeductions(page);
 

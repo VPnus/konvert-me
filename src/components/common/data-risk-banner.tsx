@@ -30,10 +30,11 @@ function textOf(risk: DataRisk): string {
 
 /**
  * The ways the browser itself could lose the data, one at a time and the most serious first.
- * The storage is asked again after every change, since new papers are what fill it.
+ * The storage is asked again after every change, since new papers are what fill it —
+ * the ones added in this very tab included.
  */
 export function DataRiskBanner() {
-  const dataVersion = useDataVersion();
+  const dataVersion = useDataVersion({ includeThisTab: true });
   const { settings, loading } = useSettingsState();
   // Read together with the moment it was read, so the render itself stays free of the clock.
   const [storage, setStorage] = useState<{ status: StorageStatus; at: number } | null>(null);

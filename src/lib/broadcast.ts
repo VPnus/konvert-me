@@ -23,15 +23,39 @@ function channel(): BroadcastChannel | null {
   return sharedChannel;
 }
 
+/**
+ * A channel hears every other channel of the same name, the ones in its own tab too.
+ * The mark tells this tab's messages apart. A message without one came from a tab
+ * still running an older version of the app, which is another tab all the same.
+ */
+const THIS_TAB = crypto.randomUUID();
+
+type Message = AppEvent & { readonly from?: string };
+
 export function publishAppEvent(event: AppEvent): void {
-  channel()?.postMessage(event);
+  channel()?.postMessage({ ...event, from: THIS_TAB } satisfies Message);
 }
 
-export function subscribeToAppEvents(listener: (event: AppEvent) => void): () => void {
+export interface SubscribeOptions {
+  /**
+   * Hear the changes made in this tab as well. A query does not need them — Dexie
+   * liveQuery already follows its own tab, and hearing them again counts it twice —
+   * but whatever lives outside the database, like the used storage, does.
+   */
+  readonly includeThisTab?: boolean;
+}
+
+export function subscribeToAppEvents(
+  listener: (event: AppEvent) => void,
+  options: SubscribeOptions = {},
+): () => void {
   const local = createChannel();
   if (!local) return () => undefined;
 
-  const handler = (message: MessageEvent<AppEvent>) => listener(message.data);
+  const handler = (message: MessageEvent<Message>) => {
+    if (message.data.from === THIS_TAB && !options.includeThisTab) return;
+    listener(message.data);
+  };
   local.addEventListener('message', handler);
 
   return () => {

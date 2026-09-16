@@ -175,9 +175,9 @@ function timeClick(
 }
 
 /**
- * Lets the page finish what the previous step started. A change is counted again a
- * moment after the screen already shows it, and a measurement that starts on top of
- * that measures both.
+ * Lets the page finish what the previous step started: the screen shows a change
+ * before everything around it is done — the rest of the save, the other queries — and
+ * a measurement that starts on top of that measures both.
  */
 async function settle(page: Page): Promise<void> {
   await page.waitForTimeout(1_000);

@@ -116,6 +116,54 @@ test.describe('deductions', () => {
     await expect(page.getByTestId('refund-sale-notes')).toContainText('налога с продажи нет');
   });
 
+  test('the checklist follows the answers, and the papers ticked stay ticked', async ({ page }) => {
+    await openDeductions(page);
+
+    await expect(page.getByTestId('checklist-empty')).toBeVisible();
+
+    await page.getByTestId('deduction-income').fill('1200000');
+    await page.getByTestId('had-treatment').check();
+    await page.getByTestId('deduction-treatment').fill('50000');
+    await page.getByTestId('had-property').check();
+    await page.getByTestId('deduction-purchase').fill('2000000');
+
+    // from the spending of 2024 one certificate stands for the contract, the licence and the receipts
+    await expect(page.getByTestId('check-treatment-treatmentCertificate')).toBeVisible();
+    await expect(page.getByTestId('check-treatment-treatmentContract')).toHaveCount(0);
+    await expect(page.getByTestId('checklist-property')).toBeVisible();
+    await expect(page.getByTestId('checklist-mortgage')).toHaveCount(0);
+    await page.getByTestId('deduction-interest').fill('100000');
+    await expect(page.getByTestId('checklist-mortgage')).toBeVisible();
+
+    // nothing to tick until the answers are kept
+    await expect(page.getByTestId('checklist-save-first')).toBeVisible();
+    await expect(page.getByTestId('check-general-passport')).toBeDisabled();
+    await page.getByTestId('deduction-save').click();
+    await expect(page.getByTestId('checklist-save-first')).toHaveCount(0);
+
+    // general 4, treatment 1, medicine 2, relatives 2, property 4, mortgage 2
+    await page.getByTestId('check-general-passport').check();
+    await page.getByTestId('check-treatment-treatmentCertificate').check();
+    await expect(page.getByTestId('checklist-progress')).toHaveText('Собрано 2 из 15');
+
+    await page.getByTestId('doc-category').selectOption('treatment');
+    await page.getByTestId('doc-file').setInputFiles({
+      name: 'справка об оплате.pdf',
+      mimeType: 'application/pdf',
+      buffer: Buffer.from('%PDF-1.4 справка'),
+    });
+    await expect(page.getByTestId('checklist-treatment')).toContainText('файлов здесь: 1');
+
+    await page.reload();
+    await expect(page.getByTestId('check-general-passport')).toBeChecked();
+    await expect(page.getByTestId('check-treatment-treatmentCertificate')).toBeChecked();
+
+    // a question unticked takes its papers off the list and out of the count
+    await page.getByTestId('had-treatment').uncheck();
+    await expect(page.getByTestId('checklist-treatment')).toHaveCount(0);
+    await expect(page.getByTestId('checklist-progress')).toHaveText('Собрано 1 из 10');
+  });
+
   test('the answers of one year do not leak into another', async ({ page }) => {
     const year = await openDeductions(page);
 

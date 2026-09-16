@@ -16,6 +16,8 @@ import {
   toDeductionClaim,
   type DeductionYearInput,
 } from '@/db/repositories/deductions';
+import { checklistFor, type ChecklistGroup } from '@/features/deductions/checklist';
+import { ChecklistCard } from '@/features/deductions/checklist-card';
 import type { DeductionYearView } from '@/features/deductions/deductions-data';
 import { fill } from '@/features/deductions/fill';
 import { RefundCard } from '@/features/deductions/refund-card';
@@ -312,10 +314,12 @@ export function YearPanel({ view }: { view: DeductionYearView }) {
 
   const input = inputOf(view.year, form);
   let summary: DeductionSummary | undefined;
+  let checklist: ChecklistGroup[] = [];
   try {
     summary = view.rules ? summarizeDeductionYear(toDeductionClaim(input), view.rules) : undefined;
+    checklist = checklistFor(input, view.rules);
   } catch {
-    // a number too large to be money yet: the refund waits until it is one
+    // a number too large to be money yet: the refund and the papers wait until it is one
     summary = undefined;
   }
 
@@ -759,6 +763,9 @@ export function YearPanel({ view }: { view: DeductionYearView }) {
           </form>
         </CardContent>
       </Card>
+
+      {/* remounted when the stored year changes, so its ticks follow what is kept */}
+      <ChecklistCard key={view.saved?.updatedAt ?? 0} view={view} groups={checklist} />
 
       <ConfirmDialog
         open={confirmDelete}

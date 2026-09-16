@@ -45,7 +45,9 @@ export async function deleteDeductionYear(year: number): Promise<void> {
 }
 
 /** A stored year in the terms of the law: the four pooled kinds of spending become one pot. */
-export function toDeductionClaim(year: DeductionYear): DeductionClaim {
+export function toDeductionClaim(
+  year: Pick<DeductionYear, 'incomeMinor' | 'spending' | 'longTermSavingsMinor' | 'property'>,
+): DeductionClaim {
   const {
     treatmentMinor,
     educationMinor,

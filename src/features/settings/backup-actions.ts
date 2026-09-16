@@ -15,20 +15,13 @@ import {
 } from '@/db/backup';
 import { markBackupDone } from '@/db/repositories/settings';
 import { publishAppEvent } from '@/lib/broadcast';
+import { downloadBlob } from '@/lib/download';
 
 export async function downloadBackup(password?: string): Promise<void> {
   const backup = await collectBackup();
   const text = await serializeBackup(backup, password || undefined);
 
-  const blob = new Blob([text], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = backupFileName();
-  document.body.append(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
+  downloadBlob(new Blob([text], { type: 'application/json' }), backupFileName());
 
   await markBackupDone();
   publishAppEvent({ type: 'settings-changed' });

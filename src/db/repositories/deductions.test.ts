@@ -150,6 +150,50 @@ describe('deduction years', () => {
     });
   });
 
+  it('keeps the children and a sale of a year, and hands them to the count as they are', async () => {
+    const children = {
+      items: [
+        { order: 1, disabled: false, fromMonth: 1, toMonth: 12 },
+        { order: 3, disabled: true, fromMonth: 6, toMonth: 12 },
+      ],
+      double: false,
+      guardian: false,
+      appliedByEmployer: true,
+    };
+    const sale = {
+      priceMinor: 3_000_000 * RUB,
+      cadastralMinor: 0,
+      expensesMinor: 2_500_000 * RUB,
+      ownedLongEnough: false,
+    };
+
+    await saveDeductionYear(yearInput(2025, { children, sale }));
+    const saved = await getDeductionYear(2025);
+
+    expect(saved).toMatchObject({ children, sale });
+    expect(toDeductionClaim(saved!)).toMatchObject({ children, sale });
+  });
+
+  it('refuses a child whose months run backwards or fall outside the year, and a list of no children', async () => {
+    const children = (fromMonth: number, toMonth: number) => ({
+      items: [{ order: 1, disabled: false, fromMonth, toMonth }],
+      double: false,
+      guardian: false,
+      appliedByEmployer: false,
+    });
+
+    await expect(saveDeductionYear(yearInput(2025, { children: children(7, 6) }))).rejects.toBeInstanceOf(
+      ValidationError,
+    );
+    await expect(saveDeductionYear(yearInput(2025, { children: children(0, 12) }))).rejects.toBeInstanceOf(
+      ValidationError,
+    );
+    await expect(
+      saveDeductionYear(yearInput(2025, { children: { ...children(1, 12), items: [] } })),
+    ).rejects.toBeInstanceOf(ValidationError);
+    expect(await db.deductionYears.count()).toBe(0);
+  });
+
   it('deleting a year takes its documents with it, and leaves the other years alone', async () => {
     await saveDeductionYear(yearInput(2024));
     await saveDeductionYear(yearInput(2025));

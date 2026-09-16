@@ -203,6 +203,25 @@ const taxYear = z
 
 export const DEDUCTION_STATUSES = ['draft', 'filed', 'refunded'] as const;
 
+const monthOfYear = z
+  .number()
+  .int('Месяц должен быть целым числом')
+  .min(1, 'Месяц должен быть от 1 до 12')
+  .max(12, 'Месяц должен быть от 1 до 12');
+
+/** A child the standard deduction is given for, and the months of the year it lasted. */
+const childRightSchema = z
+  .object({
+    /** Place by birth among all the children, grown ones included; 3 stands for the third and on. */
+    order: z.number().int().min(1, 'Очерёдность ребёнка — от первого').max(3),
+    disabled: z.boolean(),
+    fromMonth: monthOfYear,
+    toMonth: monthOfYear,
+  })
+  .refine((child) => child.fromMonth <= child.toMonth, {
+    message: 'Месяц начала не может быть позже месяца окончания',
+  });
+
 /**
  * What a person claims for one tax year (stage 7). The year itself is the key: there
  * is one return per year, so saving a year again replaces it.
@@ -242,6 +261,26 @@ export const deductionYearSchema = z.object({
       usedBeforeMinor: nonNegativeMinor,
     })
     .optional(),
+  /** The standard deduction for children: who they are, and whether the employer already gave it. */
+  children: z
+    .object({
+      items: z.array(childRightSchema).min(1, 'Добавьте хотя бы одного ребёнка').max(20),
+      double: z.boolean(),
+      guardian: z.boolean(),
+      appliedByEmployer: z.boolean(),
+    })
+    .optional(),
+  /** A home sold within the year: its price, and what the tax on it can be reduced by. */
+  sale: z
+    .object({
+      priceMinor: nonNegativeMinor,
+      /** On 1 January of the year the sale was registered; 0 when not known. */
+      cadastralMinor: nonNegativeMinor,
+      /** The cost of buying it, with papers; 0 when there are none. */
+      expensesMinor: nonNegativeMinor,
+      ownedLongEnough: z.boolean(),
+    })
+    .optional(),
   status: z.enum(DEDUCTION_STATUSES),
   note,
   createdAt: timestamp,
@@ -259,6 +298,8 @@ export const DOCUMENT_CATEGORIES = [
   'long_term_savings',
   'property',
   'mortgage',
+  'children',
+  'property_sale',
   'other',
 ] as const;
 

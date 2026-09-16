@@ -11,6 +11,7 @@ import {
   propertyDeductionMinor,
   refundMinor,
   socialDeductionMinor,
+  splitUsedBefore,
   summarizeDeductionYear,
   type ChildRight,
   type ChildrenClaim,
@@ -29,6 +30,13 @@ const r = (rubles: number): number => Math.round(rubles * RUB);
 const bands = RULES_2026.incomeTaxBands.value;
 
 const noSpending: SocialSpending = { commonMinor: 0, childEducationMinor: [], expensiveTreatmentMinor: 0 };
+
+/** One part of a home over the year: what it had, what the year took, what moves on. */
+const part = (available: number, used: number) => ({
+  availableMinor: r(available),
+  usedMinor: r(used),
+  leftMinor: r(available - used),
+});
 
 // Section 5 of the plan has no formulas for deductions: stage 7 is accepted on the
 // examples of the tax service instead. Each vector below says where it comes from —
@@ -316,11 +324,12 @@ describe('a year of deductions summed up', () => {
     longTermSavingsMinor: 0,
     ...patch,
   });
-  const home = (purchase: number, usedBefore = 0) => ({
+  const home = (purchase: number, usedBefore = 0, interest = 0, usedBeforeInterest = 0) => ({
     purchaseMinor: r(purchase),
-    mortgageInterestMinor: 0,
+    mortgageInterestMinor: r(interest),
     loanBefore2014: false,
-    usedBeforeMinor: r(usedBefore),
+    usedBeforePurchaseMinor: r(usedBefore),
+    usedBeforeInterestMinor: r(usedBeforeInterest),
   });
 
   it('gives the tax service example: 300 000 of schooling on 100 000 a month returns 19 500', () => {
@@ -350,6 +359,8 @@ describe('a year of deductions summed up', () => {
       usedMinor: r(2_000_000),
       refundMinor: r(282_000),
       leftMinor: 0,
+      purchase: part(2_000_000, 2_000_000),
+      interest: part(0, 0),
     });
     expect(summary.refundMinor).toBe(r(282_000));
   });
@@ -380,6 +391,8 @@ describe('a year of deductions summed up', () => {
       usedMinor: r(650_000),
       refundMinor: r(84_500),
       leftMinor: r(1_350_000),
+      purchase: part(2_000_000, 650_000),
+      interest: part(0, 0),
     });
     expect(summary.refundMinor).toBe(summary.taxPaidMinor);
   });
@@ -396,14 +409,73 @@ describe('a year of deductions summed up', () => {
       usedMinor: r(600_000),
       refundMinor: r(78_000),
       leftMinor: r(200_000),
+      purchase: part(800_000, 600_000),
+      interest: part(0, 0),
     });
   });
 
   it('has nothing left of a home whose deduction was taken in full before', () => {
     const summary = summarizeDeductionYear(claim({ property: home(2_000_000, 2_500_000) }), RULES_2026);
 
-    expect(summary.property).toEqual({ availableMinor: 0, usedMinor: 0, refundMinor: 0, leftMinor: 0 });
+    expect(summary.property).toEqual({
+      availableMinor: 0,
+      usedMinor: 0,
+      refundMinor: 0,
+      leftMinor: 0,
+      purchase: part(0, 0),
+      interest: part(0, 0),
+    });
     expect(summary.refundMinor).toBe(0);
+  });
+
+  it('takes the home itself first, gives the interest what the income has left, and carries each on apart', () => {
+    // 3-NDFL, appendix 7: the interest of a year is at most the tax base less the purchase taken;
+    // what is left of the purchase and of the interest move on in lines of their own
+    const summary = summarizeDeductionYear(
+      claim({ incomeMinor: r(2_300_000), property: home(3_000_000, 0, 500_000) }),
+      RULES_2026,
+    );
+
+    expect(summary.property).toEqual({
+      availableMinor: r(2_500_000),
+      usedMinor: r(2_300_000),
+      refundMinor: r(299_000),
+      leftMinor: r(200_000),
+      purchase: part(2_000_000, 2_000_000),
+      interest: part(500_000, 300_000),
+    });
+  });
+
+  it('keeps the interest waiting whole while the home itself takes all the income', () => {
+    // a salary of 50 000 a month against a home of 2 million and 400 000 of interest
+    const summary = summarizeDeductionYear(
+      claim({ incomeMinor: r(600_000), property: home(2_000_000, 0, 400_000) }),
+      RULES_2026,
+    );
+
+    expect(summary.property).toMatchObject({
+      usedMinor: r(600_000),
+      leftMinor: r(1_800_000),
+      purchase: part(2_000_000, 600_000),
+      interest: part(400_000, 0),
+    });
+  });
+
+  it('takes off what earlier returns took of each part from that part only', () => {
+    // the home itself was used up before; of 400 000 of interest, 100 000 came back before
+    const summary = summarizeDeductionYear(
+      claim({ property: home(3_000_000, 2_000_000, 400_000, 100_000) }),
+      RULES_2026,
+    );
+
+    expect(summary.property).toEqual({
+      availableMinor: r(300_000),
+      usedMinor: r(300_000),
+      refundMinor: r(39_000),
+      leftMinor: 0,
+      purchase: part(0, 0),
+      interest: part(300_000, 300_000),
+    });
   });
 
   it('counts an old year by its own limits', () => {
@@ -419,6 +491,61 @@ describe('a year of deductions summed up', () => {
 
   it('refuses a negative amount of what earlier returns took', () => {
     expect(() => summarizeDeductionYear(claim({ property: home(2_000_000, -1) }), RULES_2026)).toThrow();
+    expect(() =>
+      summarizeDeductionYear(claim({ property: home(2_000_000, 0, 100_000, -1) }), RULES_2026),
+    ).toThrow();
+  });
+});
+
+describe('one sum of what earlier returns took of a home, split into its parts', () => {
+  const home = (purchase: number, interest: number) => ({
+    purchaseMinor: r(purchase),
+    mortgageInterestMinor: r(interest),
+    loanBefore2014: false,
+  });
+  const split = (purchase: number, interest: number) => ({
+    usedBeforePurchaseMinor: r(purchase),
+    usedBeforeInterestMinor: r(interest),
+  });
+
+  it('gives the home itself the sum up to its deduction, as the returns took it', () => {
+    expect(splitUsedBefore(home(4_500_000, 310_000), r(1_200_000), RULES_2025)).toEqual(split(1_200_000, 0));
+    expect(splitUsedBefore(home(3_000_000, 800_000), r(2_500_000), RULES_2025)).toEqual(
+      split(2_000_000, 500_000),
+    );
+    expect(splitUsedBefore(home(1_500_000, 800_000), r(2_000_000), RULES_2025)).toEqual(
+      split(1_500_000, 500_000),
+    );
+  });
+
+  it('leaves as much of the home as the one sum did, whatever the numbers', () => {
+    for (const purchase of [0, 900_000, 2_000_000, 3_000_000])
+      for (const interest of [0, 250_000, 3_500_000])
+        for (const usedBefore of [0, 500_000, 2_000_000, 2_600_000, 7_000_000]) {
+          const claimed = home(purchase, interest);
+          const parts = splitUsedBefore(claimed, r(usedBefore), RULES_2026);
+          const summary = summarizeDeductionYear(
+            {
+              incomeMinor: 0,
+              social: noSpending,
+              longTermSavingsMinor: 0,
+              property: { ...claimed, ...parts },
+            },
+            RULES_2026,
+          );
+
+          expect(summary.property?.availableMinor).toBe(
+            Math.max(0, propertyDeductionMinor(claimed, RULES_2026) - r(usedBefore)),
+          );
+        }
+  });
+
+  it('caps the home only by its price when the year has no rules', () => {
+    expect(splitUsedBefore(home(3_000_000, 800_000), r(2_500_000), undefined)).toEqual(split(2_500_000, 0));
+  });
+
+  it('refuses a negative sum', () => {
+    expect(() => splitUsedBefore(home(2_000_000, 0), -1, RULES_2025)).toThrow();
   });
 });
 
@@ -661,7 +788,8 @@ describe('a sale and the deductions of the same year', () => {
           purchaseMinor: r(2_000_000),
           mortgageInterestMinor: 0,
           loanBefore2014: false,
-          usedBeforeMinor: 0,
+          usedBeforePurchaseMinor: 0,
+          usedBeforeInterestMinor: 0,
         },
         sale: sale(3_000_000),
       },
@@ -675,6 +803,8 @@ describe('a sale and the deductions of the same year', () => {
       usedMinor: r(2_000_000),
       refundMinor: r(260_000),
       leftMinor: 0,
+      purchase: part(2_000_000, 2_000_000),
+      interest: part(0, 0),
     });
     expect(summary.balanceMinor).toBe(0);
     expect(partsOf(summary)).toBe(summary.balanceMinor);
@@ -691,7 +821,8 @@ describe('a sale and the deductions of the same year', () => {
           purchaseMinor: r(2_000_000),
           mortgageInterestMinor: 0,
           loanBefore2014: false,
-          usedBeforeMinor: 0,
+          usedBeforePurchaseMinor: 0,
+          usedBeforeInterestMinor: 0,
         },
         sale: sale(3_000_000, { expensesMinor: r(2_500_000) }),
       },

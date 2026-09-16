@@ -85,6 +85,15 @@ export const RULES_2023: YearRules = {
       'на взносы по ИИС типа А.',
   },
 
+  lifeInsuranceInLongTermSavings: {
+    value: false,
+    source: SOURCES.lifeInsuranceLongTerm,
+    checkedAt: CHECKED,
+    note:
+      'Взносы по страхованию жизни — только в социальном вычете, в общем лимите с лечением и учёбой. ' +
+      'В вычет на долгосрочные сбережения они переходят с 1 сентября 2026 года.',
+  },
+
   deductionYearsBack: {
     value: 3,
     source: SOURCES.threeYearsBack,

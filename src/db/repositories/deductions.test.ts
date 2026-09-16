@@ -93,24 +93,30 @@ describe('deduction years', () => {
     });
   });
 
-  it('keeps what the returns of earlier years already took of a home', async () => {
-    await saveDeductionYear(
-      yearInput(2025, {
-        property: {
-          purchaseMinor: 4_500_000 * RUB,
-          mortgageInterestMinor: 310_000 * RUB,
-          loanBefore2014: false,
-          usedBeforeMinor: 1_200_000 * RUB,
-        },
-      }),
-    );
-
-    expect((await getDeductionYear(2025))?.property).toEqual({
+  it('keeps what the returns of earlier years already took of a home, the home itself and the interest apart', async () => {
+    const property = {
       purchaseMinor: 4_500_000 * RUB,
       mortgageInterestMinor: 310_000 * RUB,
       loanBefore2014: false,
+      usedBeforePurchaseMinor: 1_200_000 * RUB,
+      usedBeforeInterestMinor: 40_000 * RUB,
+    };
+    await saveDeductionYear(yearInput(2025, { property }));
+
+    expect((await getDeductionYear(2025))?.property).toEqual(property);
+  });
+
+  it('refuses a home kept the way of schema 6, with one sum of what was taken before', async () => {
+    const property = {
+      purchaseMinor: 4_500_000 * RUB,
+      mortgageInterestMinor: 0,
+      loanBefore2014: false,
       usedBeforeMinor: 1_200_000 * RUB,
-    });
+    };
+
+    await expect(
+      saveDeductionYear(yearInput(2025, { property } as unknown as Partial<DeductionYearInput>)),
+    ).rejects.toBeInstanceOf(ValidationError);
   });
 
   it('refuses a year that is not a year, a negative sum and fractional kopecks', async () => {

@@ -148,10 +148,71 @@ describe('schema migration', () => {
     opened.push(v6);
     await v6.open();
 
-    expect(v6.verno).toBe(6);
+    expect(v6.verno).toBeGreaterThanOrEqual(6);
     expect(await v6.deductionYears.count()).toBe(1);
     expect(await v6.documentFiles.count()).toBe(1);
     expect(await v6.financialPlans.count()).toBe(0);
+  });
+
+  it('splits what earlier returns took of a home when schema 7 arrives, and leaves the rest as it was', async () => {
+    const name = `konvert-me-v7-${crypto.randomUUID()}`;
+    const RUB = 100;
+    const year = (value: number, property?: Record<string, unknown>) => ({
+      year: value,
+      incomeMinor: 1_200_000 * RUB,
+      spending: {
+        treatmentMinor: 0,
+        educationMinor: 0,
+        sportMinor: 0,
+        insuranceMinor: 0,
+        childEducationMinor: [],
+        expensiveTreatmentMinor: 0,
+      },
+      longTermSavingsMinor: 0,
+      property,
+      status: 'draft',
+      createdAt: 1,
+      updatedAt: 1,
+    });
+
+    // schema 6 exactly as the app declared it before the two parts
+    const v6 = open(name, (database) => {
+      database.version(1).stores(V1_STORES);
+      database
+        .version(2)
+        .stores({ links: 'id, sortOrder', feeds: 'id, enabled', feedItems: 'id, feedId, publishedAt' });
+      database.version(3).stores({ incomeSources: 'id, sortOrder, archived' });
+      database.version(4).stores({ policies: 'id, endDate, archived' });
+      database
+        .version(5)
+        .stores({ deductionYears: 'year, status', documents: 'id, year, category', documentFiles: 'id' });
+      database.version(6).stores({ financialPlans: 'id' });
+    });
+    await v6.table('deductionYears').bulkAdd([
+      // 2,5 million taken before: 2 million was the home itself, the other 500 000 the interest
+      year(2025, {
+        purchaseMinor: 3_000_000 * RUB,
+        mortgageInterestMinor: 800_000 * RUB,
+        loanBefore2014: false,
+        usedBeforeMinor: 2_500_000 * RUB,
+      }),
+      year(2024),
+    ]);
+    v6.close();
+
+    const v7 = new KonvertDatabase(name);
+    opened.push(v7);
+    await v7.open();
+
+    expect(v7.verno).toBe(7);
+    expect((await v7.deductionYears.get(2025))?.property).toEqual({
+      purchaseMinor: 3_000_000 * RUB,
+      mortgageInterestMinor: 800_000 * RUB,
+      loanBefore2014: false,
+      usedBeforePurchaseMinor: 2_000_000 * RUB,
+      usedBeforeInterestMinor: 500_000 * RUB,
+    });
+    expect(await v7.deductionYears.get(2024)).toEqual(year(2024));
   });
 
   it('closes the old connection when another tab upgrades the schema', async () => {

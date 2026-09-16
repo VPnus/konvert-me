@@ -10,7 +10,7 @@ import { z } from 'zod';
 import { RISK_PROFILES } from '@/core/portfolio';
 import { isIsoDate, isIsoMonth } from '@/core/time';
 
-export const SCHEMA_VERSION = 6;
+export const SCHEMA_VERSION = 7;
 
 const isoDate = z.string().refine(isIsoDate, { message: 'Дата должна быть в формате ГГГГ-ММ-ДД' });
 const isoMonth = z.string().refine(isIsoMonth, { message: 'Месяц должен быть в формате ГГГГ-ММ' });
@@ -259,7 +259,9 @@ export const deductionYearSchema = z.object({
       purchaseMinor: nonNegativeMinor,
       mortgageInterestMinor: nonNegativeMinor,
       loanBefore2014: z.boolean(),
-      usedBeforeMinor: nonNegativeMinor,
+      /** Taken before for the home itself. Schema 7 keeps it apart from the interest, as the return does. */
+      usedBeforePurchaseMinor: nonNegativeMinor,
+      usedBeforeInterestMinor: nonNegativeMinor,
     })
     .optional(),
   /** The standard deduction for children: who they are, and whether the employer already gave it. */

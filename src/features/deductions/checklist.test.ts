@@ -7,6 +7,7 @@ import { checklistFor } from '@/features/deductions/checklist';
 const RUB = 100;
 
 const nothing = {
+  incomeMinor: 600_000 * RUB,
   spending: {
     treatmentMinor: 0,
     educationMinor: 0,
@@ -68,12 +69,30 @@ describe('the checklist of papers', () => {
     ).toEqual(['kidsBirth', 'kidsDisability', 'kidsStudent', 'kidsDouble']);
   });
 
+  it('asks nothing about children when the income leaves no deduction for them to prove', () => {
+    // tax code, art. 218: none from the month the income since January passes 450 000 — a salary
+    // of 5,5 million a year passes it in January
+    const children = {
+      items: [{ order: 1, disabled: false, fromMonth: 1, toMonth: 12 }],
+      double: false,
+      guardian: false,
+      appliedByEmployer: false,
+    };
+
+    expect(checklistFor({ ...nothing, incomeMinor: 5_500_000 * RUB, children }, RULES_2025)).toEqual([]);
+    expect(ids(checklistFor({ ...nothing, incomeMinor: 5_400_000 * RUB, children }, RULES_2025))).toEqual([
+      'general',
+      'kids',
+    ]);
+  });
+
   it('asks for the loan papers only when interest was paid', () => {
     const property = {
       purchaseMinor: 2_000_000 * RUB,
       mortgageInterestMinor: 0,
       loanBefore2014: false,
-      usedBeforeMinor: 0,
+      usedBeforePurchaseMinor: 0,
+      usedBeforeInterestMinor: 0,
     };
 
     expect(ids(checklistFor({ ...nothing, property }, RULES_2025))).toEqual(['general', 'property']);

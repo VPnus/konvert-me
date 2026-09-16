@@ -105,19 +105,58 @@ export interface PropertyClaim {
   readonly loanBefore2014: boolean;
 }
 
-/** The property deduction a home gives: the purchase and the interest, each up to its limit. */
-export function propertyDeductionMinor(
-  claim: PropertyClaim,
-  rules: Pick<YearRules, 'propertyPurchaseLimitMinor' | 'mortgageInterestLimitMinor'>,
-): Minor {
+type PropertyLimits = Pick<YearRules, 'propertyPurchaseLimitMinor' | 'mortgageInterestLimitMinor'>;
+
+/** A home's deduction in the two parts a return keeps apart: the home itself and the interest. */
+export interface PropertyParts {
+  readonly purchaseMinor: Minor;
+  readonly interestMinor: Minor;
+}
+
+/** The two parts of the deduction a home gives, each up to its own limit. */
+export function propertyDeductionPartsMinor(claim: PropertyClaim, rules: PropertyLimits): PropertyParts {
   assertNonNegativeMinor(claim.purchaseMinor, 'purchaseMinor');
   assertNonNegativeMinor(claim.mortgageInterestMinor, 'mortgageInterestMinor');
 
-  const interest = claim.loanBefore2014
-    ? claim.mortgageInterestMinor
-    : Math.min(claim.mortgageInterestMinor, rules.mortgageInterestLimitMinor.value);
+  return {
+    purchaseMinor: Math.min(claim.purchaseMinor, rules.propertyPurchaseLimitMinor.value),
+    interestMinor: claim.loanBefore2014
+      ? claim.mortgageInterestMinor
+      : Math.min(claim.mortgageInterestMinor, rules.mortgageInterestLimitMinor.value),
+  };
+}
 
-  return Math.min(claim.purchaseMinor, rules.propertyPurchaseLimitMinor.value) + interest;
+/** The property deduction a home gives: the purchase and the interest, each up to its limit. */
+export function propertyDeductionMinor(claim: PropertyClaim, rules: PropertyLimits): Minor {
+  const parts = propertyDeductionPartsMinor(claim, rules);
+  return parts.purchaseMinor + parts.interestMinor;
+}
+
+/** What earlier returns took of a home, part by part. */
+export interface PropertyUsedBefore {
+  readonly usedBeforePurchaseMinor: number;
+  readonly usedBeforeInterestMinor: number;
+}
+
+/**
+ * One sum of what earlier returns took of a home, split into its two parts — for answers kept
+ * before the two were asked for apart. A return takes the home itself first and the interest only
+ * after it, so the sum goes to the home up to its deduction and the rest to the interest. What is
+ * left of the home comes out the same as it was counted from the one sum.
+ *
+ * Without the rules of the year the home is not capped by its limit, only by what it cost.
+ */
+export function splitUsedBefore(
+  claim: PropertyClaim,
+  usedBeforeMinor: number,
+  rules: PropertyLimits | undefined,
+): PropertyUsedBefore {
+  assertNonNegativeMinor(usedBeforeMinor, 'usedBeforeMinor');
+  assertNonNegativeMinor(claim.purchaseMinor, 'purchaseMinor');
+
+  const purchase = rules ? propertyDeductionPartsMinor(claim, rules).purchaseMinor : claim.purchaseMinor;
+  const onPurchase = Math.min(usedBeforeMinor, purchase);
+  return { usedBeforePurchaseMinor: onPurchase, usedBeforeInterestMinor: usedBeforeMinor - onPurchase };
 }
 
 /** One year a property deduction can be spent against. */
@@ -297,8 +336,11 @@ export interface DeductionClaim {
   readonly social: SocialSpending;
   /** Contributions to an investment account and other long-term savings. */
   readonly longTermSavingsMinor: number;
-  /** A home, as this year's return states it: what earlier returns took is taken off. */
-  readonly property?: PropertyClaim & { readonly usedBeforeMinor: number };
+  /**
+   * A home, as this year's return states it: what earlier returns took is taken off each part.
+   * The return keeps the home itself and the interest apart, and what is left of each as well.
+   */
+  readonly property?: PropertyClaim & PropertyUsedBefore;
   readonly children?: ChildrenClaim;
   readonly sale?: HomeSale;
 }
@@ -314,6 +356,15 @@ export interface HomeSaleSummary {
   readonly taxBeforeMinor: Minor;
   /** The tax on the sale that is left to pay. */
   readonly taxMinor: Minor;
+}
+
+/** One part of a home's deduction over the year. */
+export interface PropertyPart {
+  /** What was left of the part when the year began. */
+  readonly availableMinor: Minor;
+  readonly usedMinor: Minor;
+  /** What moves on to the returns of the years after. */
+  readonly leftMinor: Minor;
 }
 
 export interface DeductionSummary {
@@ -332,6 +383,10 @@ export interface DeductionSummary {
     readonly refundMinor: Minor;
     /** What moves on to the returns of the years after. */
     readonly leftMinor: Minor;
+    /** The home itself: the return takes it first. */
+    readonly purchase: PropertyPart;
+    /** The interest: it gets only what the income has left after the home itself. */
+    readonly interest: PropertyPart;
   };
   readonly sale?: HomeSaleSummary;
   /** Everything the year gives back from the tax paid — never more than that tax. */
@@ -399,17 +454,25 @@ export function summarizeDeductionYear(claim: DeductionClaim, rules: YearRules):
 
   let property: DeductionSummary['property'];
   if (claim.property) {
-    assertNonNegativeMinor(claim.property.usedBeforeMinor, 'usedBeforeMinor');
-    const available = Math.max(
-      0,
-      propertyDeductionMinor(claim.property, rules) - claim.property.usedBeforeMinor,
-    );
-    const part = spend(available, true);
+    const { usedBeforePurchaseMinor, usedBeforeInterestMinor } = claim.property;
+    assertNonNegativeMinor(usedBeforePurchaseMinor, 'usedBeforePurchaseMinor');
+    assertNonNegativeMinor(usedBeforeInterestMinor, 'usedBeforeInterestMinor');
+
+    const parts = propertyDeductionPartsMinor(claim.property, rules);
+    const purchase = Math.max(0, parts.purchaseMinor - usedBeforePurchaseMinor);
+    const interest = Math.max(0, parts.interestMinor - usedBeforeInterestMinor);
+    const part = spend(purchase + interest, true);
+    // 3-NDFL, appendix 7: the interest taken in a year is at most the base less the home itself.
+    const purchaseUsed = Math.min(part.usedMinor, purchase);
+    const interestUsed = part.usedMinor - purchaseUsed;
+
     property = {
-      availableMinor: available,
+      availableMinor: purchase + interest,
       usedMinor: part.usedMinor,
       refundMinor: part.refundMinor,
-      leftMinor: available - part.usedMinor,
+      leftMinor: purchase + interest - part.usedMinor,
+      purchase: { availableMinor: purchase, usedMinor: purchaseUsed, leftMinor: purchase - purchaseUsed },
+      interest: { availableMinor: interest, usedMinor: interestUsed, leftMinor: interest - interestUsed },
     };
   }
 

@@ -3,7 +3,7 @@
  * applies is listed: a person who paid for sport is not asked for a mortgage statement.
  */
 
-import { homeSaleIncomeMinor } from '@/core/deductions';
+import { childDeductionMinor, homeSaleIncomeMinor } from '@/core/deductions';
 import type { YearRules } from '@/core/rules';
 import type { DocumentCategory } from '@/db/models';
 import type { DeductionYearInput } from '@/db/repositories/deductions';
@@ -25,7 +25,7 @@ export interface ChecklistGroup {
 
 type Answers = Pick<
   DeductionYearInput,
-  'spending' | 'longTermSavingsMinor' | 'property' | 'children' | 'sale'
+  'incomeMinor' | 'spending' | 'longTermSavingsMinor' | 'property' | 'children' | 'sale'
 >;
 
 export function checklistFor(answers: Answers, rules: YearRules | undefined): ChecklistGroup[] {
@@ -91,8 +91,13 @@ export function checklistFor(answers: Answers, rules: YearRules | undefined): Ch
   if (answers.longTermSavingsMinor > 0)
     add('savings', 'long_term_savings', ['savingsContract', 'savingsPayments']);
 
-  // Given by the employer, the child deduction is already in the income statement.
-  if (children && !children.appliedByEmployer) {
+  // Given by the employer, the child deduction is already in the income statement; and an income past
+  // the border from its first month gives none to prove.
+  if (
+    children &&
+    !children.appliedByEmployer &&
+    (!rules || childDeductionMinor(children, answers.incomeMinor, rules) > 0)
+  ) {
     add('kids', 'children', [
       'kidsBirth',
       ...(children.items.some((kid) => kid.disabled) ? (['kidsDisability'] as const) : []),

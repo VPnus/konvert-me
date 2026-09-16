@@ -38,7 +38,7 @@ test.describe('deductions', () => {
     await expect(page.getByTestId(`deduction-year-${year}`)).toContainText(/19\s?500/);
   });
 
-  test('a home returns what the income allows and says what is left for the years after', async ({
+  test('a home returns what the income allows and says what is left of the home and of the interest', async ({
     page,
   }) => {
     const year = await openDeductions(page);
@@ -49,11 +49,28 @@ test.describe('deductions', () => {
 
     // 2 million at most; 600 000 of income returns 78 000 and 1,4 million moves on
     await expect(page.getByTestId('refund-property')).toHaveText(/78\s?000/);
-    await expect(page.getByTestId('refund-property-left')).toContainText(/1\s?400\s?000/);
-    await expect(page.getByTestId('refund-property-left')).toContainText(String(year + 1));
+    const left = page.getByTestId('refund-property-left');
+    await expect(left).toContainText(/1\s?400\s?000\s₽ за стоимость жилья/);
+    await expect(left).toContainText(String(year + 1));
+    // without interest nothing is asked about what came back for it
+    await expect(page.getByTestId('deduction-used-before-interest')).toHaveCount(0);
+
+    // the home itself taken in full by earlier returns: the income of this year goes to the interest
+    await page.getByTestId('deduction-interest').fill('900000');
+    await page.getByTestId('deduction-used-before-purchase').fill('2000000');
+    await page.getByTestId('deduction-used-before-interest').fill('100000');
+    await expect(page.getByTestId('refund-property')).toHaveText(/78\s?000/);
+    await expect(left).toContainText(/следующие годы: 200\s?000\s₽ за проценты\./);
+    await expect(left).toContainText(/2\s?000\s?000\s₽ за стоимость жилья и 700\s?000\s₽ за проценты/);
+
+    await page.getByTestId('deduction-save').click();
+    await expect(page.getByTestId('deduction-saved')).toBeVisible();
+    await page.reload();
+    await expect(page.getByTestId('deduction-used-before-interest')).toHaveValue('100000');
+    await expect(left).toContainText(/200\s?000\s₽ за проценты/);
   });
 
-  test('the children of the tax service example give back 23 166 only when the employer did not', async ({
+  test('the children of the tax service example give back 23 166 unless the employer already gave them', async ({
     page,
   }) => {
     await openDeductions(page);
@@ -69,13 +86,16 @@ test.describe('deductions', () => {
     await expect(page.getByTestId('kid-order-1')).toHaveValue('2');
     await expect(page.getByTestId('kid-order-3')).toHaveValue('3');
 
-    // most employers give it on their own, so nothing is promised until told otherwise
-    await expect(page.getByTestId('kids-at-work')).toBeChecked();
+    // not ticked until the income statement shows the codes: a refund is never left unclaimed unseen
+    await expect(page.getByTestId('kids-at-work')).not.toBeChecked();
+    await expect(page.getByTestId('refund-children')).toHaveText(/23\s?166/);
+    await expect(page.getByTestId('refund-tax-paid')).toHaveText(/62\s?400/);
+
+    await page.getByTestId('kids-at-work').check();
     await expect(page.getByTestId('refund-children')).toHaveText('учтено работодателем');
     await expect(page.getByTestId('refund-tax-paid')).toHaveText(/39\s?234/);
 
     await page.getByTestId('kids-at-work').uncheck();
-    await expect(page.getByTestId('refund-children')).toHaveText(/23\s?166/);
     await expect(page.getByTestId('refund-total')).toHaveText(/23\s?166/);
 
     await page.getByTestId('deduction-save').click();
@@ -223,6 +243,19 @@ test.describe('deductions', () => {
 
     await widget.getByRole('link', { name: 'Все вычеты' }).click();
     await expect(page.getByTestId(`deduction-year-${year}`)).toBeVisible();
+  });
+
+  test('life insurance points to the long-term savings deduction from 2026 only', async ({ page }) => {
+    await page.clock.setFixedTime(new Date(2026, 8, 16, 12));
+    const year = await openDeductions(page);
+    expect(year).toBe(2025);
+
+    await page.getByTestId('had-insurance').check();
+    await expect(page.getByTestId('insurance-long-term-hint')).toHaveCount(0);
+
+    await page.getByTestId('deduction-year-2026').click();
+    await page.getByTestId('had-insurance').check();
+    await expect(page.getByTestId('insurance-long-term-hint')).toContainText('1 сентября 2026 года');
   });
 
   test('the answers of one year do not leak into another', async ({ page }) => {

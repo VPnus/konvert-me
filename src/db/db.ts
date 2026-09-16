@@ -23,6 +23,7 @@ import type {
   TaxDocument,
   Transaction,
 } from '@/db/models';
+import { upgradeDeductionYear } from '@/db/upgrades';
 
 export const DATABASE_NAME = 'konvert-me';
 
@@ -91,6 +92,20 @@ export class KonvertDatabase extends Dexie {
     this.version(6).stores({
       financialPlans: 'id',
     });
+
+    // v7 keeps what earlier returns took of a home in two parts, the home itself and the interest,
+    // as the return keeps them. No table or index changes; the one sum kept so far is split.
+    this.version(7)
+      .stores({})
+      .upgrade((transaction) =>
+        transaction
+          .table('deductionYears')
+          .toCollection()
+          .modify((record: Record<string, unknown>) => {
+            const upgraded = upgradeDeductionYear(record) as Record<string, unknown>;
+            if (upgraded !== record) record.property = upgraded.property;
+          }),
+      );
   }
 }
 

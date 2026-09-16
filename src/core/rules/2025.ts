@@ -83,6 +83,15 @@ export const RULES_2025: YearRules = {
     note: 'Один лимит на ИИС-3, программу долгосрочных сбережений и негосударственную пенсию.',
   },
 
+  lifeInsuranceInLongTermSavings: {
+    value: false,
+    source: SOURCES.lifeInsuranceLongTerm,
+    checkedAt: CHECKED,
+    note:
+      'Взносы по страхованию жизни — только в социальном вычете, в общем лимите с лечением и учёбой. ' +
+      'В вычет на долгосрочные сбережения они переходят с 1 сентября 2026 года.',
+  },
+
   deductionYearsBack: {
     value: 3,
     source: SOURCES.threeYearsBack,

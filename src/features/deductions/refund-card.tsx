@@ -1,4 +1,4 @@
-import type { DeductionSummary } from '@/core/deductions';
+import type { DeductionSummary, PropertyUsedBefore } from '@/core/deductions';
 import { formatMinor } from '@/core/money';
 import type { YearRules } from '@/core/rules';
 import { todayIso, type IsoDate } from '@/core/time';
@@ -11,6 +11,16 @@ import { ru } from '@/i18n/ru';
 const t = ru.deductions;
 
 const rubles = (minor: number) => formatMinor(minor, { fractionDigits: 0 });
+
+/** The home itself and the interest, as the return names them; a part with nothing in it is left out. */
+function propertyParts(purchaseMinor: number, interestMinor: number): string {
+  return [
+    purchaseMinor > 0 ? fill(t.propertyPurchasePart, { amount: rubles(purchaseMinor) }) : null,
+    interestMinor > 0 ? fill(t.propertyInterestPart, { amount: rubles(interestMinor) }) : null,
+  ]
+    .filter((part) => part !== null)
+    .join(t.propertyPartsJoin);
+}
 
 /**
  * When the return for a sale is due, and its tax. A year still open may have its dates behind
@@ -52,7 +62,7 @@ interface RefundCardProps {
   /** The employer already gave the child deduction: there is nothing of it to give back. */
   readonly childrenAtWork: boolean;
   /** What earlier returns took of the home, as the answers say now. */
-  readonly usedBeforeMinor: number;
+  readonly usedBefore: PropertyUsedBefore | undefined;
   /** The day the deadlines are measured from. */
   readonly today?: IsoDate;
 }
@@ -65,7 +75,7 @@ export function RefundCard({
   view,
   summary,
   childrenAtWork,
-  usedBeforeMinor,
+  usedBefore,
   today = todayIso(),
 }: RefundCardProps) {
   const notes: string[] = [];
@@ -80,6 +90,13 @@ export function RefundCard({
   const sale = summary?.sale;
   const toPay = summary !== undefined && summary.balanceMinor < 0;
   const next = view.year + 1;
+  // what the return of the year after is to state as taken already: before, and in this year
+  const takenByNext = property
+    ? propertyParts(
+        (usedBefore?.usedBeforePurchaseMinor ?? 0) + property.purchase.usedMinor,
+        (usedBefore?.usedBeforeInterestMinor ?? 0) + property.interest.usedMinor,
+      )
+    : '';
 
   return (
     <Card data-testid="refund-card">
@@ -144,8 +161,10 @@ export function RefundCard({
             ) : null}
             {property && property.leftMinor > 0 ? (
               <p className="text-sm" data-testid="refund-property-left">
-                {fill(t.propertyLeft, { amount: rubles(property.leftMinor) })}{' '}
-                {fill(t.propertyNext, { year: next, amount: rubles(usedBeforeMinor + property.usedMinor) })}
+                {fill(t.propertyLeft, {
+                  parts: propertyParts(property.purchase.leftMinor, property.interest.leftMinor),
+                })}
+                {takenByNext ? ` ${fill(t.propertyNext, { year: next, parts: takenByNext })}` : null}
               </p>
             ) : null}
 

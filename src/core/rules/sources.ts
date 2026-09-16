@@ -26,6 +26,9 @@ export const SOURCES = {
   investmentAccountTypeA: 'https://pravo.ppt.ru/kodeks/nk/st-219.1',
   /** Tax code, art. 219.2: one limit for all long-term savings, from 2024. */
   longTermSavings: 'https://pravo.ppt.ru/kodeks/nk/st-219.2',
+  /** Federal law 418-FZ of 17.11.2025: life insurance joins the long-term savings deduction from 1 September 2026. */
+  lifeInsuranceLongTerm:
+    'https://ppt.ru/news/dolgosrochnye-sberezheniya/s-1-sentyabrya-vychet-na-dolgosrochnye-sberezheniya-grazhdan-popolnili-strakhovaniem-zhizni',
   /** Tax code, art. 220: property deductions, their limits and how the rest moves on. */
   property: 'https://pravo.ppt.ru/kodeks/nk/st-220',
   /** Tax service: a deduction can be claimed within three years after the year. */

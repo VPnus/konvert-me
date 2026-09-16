@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { db } from '@/db/db';
 import { RepositoryError } from '@/db/errors';
 import { SCHEMA_VERSION, TABLE_NAMES, TABLE_SCHEMAS, type TableName } from '@/db/models';
+import { upgradeDeductionYear } from '@/db/upgrades';
 import { parseOrThrow } from '@/db/validate';
 import { decryptText, encryptText, fromBase64, toBase64, type EncryptedPayload } from '@/lib/crypto';
 
@@ -48,8 +49,8 @@ const backupDataSchema = z
     incomeSources: z.array(TABLE_SCHEMAS.incomeSources).default([]),
     // Added in schema 4.
     policies: z.array(TABLE_SCHEMAS.policies).default([]),
-    // Added in schema 5.
-    deductionYears: z.array(TABLE_SCHEMAS.deductionYears).default([]),
+    // Added in schema 5; a year of schemas 5 and 6 keeps what earlier returns took of a home as one sum.
+    deductionYears: z.array(z.preprocess(upgradeDeductionYear, TABLE_SCHEMAS.deductionYears)).default([]),
     documents: z.array(TABLE_SCHEMAS.documents).default([]),
     documentFiles: z.array(backupDocumentFileSchema).default([]),
     // Added in schema 6.

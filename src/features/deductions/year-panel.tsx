@@ -61,7 +61,8 @@ interface FormState {
   purchase: string;
   interest: string;
   loanBefore2014: boolean;
-  usedBefore: string;
+  usedBeforePurchase: string;
+  usedBeforeInterest: string;
   kids: KidForm[];
   kidsDouble: boolean;
   kidsGuardian: boolean;
@@ -111,7 +112,8 @@ function formOf(saved: DeductionYear | undefined): FormState {
     purchase: field(property?.purchaseMinor),
     interest: field(property?.mortgageInterestMinor),
     loanBefore2014: property?.loanBefore2014 ?? false,
-    usedBefore: field(property?.usedBeforeMinor),
+    usedBeforePurchase: field(property?.usedBeforePurchaseMinor),
+    usedBeforeInterest: field(property?.usedBeforeInterestMinor),
     kids:
       children?.items.map((kid) => ({
         order: Math.min(kid.order, 3) as KidForm['order'],
@@ -121,8 +123,9 @@ function formOf(saved: DeductionYear | undefined): FormState {
       })) ?? [],
     kidsDouble: children?.double ?? false,
     kidsGuardian: children?.guardian ?? false,
-    // Most employers give it on their own; a refund is promised only when told it was not given.
-    kidsAtWork: children?.appliedByEmployer ?? true,
+    // Unticked until the income statement shows it: a refund left unclaimed is money lost, while a
+    // tick is one look at the statement away.
+    kidsAtWork: children?.appliedByEmployer ?? false,
     salePrice: field(sale?.priceMinor),
     saleCadastral: field(sale?.cadastralMinor),
     saleExpenses: field(sale?.expensesMinor),
@@ -154,7 +157,9 @@ function inputOf(year: number, form: FormState): DeductionYearInput {
           purchaseMinor: minor(form.purchase),
           mortgageInterestMinor: minor(form.interest),
           loanBefore2014: form.loanBefore2014,
-          usedBeforeMinor: minor(form.usedBefore),
+          usedBeforePurchaseMinor: minor(form.usedBeforePurchase),
+          // the interest asked for only once there is some: without a loan nothing was taken for it
+          usedBeforeInterestMinor: form.interest ? minor(form.usedBeforeInterest) : 0,
         }
       : undefined,
     children:
@@ -347,7 +352,7 @@ export function YearPanel({ view }: { view: DeductionYearView }) {
         view={view}
         summary={summary}
         childrenAtWork={form.kidsAtWork}
-        usedBeforeMinor={input.property?.usedBeforeMinor ?? 0}
+        usedBefore={input.property}
       />
 
       <Card>
@@ -498,6 +503,7 @@ export function YearPanel({ view }: { view: DeductionYearView }) {
               >
                 <MoneyField
                   label={t.treatment}
+                  hint={t.treatmentHint}
                   value={form.treatment}
                   testId="deduction-treatment"
                   onChange={(treatment) => update({ treatment })}
@@ -526,6 +532,7 @@ export function YearPanel({ view }: { view: DeductionYearView }) {
               >
                 <MoneyField
                   label={t.sport}
+                  hint={t.sportHint}
                   value={form.sport}
                   testId="deduction-sport"
                   onChange={(sport) => update({ sport })}
@@ -544,6 +551,11 @@ export function YearPanel({ view }: { view: DeductionYearView }) {
                   testId="deduction-insurance"
                   onChange={(insurance) => update({ insurance })}
                 />
+                {rules?.lifeInsuranceInLongTermSavings.value ? (
+                  <p className="text-xs text-muted-foreground" data-testid="insurance-long-term-hint">
+                    {fill(t.insuranceLongTermHint, { limit: limit(rules.longTermSavingsLimitMinor.value) })}
+                  </p>
+                ) : null}
               </Question>
 
               {form.had.treatment || form.had.education || form.had.sport || form.had.insurance ? (
@@ -655,12 +667,20 @@ export function YearPanel({ view }: { view: DeductionYearView }) {
                   onChange={(loanBefore2014) => update({ loanBefore2014 })}
                 />
                 <MoneyField
-                  label={t.usedBefore}
-                  hint={t.usedBeforeHint}
-                  value={form.usedBefore}
-                  testId="deduction-used-before"
-                  onChange={(usedBefore) => update({ usedBefore })}
+                  label={t.usedBeforePurchase}
+                  value={form.usedBeforePurchase}
+                  testId="deduction-used-before-purchase"
+                  onChange={(usedBeforePurchase) => update({ usedBeforePurchase })}
                 />
+                {form.interest ? (
+                  <MoneyField
+                    label={t.usedBeforeInterest}
+                    value={form.usedBeforeInterest}
+                    testId="deduction-used-before-interest"
+                    onChange={(usedBeforeInterest) => update({ usedBeforeInterest })}
+                  />
+                ) : null}
+                <p className="text-xs text-muted-foreground">{t.usedBeforeHint}</p>
               </Question>
 
               <Question

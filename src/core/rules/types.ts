@@ -73,6 +73,12 @@ export interface YearRules {
   readonly mortgageInterestLimitMinor: Norm<number>;
   /** A year of money put away for the long term — an investment account and its kin. */
   readonly longTermSavingsLimitMinor: Norm<number>;
+  /**
+   * Whether life insurance of the long term counts towards that deduction instead of the social one.
+   * The law leaves open which contributions of the year it began in it reaches, so nothing is counted
+   * by it: a screen only says so next to the insurance.
+   */
+  readonly lifeInsuranceInLongTermSavings: Norm<boolean>;
   /** How many years back a deduction can still be claimed. */
   readonly deductionYearsBack: Norm<number>;
   readonly homeSale: Norm<HomeSaleRules>;

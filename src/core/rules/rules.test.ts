@@ -32,6 +32,17 @@ describe('rules', () => {
     expect(KNOWN_RULES.map((rules) => rules.year)).toEqual([2023, 2024, 2025, 2026]);
   });
 
+  it('moves life insurance to the long-term savings deduction only in 2026, and says what is unclear', () => {
+    // federal law 418-FZ of 17.11.2025: from 1 September 2026
+    expect(KNOWN_RULES.map((rules) => rules.lifeInsuranceInLongTermSavings.value)).toEqual([
+      false,
+      false,
+      false,
+      true,
+    ]);
+    expect(RULES_2026.lifeInsuranceInLongTermSavings.note).toMatch(/418-ФЗ/);
+  });
+
   it('states the deposit insurance limit with its exceptions', () => {
     expect(RULES_2026.depositInsuranceLimitMinor.value).toBe(1_400_000 * 100);
     expect(RULES_2026.depositInsuranceLimitMinor.note).toBeTruthy();

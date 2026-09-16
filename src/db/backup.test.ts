@@ -291,6 +291,67 @@ describe('backup: deductions and their documents', () => {
     ]);
   });
 
+  it('takes a year of schema 6 and splits what earlier returns took of its home', async () => {
+    const backup = await collectBackup();
+    const home = {
+      purchaseMinor: 4_500_000 * RUB,
+      mortgageInterestMinor: 310_000 * RUB,
+      loanBefore2014: false,
+    };
+    const old = {
+      year: 2025,
+      incomeMinor: 1_200_000 * RUB,
+      spending: {
+        treatmentMinor: 0,
+        educationMinor: 0,
+        sportMinor: 0,
+        insuranceMinor: 0,
+        childEducationMinor: [],
+        expensiveTreatmentMinor: 0,
+      },
+      longTermSavingsMinor: 0,
+      property: { ...home, usedBeforeMinor: 2_100_000 * RUB },
+      status: 'filed',
+      createdAt: 1,
+      updatedAt: 1,
+    };
+    const data = { ...backup.data, deductionYears: [old] };
+
+    const parsed = await parseBackup(JSON.stringify({ ...backup, schemaVersion: 6, data }));
+
+    expect(parsed.data.deductionYears[0].property).toEqual({
+      ...home,
+      usedBeforePurchaseMinor: 2_000_000 * RUB,
+      usedBeforeInterestMinor: 100_000 * RUB,
+    });
+  });
+
+  it('refuses a year of schema 6 whose sum taken before is not money', async () => {
+    const backup = await collectBackup();
+    const broken = {
+      year: 2025,
+      incomeMinor: 0,
+      spending: {
+        treatmentMinor: 0,
+        educationMinor: 0,
+        sportMinor: 0,
+        insuranceMinor: 0,
+        childEducationMinor: [],
+        expensiveTreatmentMinor: 0,
+      },
+      longTermSavingsMinor: 0,
+      property: { purchaseMinor: 0, mortgageInterestMinor: 0, loanBefore2014: false, usedBeforeMinor: -5 },
+      status: 'draft',
+      createdAt: 1,
+      updatedAt: 1,
+    };
+    const data = { ...backup.data, deductionYears: [broken] };
+
+    await expect(parseBackup(JSON.stringify({ ...backup, schemaVersion: 6, data }))).rejects.toBeInstanceOf(
+      ValidationError,
+    );
+  });
+
   it('takes a file from schema 4, which knows nothing of deductions', async () => {
     const backup = await collectBackup();
     const data = { ...backup.data } as Record<string, unknown>;

@@ -4,6 +4,7 @@
  */
 
 const RUB_FORMATTERS = new Map<string, Intl.NumberFormat>();
+let compactFormatter: Intl.NumberFormat | undefined;
 
 export class MoneyError extends Error {
   constructor(message: string) {
@@ -97,4 +98,16 @@ export function formatMinor(minor: Minor, options: FormatMinorOptions = {}): str
  */
 export function formatForecast(value: number, options: FormatMinorOptions = {}): string {
   return formatMinor(roundToMinor(value), { fractionDigits: 0, ...options });
+}
+
+/**
+ * A sum in a few characters, for the scale of a chart: 15 тыс., 1,5 млн, 1 млрд. A scale is about
+ * the shape, not the kopecks, and a mark on it may fall between two kopecks: that is no error here.
+ */
+export function formatCompactMinor(value: number): string {
+  if (!Number.isFinite(value)) {
+    throw new MoneyError(`Невозможно показать нечисловое значение: ${String(value)}`);
+  }
+  compactFormatter ??= new Intl.NumberFormat('ru-RU', { notation: 'compact' });
+  return compactFormatter.format(value / 100);
 }

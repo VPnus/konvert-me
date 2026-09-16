@@ -5,6 +5,7 @@ import {
   assertMinor,
   assertNonNegativeMinor,
   assertPositiveMinor,
+  formatCompactMinor,
   formatMinor,
   isMinor,
   minorToRubles,
@@ -108,6 +109,23 @@ describe('money: formatting', () => {
 
   it('refuses to format a non-integer amount', () => {
     expect(() => formatMinor(1.5)).toThrow(MoneyError);
+  });
+});
+
+describe('money: the scale of a chart', () => {
+  it('writes a sum in thousands, millions and billions', () => {
+    // the scenario report: "250000 тыс." and "1000000 тыс." on the charts of a large capital
+    expect(normalize(formatCompactMinor(15_000 * 100))).toBe('15 тыс.');
+    expect(normalize(formatCompactMinor(1_469_328 * 100))).toBe('1,5 млн');
+    expect(normalize(formatCompactMinor(250_000_000 * 100))).toBe('250 млн');
+    expect(normalize(formatCompactMinor(1_000_000_000 * 100))).toBe('1 млрд');
+    expect(normalize(formatCompactMinor(-2_500_000 * 100))).toBe('-2,5 млн');
+    expect(formatCompactMinor(0)).toBe('0');
+  });
+
+  it('takes a mark between two kopecks, and refuses what is not a number', () => {
+    expect(normalize(formatCompactMinor(12_345_678.9))).toBe('123 тыс.');
+    expect(() => formatCompactMinor(Number.NaN)).toThrow(MoneyError);
   });
 });
 

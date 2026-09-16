@@ -9,15 +9,10 @@ import {
   YAxis,
 } from 'recharts';
 
-import { formatMinor } from '@/core/money';
+import { formatCompactMinor, formatMinor } from '@/core/money';
 import type { ProjectionPoint } from '@/core/goals';
 import { shortMonthLabel } from '@/features/budget/month-label';
 import { ru } from '@/i18n/ru';
-
-/** Whole thousands: a goal chart is about the shape, not about the kopecks. */
-function thousands(minor: number): string {
-  return `${Math.round(minor / 100_000)} тыс.`;
-}
 
 interface GoalChartProps {
   readonly points: readonly ProjectionPoint[];
@@ -58,7 +53,7 @@ export default function GoalChart({ points }: GoalChartProps) {
             tick={{ fill: 'var(--color-muted-foreground)', fontSize: 11 }}
             stroke="var(--color-border)"
             width={62}
-            tickFormatter={thousands}
+            tickFormatter={formatCompactMinor}
           />
           <Tooltip
             cursor={{ stroke: 'var(--color-border)' }}

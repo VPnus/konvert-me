@@ -1,13 +1,9 @@
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 import type { NetWorthPoint } from '@/core/balance';
-import { formatMinor } from '@/core/money';
+import { formatCompactMinor, formatMinor } from '@/core/money';
 import { shortMonthLabel } from '@/features/budget/month-label';
 import { ru } from '@/i18n/ru';
-
-function thousands(minor: number): string {
-  return `${Math.round(minor / 100_000)} тыс.`;
-}
 
 /** Capital month by month. One line, because one number is the point of this screen. */
 export default function CapitalChart({ points }: { points: readonly NetWorthPoint[] }) {
@@ -39,7 +35,7 @@ export default function CapitalChart({ points }: { points: readonly NetWorthPoin
             tick={{ fill: 'var(--color-muted-foreground)', fontSize: 11 }}
             stroke="var(--color-border)"
             width={62}
-            tickFormatter={thousands}
+            tickFormatter={formatCompactMinor}
           />
           <Tooltip
             cursor={{ stroke: 'var(--color-border)' }}

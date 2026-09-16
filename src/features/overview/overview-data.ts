@@ -26,6 +26,11 @@ import type { Account, AppSettings, Goal } from '@/db/models';
 import { DEFAULT_SETTINGS } from '@/db/models';
 import { getAccountBalancesMinor } from '@/db/repositories/accounts';
 import { getSavingsByGoal, RESERVE_GOAL_ID } from '@/db/repositories/goals';
+import {
+  deductionsAtGlance,
+  loadDeductions,
+  type DeductionsAtGlance,
+} from '@/features/deductions/deductions-data';
 import { ru } from '@/i18n/ru';
 
 export interface GoalView {
@@ -55,6 +60,8 @@ export interface OverviewData {
   readonly warnings: Warning[];
   /** The dates that are about to matter — the "soon" feed of stage 6. */
   readonly upcoming: UpcomingEvent[];
+  /** What the tax returns of the open years come to — stage 7. */
+  readonly deductions: DeductionsAtGlance;
 }
 
 function toCoreAccount(account: Account): CoreAccount {
@@ -72,18 +79,29 @@ function toCoreAccount(account: Account): CoreAccount {
 export async function loadOverview(now: Date = new Date()): Promise<OverviewData> {
   const month = currentMonth(now);
 
-  const [settingsRow, accounts, transactions, plans, categories, goals, savingsByGoal, balances, policies] =
-    await Promise.all([
-      db.settings.get('app'),
-      db.accounts.toArray(),
-      db.transactions.toArray(),
-      db.budgetPlans.where('month').equals(month).toArray(),
-      db.categories.toArray(),
-      db.goals.toArray(),
-      getSavingsByGoal(),
-      getAccountBalancesMinor(),
-      db.policies.toArray(),
-    ]);
+  const [
+    settingsRow,
+    accounts,
+    transactions,
+    plans,
+    categories,
+    goals,
+    savingsByGoal,
+    balances,
+    policies,
+    deductions,
+  ] = await Promise.all([
+    db.settings.get('app'),
+    db.accounts.toArray(),
+    db.transactions.toArray(),
+    db.budgetPlans.where('month').equals(month).toArray(),
+    db.categories.toArray(),
+    db.goals.toArray(),
+    getSavingsByGoal(),
+    getAccountBalancesMinor(),
+    db.policies.toArray(),
+    loadDeductions(now),
+  ]);
 
   const settings = settingsRow ?? DEFAULT_SETTINGS;
   const coreAccounts = accounts.map(toCoreAccount);
@@ -173,6 +191,7 @@ export async function loadOverview(now: Date = new Date()): Promise<OverviewData
     goals: goalViews,
     hasPlan: plans.length > 0,
     hasTransactions: transactions.length > 0,
+    deductions: deductionsAtGlance(deductions),
   };
 
   return { ...data, warnings: collectWarnings(data, ru.widgets.warnings) };

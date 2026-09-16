@@ -11,6 +11,7 @@ import {
   NetWorthWidget,
   ReserveWidget,
 } from '@/features/overview/widgets/basic-widgets';
+import { DeductionsWidget } from '@/features/overview/widgets/deductions-widget';
 import { GoalProgressWidget, GoalsWidget, WarningsWidget } from '@/features/overview/widgets/goal-widgets';
 import { QuickAddWidget } from '@/features/overview/widgets/quick-add-widget';
 import { UpcomingWidget } from '@/features/overview/widgets/upcoming-widget';
@@ -61,6 +62,14 @@ export const WIDGET_REGISTRY: readonly WidgetDefinition[] = [
     sizes: ['M', 'L'],
     defaultSize: 'M',
     Component: UpcomingWidget,
+  },
+  {
+    type: 'deductions',
+    title: ru.widgets.deductions.title,
+    description: ru.widgets.deductions.description,
+    sizes: ['M', 'L'],
+    defaultSize: 'M',
+    Component: DeductionsWidget,
   },
   {
     type: 'net-worth',

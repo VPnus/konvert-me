@@ -201,6 +201,29 @@ test.describe('deductions', () => {
     await expect(page.getByTestId('deduction-reminder')).toHaveCount(0);
   });
 
+  test('the overview widget adds up the open years and links back to them', async ({ page }) => {
+    const year = await openDeductions(page);
+
+    await page.getByTestId('deduction-income').fill('1200000');
+    await page.getByTestId('had-education').check();
+    await page.getByTestId('deduction-education').fill('300000');
+    await page.getByTestId('deduction-save').click();
+    await expect(page.getByTestId('deduction-saved')).toBeVisible();
+
+    await page.goto('/');
+    await page.getByTestId('customize-dashboard').click();
+    await page.getByTestId('add-widget').click();
+    await page.getByTestId('catalog-add-deductions').click();
+    await page.getByTestId('customize-dashboard').click();
+
+    const widget = page.getByTestId('widget-deductions');
+    await expect(widget.getByTestId('deductions-widget-total')).toHaveText(/19\s?500/);
+    await expect(widget.getByTestId(`deductions-widget-${year}`)).toContainText('Собираю бумаги');
+
+    await widget.getByRole('link', { name: 'Все вычеты' }).click();
+    await expect(page.getByTestId(`deduction-year-${year}`)).toBeVisible();
+  });
+
   test('the answers of one year do not leak into another', async ({ page }) => {
     const year = await openDeductions(page);
 

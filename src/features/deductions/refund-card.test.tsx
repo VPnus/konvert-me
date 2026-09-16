@@ -57,11 +57,11 @@ const kotov: HomeSale = {
 
 describe('what is left of a home', () => {
   /** The year 2025 with a home bought and its interest, as the answers give them. */
-  function showHome(incomeMinor: number, property: PropertyClaim & PropertyUsedBefore) {
+  function showHome(incomeMinor: number, property: PropertyClaim & PropertyUsedBefore, socialMinor = 0) {
     const summary = summarizeDeductionYear(
       {
         incomeMinor,
-        social: { commonMinor: 0, childEducationMinor: [], expensiveTreatmentMinor: 0 },
+        social: { commonMinor: socialMinor, childEducationMinor: [], expensiveTreatmentMinor: 0 },
         longTermSavingsMinor: 0,
         property,
       },
@@ -110,16 +110,24 @@ describe('what is left of a home', () => {
     expect(left.textContent).toMatch(/уже получено: 600\s000\s₽ за стоимость жилья\.$/);
   });
 
-  it('does not say what to state next year when nothing was taken yet', () => {
-    showHome(0, {
-      purchaseMinor: 2_000_000 * RUB,
-      mortgageInterestMinor: 0,
-      loanBefore2014: false,
-      usedBeforePurchaseMinor: 0,
-      usedBeforeInterestMinor: 0,
-    });
+  it('does not say what to state next year when nothing of the home was taken yet', () => {
+    // treatment takes the whole income of 100 000, so the home waits whole for the years after
+    showHome(
+      100_000 * RUB,
+      {
+        purchaseMinor: 2_000_000 * RUB,
+        mortgageInterestMinor: 0,
+        loanBefore2014: false,
+        usedBeforePurchaseMinor: 0,
+        usedBeforeInterestMinor: 0,
+      },
+      120_000 * RUB,
+    );
 
-    expect(screen.queryByTestId('refund-property-left')).toBeNull();
+    const left = screen.getByTestId('refund-property-left');
+    expect(left.textContent).toMatch(
+      /^Остаток вычета за жильё перейдёт на следующие годы: 2\s000\s000\s₽ за стоимость жилья\.$/,
+    );
   });
 });
 

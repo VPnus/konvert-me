@@ -17,6 +17,9 @@ import {
   listTransactions,
   listTransactionsOfMonth,
   updateTransaction,
+  importTransactions,
+  listImportBatches,
+  deleteImportBatch,
 } from '@/db/repositories/transactions';
 
 const RUB = 100;
@@ -355,5 +358,94 @@ describe('transactions: search and filters', () => {
     expect(recent).toHaveLength(2);
     expect(recent[0].date).toBe('2026-10-02');
     expect(recent[1].date).toBe('2026-09-20');
+  });
+});
+
+describe('transactions: importing a statement', () => {
+  async function setUp() {
+    await seedDefaultCategories();
+    return createAccount({
+      name: 'Карта',
+      side: 'asset',
+      type: 'debit',
+      openingBalanceMinor: 100_000 * RUB,
+      openingDate: '2026-09-01',
+    });
+  }
+
+  const row = (hash: string, amountMinor: number, date = '2026-09-05') => ({
+    date,
+    amountMinor,
+    kind: 'expense' as const,
+    categoryId: 'groceries',
+    importRowHash: hash,
+  });
+
+  it('writes a whole file at once under one batch', async () => {
+    const account = await setUp();
+    const result = await importTransactions([
+      { ...row('a', 1_000 * RUB), accountId: account.id },
+      { ...row('b', 2_000 * RUB), accountId: account.id },
+    ]);
+
+    expect(result.imported).toBe(2);
+    expect(await db.transactions.count()).toBe(2);
+    expect(await getAccountBalanceMinor(account.id)).toBe(97_000 * RUB);
+
+    const [batch] = await listImportBatches();
+    expect(batch).toMatchObject({ batchId: result.batchId, count: 2, from: '2026-09-05' });
+  });
+
+  it('adds nothing on a second import of the same file', async () => {
+    const account = await setUp();
+    const rows = [
+      { ...row('a', 1_000 * RUB), accountId: account.id },
+      { ...row('b', 2_000 * RUB), accountId: account.id },
+    ];
+
+    await importTransactions(rows);
+    const again = await importTransactions(rows);
+
+    expect(again.imported).toBe(0);
+    expect(await db.transactions.count()).toBe(2);
+  });
+
+  it('keeps two identical purchases of one day, because their rows differ', async () => {
+    const account = await setUp();
+    // the parser gives the second copy of an identical line its own hash
+    const result = await importTransactions([
+      { ...row('line#0', 1_234_56), accountId: account.id },
+      { ...row('line#1', 1_234_56), accountId: account.id },
+    ]);
+
+    expect(result.imported).toBe(2);
+  });
+
+  it('undoes a whole import in one go', async () => {
+    const account = await setUp();
+    const { batchId } = await importTransactions([
+      { ...row('a', 1_000 * RUB), accountId: account.id },
+      { ...row('b', 2_000 * RUB), accountId: account.id },
+    ]);
+    await createTransaction({
+      date: '2026-09-07',
+      amountMinor: 500 * RUB,
+      kind: 'expense',
+      accountId: account.id,
+      categoryId: 'cafe',
+    });
+
+    expect(await deleteImportBatch(batchId)).toBe(2);
+    // the operation typed by hand stays where it was
+    expect(await db.transactions.count()).toBe(1);
+    expect(await listImportBatches()).toHaveLength(0);
+  });
+
+  it('refuses a file addressed to an account that is not there', async () => {
+    await setUp();
+    await expect(importTransactions([{ ...row('a', 100), accountId: 'нет-такого' }])).rejects.toBeInstanceOf(
+      RepositoryError,
+    );
+    expect(await db.transactions.count()).toBe(0);
   });
 });

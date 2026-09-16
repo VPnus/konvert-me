@@ -172,3 +172,94 @@ export async function listTransactionsOfMonth(month: IsoMonth): Promise<Transact
 export async function listRecentTransactions(limit = 10): Promise<Transaction[]> {
   return listTransactions({ limit });
 }
+
+export interface ImportedRow extends TransactionInput {
+  /** Identity of the row in its file: the same file never lands twice. */
+  importRowHash: string;
+}
+
+export interface ImportResult {
+  readonly batchId: string;
+  readonly imported: number;
+}
+
+/**
+ * Writes a whole statement at once under one batch id, so the import can be undone
+ * as a whole. Rows whose hash is already stored are left out: re-importing the same
+ * file adds nothing.
+ */
+export async function importTransactions(rows: readonly ImportedRow[]): Promise<ImportResult> {
+  const batchId = crypto.randomUUID();
+  const now = Date.now();
+
+  const known = new Set(
+    (await db.transactions.toArray())
+      .map((transaction) => transaction.importRowHash)
+      .filter((hash): hash is string => Boolean(hash)),
+  );
+
+  const fresh = rows.filter((row) => !known.has(row.importRowHash));
+  const prepared = fresh.map((row, index) =>
+    parseOrThrow(
+      transactionSchema,
+      { ...row, id: crypto.randomUUID(), importBatchId: batchId, createdAt: now + index },
+      'Операция',
+    ),
+  );
+
+  if (prepared.length === 0) return { batchId, imported: 0 };
+
+  const accountIds = [...new Set(prepared.map((transaction) => transaction.accountId))];
+  const accounts = await db.accounts.bulkGet(accountIds);
+  if (accounts.some((account) => account === undefined)) {
+    throw new RepositoryError('Счёт операции не найден');
+  }
+
+  await db.transactions.bulkAdd(prepared);
+
+  await keepEnvelopesIntact(accountIds, () =>
+    db.transactions.bulkDelete(prepared.map((transaction) => transaction.id)),
+  );
+
+  publishAppEvent({ type: 'data-changed' });
+  return { batchId, imported: prepared.length };
+}
+
+export interface ImportBatch {
+  readonly batchId: string;
+  readonly count: number;
+  readonly importedAt: number;
+  readonly from: string;
+  readonly to: string;
+}
+
+/** Every import that can still be undone, the most recent first. */
+export async function listImportBatches(): Promise<ImportBatch[]> {
+  const all = await db.transactions.toArray();
+  const batches = new Map<string, Transaction[]>();
+
+  for (const transaction of all) {
+    if (!transaction.importBatchId) continue;
+    batches.set(transaction.importBatchId, [...(batches.get(transaction.importBatchId) ?? []), transaction]);
+  }
+
+  return [...batches.entries()]
+    .map(([batchId, items]) => {
+      const dates = items.map((item) => item.date).sort();
+      return {
+        batchId,
+        count: items.length,
+        importedAt: Math.min(...items.map((item) => item.createdAt)),
+        from: dates[0],
+        to: dates[dates.length - 1],
+      };
+    })
+    .sort((a, b) => b.importedAt - a.importedAt);
+}
+
+/** Undoes a whole import: the plan asks for it as one action, not row by row. */
+export async function deleteImportBatch(batchId: string): Promise<number> {
+  const count = await db.transactions.where('importBatchId').equals(batchId).delete();
+  if (count > 0) publishAppEvent({ type: 'data-changed' });
+  return count;
+}

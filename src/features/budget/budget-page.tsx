@@ -12,6 +12,7 @@ import { copyPlanFromPreviousMonth } from '@/db/repositories/budget-plans';
 import { deleteTransaction } from '@/db/repositories/transactions';
 import { loadBudgetMonth, loadBudgetYear } from '@/features/budget/budget-data';
 import { isCurrentMonth, monthLabel } from '@/features/budget/month-label';
+import { ImportCard } from '@/features/budget/import/import-card';
 import { PlanFactTable } from '@/features/budget/plan-fact-table';
 import { TransactionForm } from '@/features/budget/transaction-form';
 import { EMPTY_FILTER, type TransactionFilterState } from '@/features/budget/transaction-filter';
@@ -217,14 +218,21 @@ export default function BudgetPage() {
               </CardContent>
             </Card>
           ) : (
-            <TransactionsCard
-              data={monthData}
-              filter={filter}
-              onFilterChange={setFilter}
-              onAdd={openAdd}
-              onEdit={openEdit}
-              onDelete={setPendingDelete}
-            />
+            <>
+              <TransactionsCard
+                data={monthData}
+                filter={filter}
+                onFilterChange={setFilter}
+                onAdd={openAdd}
+                onEdit={openEdit}
+                onDelete={setPendingDelete}
+              />
+
+              <ImportCard
+                accounts={monthData.accounts.filter((account) => !account.archived)}
+                categories={monthData.categories}
+              />
+            </>
           )}
         </>
       )}

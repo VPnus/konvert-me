@@ -7,12 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ErrorBoundary } from '@/components/common/error-boundary';
 import type { Account, Category } from '@/db/models';
-import {
-  deleteImportBatch,
-  listImportBatches,
-  listTransactions,
-  type ImportBatch,
-} from '@/db/repositories/transactions';
+import { deleteImportBatch, listImportBatches, type ImportBatch } from '@/db/repositories/transactions';
 import { useDataVersion } from '@/hooks/use-data-version';
 import { ru } from '@/i18n/ru';
 
@@ -32,17 +27,6 @@ export function ImportCard({ accounts, categories }: ImportCardProps) {
   const [pendingUndo, setPendingUndo] = useState<ImportBatch | null>(null);
 
   const batches = useLiveQuery(() => listImportBatches(), [dataVersion], []);
-  // Only the dates and sums are needed, to tell a repeat import from a lookalike.
-  const existing = useLiveQuery(
-    async () =>
-      (await listTransactions()).map((transaction) => ({
-        date: transaction.date,
-        amountMinor: transaction.amountMinor,
-        importRowHash: transaction.importRowHash,
-      })),
-    [dataVersion],
-    [],
-  );
 
   return (
     <Card data-testid="import-card">
@@ -100,12 +84,7 @@ export function ImportCard({ accounts, categories }: ImportCardProps) {
       {open ? (
         <ErrorBoundary fallback={() => <p className="p-4 text-sm text-destructive">{ru.common.error}</p>}>
           <Suspense fallback={null}>
-            <ImportWizard
-              accounts={accounts}
-              categories={categories}
-              existing={existing}
-              onOpenChange={setOpen}
-            />
+            <ImportWizard accounts={accounts} categories={categories} onOpenChange={setOpen} />
           </Suspense>
         </ErrorBoundary>
       ) : null}

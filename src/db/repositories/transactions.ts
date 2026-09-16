@@ -192,11 +192,9 @@ export async function importTransactions(rows: readonly ImportedRow[]): Promise<
   const batchId = crypto.randomUUID();
   const now = Date.now();
 
-  const known = new Set(
-    (await db.transactions.toArray())
-      .map((transaction) => transaction.importRowHash)
-      .filter((hash): hash is string => Boolean(hash)),
-  );
+  // The hashes come straight out of their index: rows typed by hand have none, so
+  // they are not in it, and no record has to be read to answer this.
+  const known = new Set(await db.transactions.orderBy('importRowHash').keys());
 
   const fresh = rows.filter((row) => !known.has(row.importRowHash));
   const prepared = fresh.map((row, index) =>
@@ -235,12 +233,18 @@ export interface ImportBatch {
 
 /** Every import that can still be undone, the most recent first. */
 export async function listImportBatches(): Promise<ImportBatch[]> {
-  const all = await db.transactions.toArray();
+  // Only rows that carry a batch id are in that index, so what was typed by hand is
+  // never read here.
+  const imported = await db.transactions.orderBy('importBatchId').toArray();
   const batches = new Map<string, Transaction[]>();
 
-  for (const transaction of all) {
-    if (!transaction.importBatchId) continue;
-    batches.set(transaction.importBatchId, [...(batches.get(transaction.importBatchId) ?? []), transaction]);
+  for (const transaction of imported) {
+    const batchId = transaction.importBatchId;
+    if (!batchId) continue;
+
+    const group = batches.get(batchId);
+    if (group) group.push(transaction);
+    else batches.set(batchId, [transaction]);
   }
 
   return [...batches.entries()]

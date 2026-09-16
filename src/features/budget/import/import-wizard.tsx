@@ -1,4 +1,5 @@
 import * as Dialog from '@radix-ui/react-dialog';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { Plus, X } from 'lucide-react';
 import { useState } from 'react';
 
@@ -8,7 +9,8 @@ import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import type { Account, Category } from '@/db/models';
-import { importTransactions, type ImportedRow } from '@/db/repositories/transactions';
+import { importTransactions, listTransactions, type ImportedRow } from '@/db/repositories/transactions';
+import { useDataVersion } from '@/hooks/use-data-version';
 import { ru } from '@/i18n/ru';
 import { decodeStatement } from '@/lib/statement/decode';
 import { guessMapping, isMappingReady, type ColumnMapping } from '@/lib/statement/mapping';
@@ -18,7 +20,6 @@ import {
   markDuplicates,
   type CategoryRule,
   type DuplicateState,
-  type ExistingOperation,
   type StatementRow,
 } from '@/lib/statement/rows';
 import { parseCsv, parseXlsx, type RawTable } from '@/lib/statement/table';
@@ -28,7 +29,6 @@ type Step = 'file' | 'columns' | 'preview';
 interface ImportWizardProps {
   readonly accounts: readonly Account[];
   readonly categories: readonly Category[];
-  readonly existing: readonly ExistingOperation[];
   readonly onOpenChange: (open: boolean) => void;
 }
 
@@ -43,7 +43,7 @@ function columnOptions(headers: readonly string[]): { value: string; label: stri
  * File → columns → what will be added. The parsing libraries live in this chunk, so
  * nothing of them is downloaded until somebody imports a statement.
  */
-export default function ImportWizard({ accounts, categories, existing, onOpenChange }: ImportWizardProps) {
+export default function ImportWizard({ accounts, categories, onOpenChange }: ImportWizardProps) {
   const expenses = categories.filter((category) => category.kind === 'expense');
   const incomes = categories.filter((category) => category.kind === 'income');
 
@@ -64,6 +64,22 @@ export default function ImportWizard({ accounts, categories, existing, onOpenCha
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [imported, setImported] = useState<number | null>(null);
+
+  // Only the dates and sums are needed, to tell a repeat import from a lookalike.
+  // This is the one place that reads every operation, so it lives here and not on
+  // the budget screen: the wizard is mounted only while it is open.
+  const dataVersion = useDataVersion();
+  const existing = useLiveQuery(
+    async () =>
+      (await listTransactions()).map((transaction) => ({
+        date: transaction.date,
+        amountMinor: transaction.amountMinor,
+        importRowHash: transaction.importRowHash,
+      })),
+    [dataVersion],
+  );
+  // Until they are read, nothing can be called a duplicate — so nothing is shown yet.
+  const ready = existing !== undefined;
 
   const readFile = async (file: File) => {
     setError(null);
@@ -93,7 +109,7 @@ export default function ImportWizard({ accounts, categories, existing, onOpenCha
 
   const built = table && mapping ? buildRows(table, mapping) : null;
   const rows: StatementRow[] = built?.rows ?? [];
-  const duplicates = markDuplicates(rows, existing);
+  const duplicates = markDuplicates(rows, existing ?? []);
 
   const categoryFor = (row: StatementRow): string =>
     applyRules(row.note, rules) ?? (row.kind === 'income' ? defaultIncome : defaultExpense);
@@ -319,7 +335,11 @@ export default function ImportWizard({ accounts, categories, existing, onOpenCha
                 </>
               ) : null}
 
-              {step === 'preview' ? (
+              {step === 'preview' && !ready ? (
+                <p className="text-sm text-muted-foreground">{ru.common.loading}</p>
+              ) : null}
+
+              {step === 'preview' && ready ? (
                 <>
                   <section className="flex flex-col gap-2">
                     <div>
@@ -517,7 +537,7 @@ export default function ImportWizard({ accounts, categories, existing, onOpenCha
                 {step === 'preview' ? (
                   <Button
                     size="sm"
-                    disabled={busy || taken.length === 0 || !accountId}
+                    disabled={busy || !ready || taken.length === 0 || !accountId}
                     data-testid="import-confirm"
                     onClick={() => void confirm()}
                   >

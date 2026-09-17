@@ -5,6 +5,8 @@
  *   npm run deploy               build, then commit the build to that repository and push it
  *   npm run deploy -- --dry-run  build and prepare the files only: nothing leaves this computer
  *
+ * DEPLOY_REPOSITORY=<address> publishes to another repository for one run.
+ *
  * Only the build goes out, the source stays where it is. The push uses the git access of whoever
  * runs it, an SSH key or a token kept by the credential helper: nothing secret lives here.
  */
@@ -23,6 +25,8 @@ const NPM = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 
 const dryRun = process.argv.includes('--dry-run');
 const site = JSON.parse(await readFile(join(ROOT, 'src/app/site.json'), 'utf8'));
+// Another address for this run only: an SSH one instead of the HTTPS one, or a test repository.
+if (process.env.DEPLOY_REPOSITORY) site.repository = process.env.DEPLOY_REPOSITORY;
 const { version } = JSON.parse(await readFile(join(ROOT, 'package.json'), 'utf8'));
 
 function fail(message) {
@@ -78,8 +82,8 @@ async function publish(commit) {
   // The files of earlier versions stay in assets/: their names carry a hash, so nothing is
   // overwritten, and a page the host or a browser still keeps from before finds its scripts.
   for (const entry of await readdir(WORKTREE)) {
-    if (entry !== '.git' && entry !== 'assets')
-      await rm(join(WORKTREE, entry), { recursive: true, force: true });
+    if (entry === '.git' || entry === 'assets') continue;
+    await rm(join(WORKTREE, entry), { recursive: true, force: true });
   }
   await cp(DIST, WORKTREE, { recursive: true });
 
@@ -96,7 +100,7 @@ async function publish(commit) {
   });
   if (push.status !== 0) {
     fail(
-      `Не удалось отправить сборку в ${site.repository}. Проверьте доступ: SSH-ключ или токен в настройках GitVerse (docs/PILOT.md, раздел «Публикация»).`,
+      `Не удалось отправить сборку в ${site.repository}. Проверьте доступ: SSH-ключ или токен в настройках GitVerse (docs/PILOT.md, раздел 3).`,
     );
   }
   console.warn(

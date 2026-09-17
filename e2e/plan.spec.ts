@@ -142,6 +142,8 @@ test.describe('financial plan', () => {
     await page.goto('/plan?step=7');
     await page.getByTestId('action-deductions').check();
     await expect(page.getByTestId('plan-actions-progress')).toContainText('Сделано 1 из');
+    // The tick shows before it is written: leaving the page earlier lost it on a slow CI runner.
+    await expect(page.getByTestId('action-deductions')).toHaveAttribute('data-saved', 'true');
 
     await page.goto('/plan?step=3');
     await page.getByTestId('plan-note-mechanisms').fill('Квартиру — в ипотеку, остальное копим');
@@ -161,6 +163,7 @@ test.describe('financial plan', () => {
   }) => {
     await page.goto('/plan?step=7');
     await page.getByTestId('action-deductions').check();
+    await expect(page.getByTestId('action-deductions')).toHaveAttribute('data-saved', 'true');
     await expect(page.getByTestId('plan-review-reminder')).toHaveCount(0);
 
     await page.clock.setFixedTime(new Date(Date.now() + 100 * 24 * 60 * 60 * 1000));

@@ -40,6 +40,8 @@ export function ActionsStep({ data }: { data: PlanData }) {
               id={`action-${action.key}`}
               className="mt-0.5 size-4 shrink-0"
               checked={isDone(action.key)}
+              // The tick is written a moment after it shows; a reload before that would lose it.
+              data-saved={saved.has(action.key) === isDone(action.key)}
               data-testid={`action-${action.key}`}
               onChange={(event) => void tick(action.key, event.target.checked)}
             />

@@ -55,11 +55,16 @@ const jobs = [
     svg: catMarkSvg({ size: 180, cat: TILE_CAT, card: TILE_CARD, background: TILE_BACKGROUND, padding: 9 }),
   },
   {
+    // A picture cannot follow the colour scheme, so the raster favicon is the tile of the app:
+    // a black cat on a light tab strip would vanish on a dark one, the tile shows on both.
     file: 'public/favicon-64.png',
     size: 64,
-    svg: catMarkSvg({ size: 64, cat: LIGHT_CAT, card: LIGHT_CARD, padding: 2 }),
+    svg: catMarkSvg({ size: 64, cat: TILE_CAT, card: TILE_CARD, background: TILE_BACKGROUND, padding: 5 }),
   },
 ];
+
+/** The sizes packed into favicon.ico, for the places that ask for it by that name: bookmarks, tiles, old tabs. */
+const ICO_SIZES = [16, 32, 48];
 
 /** The favicon follows the colour scheme of the browser, the app follows its own theme. */
 const faviconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
@@ -76,26 +81,75 @@ const faviconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" 
   ${catMarkSvg({ size: 64, cat: 'CAT', card: 'CARD', padding: 2 })
     .replace(/^<svg[^>]*>/, '')
     .replace(/<\/svg>$/, '')
-    .replace(/fill="CAT"/g, 'class="cat"')
-    .replace(/fill="CARD"/g, 'class="card"')
-    .replace(/stroke="CAT"/g, 'class="cat-stroke"')}
+    // One class attribute per shape: an SVG picture is read as XML, and a second attribute of the
+    // same name makes the whole file unreadable, so the browser shows its globe instead of the cat.
+    .replace(/fill="(CAT|CARD|none)"( stroke="(CAT|CARD)")?/g, (_, fill, _stroke, stroke) => {
+      const classes = [
+        fill === 'none' ? null : fill.toLowerCase(),
+        stroke ? `${stroke.toLowerCase()}-stroke` : null,
+      ]
+        .filter(Boolean)
+        .join(' ');
+      return `${fill === 'none' ? 'fill="none" ' : ''}class="${classes}"`;
+    })}
 </svg>`;
+
+/** An .ico file of PNG images, as every browser since Windows Vista reads it: a directory, then the pictures. */
+function icoOf(images) {
+  const header = Buffer.alloc(6 + 16 * images.length);
+  header.writeUInt16LE(0, 0);
+  header.writeUInt16LE(1, 2);
+  header.writeUInt16LE(images.length, 4);
+  let offset = header.length;
+  images.forEach(({ size, png }, index) => {
+    const entry = 6 + 16 * index;
+    header.writeUInt8(size >= 256 ? 0 : size, entry);
+    header.writeUInt8(size >= 256 ? 0 : size, entry + 1);
+    header.writeUInt8(0, entry + 2);
+    header.writeUInt8(0, entry + 3);
+    header.writeUInt16LE(1, entry + 4);
+    header.writeUInt16LE(32, entry + 6);
+    header.writeUInt32LE(png.length, entry + 8);
+    header.writeUInt32LE(offset, entry + 12);
+    offset += png.length;
+  });
+  return Buffer.concat([header, ...images.map(({ png }) => png)]);
+}
 
 async function main() {
   const browser = await chromium.launch();
   const page = await browser.newPage();
 
-  for (const job of jobs) {
-    await page.setViewportSize({ width: job.size, height: job.size });
-    await page.setContent(`<body style="margin:0;background:transparent">${job.svg}</body>`, {
+  const render = async (size, svg) => {
+    await page.setViewportSize({ width: size, height: size });
+    await page.setContent(`<body style="margin:0;background:transparent">${svg}</body>`, {
       waitUntil: 'load',
     });
-    const png = await page.locator('svg').screenshot({ omitBackground: true });
+    return page.locator('svg').screenshot({ omitBackground: true });
+  };
+
+  for (const job of jobs) {
+    const png = await render(job.size, job.svg);
     const target = resolve(ROOT, job.file);
     await mkdir(dirname(target), { recursive: true });
     await writeFile(target, png);
     console.warn(`✓ ${job.file} (${job.size}px)`);
   }
+
+  const icons = [];
+  for (const size of ICO_SIZES) {
+    // the smaller the icon, the less of the tile goes to the margin
+    const padding = size <= 16 ? 3 : 5;
+    icons.push({
+      size,
+      png: await render(
+        size,
+        catMarkSvg({ size, cat: TILE_CAT, card: TILE_CARD, background: TILE_BACKGROUND, padding }),
+      ),
+    });
+  }
+  await writeFile(resolve(ROOT, 'public/favicon.ico'), icoOf(icons));
+  console.warn(`✓ public/favicon.ico (${ICO_SIZES.join(', ')}px)`);
 
   await browser.close();
 

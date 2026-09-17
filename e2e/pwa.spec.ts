@@ -21,6 +21,17 @@ test.describe('installable and offline', () => {
     expect(manifest.icons.some((icon: { purpose?: string }) => icon.purpose === 'maskable')).toBe(true);
   });
 
+  test('the tab of the browser gets the cat, not a globe', async ({ request }) => {
+    const ico = await request.get('/favicon.ico');
+    expect(ico.status()).toBe(200);
+    expect(ico.headers()['content-type']).toMatch(/^image\//);
+    expect([...(await ico.body()).subarray(0, 4)]).toEqual([0, 0, 1, 0]);
+
+    const svg = await request.get('/favicon.svg');
+    expect(svg.headers()['content-type']).toMatch(/^image\/svg\+xml/);
+    expect(await svg.text()).not.toMatch(/class="[^"]*"\s+class=/);
+  });
+
   test('the app still opens with the network switched off', async ({ page, context }) => {
     await skipOnboarding(page);
 

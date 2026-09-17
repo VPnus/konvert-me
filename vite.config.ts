@@ -34,7 +34,7 @@ export default defineConfig({
     VitePWA({
       // The user confirms the update: a reload must never interrupt data entry.
       registerType: 'prompt',
-      includeAssets: ['favicon.svg', 'favicon-64.png', 'apple-touch-icon.png'],
+      includeAssets: ['favicon.ico', 'favicon.svg', 'favicon-64.png', 'apple-touch-icon.png'],
       manifest: {
         // The identity of the installed app, kept apart from where it starts: the start may move,
         // the identity may not, or browsers would take it for another app.
@@ -59,7 +59,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
         // The pictures of the landing and of the link preview are for visitors, who are online:
         // the offline copy of the app does not need them.
         globIgnores: ['**/node_modules/**/*', 'landing/**', 'og-image.png'],

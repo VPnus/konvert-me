@@ -14,7 +14,8 @@
     "format": "prettier --write .",
     "e2e": "playwright test",
     "icons": "node scripts/generate-icons.mjs",
-    "og-image": "node scripts/generate-og-image.mjs"
+    "og-image": "node scripts/generate-og-image.mjs",
+    "deploy": "node scripts/deploy.mjs"
   },
   "private": "true",
   "type": "module",

@@ -16,6 +16,11 @@ function EventRow({ event }: { event: UpcomingEvent }) {
           {ru.upcoming.kinds[event.kind]}
           {event.amountMinor ? ` · ${formatForecast(event.amountMinor)}` : ''}
         </p>
+        {event.minimumMinor ? (
+          <p className="text-[11px] text-muted-foreground">
+            {ru.upcoming.minimum.replace('{amount}', formatForecast(event.minimumMinor))}
+          </p>
+        ) : null}
       </div>
       <span
         className={`shrink-0 text-sm font-semibold ${event.inDays <= 3 ? 'text-warning' : ''}`}

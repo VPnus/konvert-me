@@ -34,6 +34,9 @@ interface FormState {
   endDate: string;
   creditLimit: string;
   gracePeriodEnd: string;
+  statementDay: string;
+  minPaymentRate: string;
+  freeTransfers: string;
   note: string;
 }
 
@@ -61,6 +64,9 @@ function initialState(account?: Account): FormState {
       endDate: account.endDate ?? '',
       creditLimit: account.creditLimitMinor ? String(minorToRubles(account.creditLimitMinor)) : '',
       gracePeriodEnd: account.gracePeriodEnd ?? '',
+      statementDay: account.statementDay ? String(account.statementDay) : '',
+      minPaymentRate: percent(account.minPaymentRate),
+      freeTransfers: account.freeTransfersMinor ? String(minorToRubles(account.freeTransfersMinor)) : '',
       note: account.note ?? '',
     };
   }
@@ -80,6 +86,9 @@ function initialState(account?: Account): FormState {
     endDate: '',
     creditLimit: '',
     gracePeriodEnd: '',
+    statementDay: '',
+    minPaymentRate: '',
+    freeTransfers: '',
     note: '',
   };
 }
@@ -101,6 +110,7 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
     setBusy(true);
     setError(null);
 
+    const card = state.side === 'liability' && state.type === 'credit_card';
     const payload = {
       name: state.name,
       side: state.side,
@@ -121,7 +131,16 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
         state.side === 'liability' && state.creditLimit
           ? rublesToMinor(parseNumericInput(state.creditLimit))
           : undefined,
-      gracePeriodEnd: state.side === 'liability' && state.gracePeriodEnd ? state.gracePeriodEnd : undefined,
+      // a card with a statement every month has no one date of grace
+      gracePeriodEnd:
+        state.side === 'liability' && state.gracePeriodEnd && !(card && state.statementDay)
+          ? state.gracePeriodEnd
+          : undefined,
+      statementDay: card && state.statementDay ? Number(state.statementDay) : undefined,
+      minPaymentRate:
+        card && state.minPaymentRate ? parseNumericInput(state.minPaymentRate) / 100 : undefined,
+      freeTransfersMinor:
+        card && state.freeTransfers ? rublesToMinor(parseNumericInput(state.freeTransfers)) : undefined,
       note: state.note.trim() || undefined,
     };
 
@@ -238,6 +257,109 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
                 />
                 {ru.accounts.isLiquid}
               </label>
+            ) : state.type === 'credit_card' ? (
+              <fieldset className="flex flex-col gap-3 rounded-lg border border-border p-3">
+                <legend className="px-1 text-sm font-medium">{ru.accounts.cardTerms}</legend>
+                <p className="text-xs text-muted-foreground">{ru.accounts.cardTermsHint}</p>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label={ru.accounts.cardRate} hint={ru.accounts.cardRateHint}>
+                    {(id) => (
+                      <NumberInput
+                        id={id}
+                        value={state.rate}
+                        data-testid="account-rate"
+                        onValueChange={(rate) => patch({ rate })}
+                      />
+                    )}
+                  </Field>
+
+                  <Field label={ru.accounts.creditLimit}>
+                    {(id) => (
+                      <NumberInput
+                        id={id}
+                        value={state.creditLimit}
+                        data-testid="account-credit-limit"
+                        onValueChange={(creditLimit) => patch({ creditLimit })}
+                      />
+                    )}
+                  </Field>
+
+                  <Field label={ru.accounts.statementDay} hint={ru.accounts.statementDayHint}>
+                    {(id) => (
+                      <NumberInput
+                        id={id}
+                        integer
+                        maxLength={2}
+                        value={state.statementDay}
+                        placeholder={ru.accounts.statementDayNone}
+                        data-testid="account-statement-day"
+                        onValueChange={(statementDay) => patch({ statementDay })}
+                      />
+                    )}
+                  </Field>
+
+                  <Field label={ru.accounts.cardPaymentDay} hint={ru.accounts.cardPaymentDayHint}>
+                    {(id) => (
+                      <NumberInput
+                        id={id}
+                        integer
+                        maxLength={2}
+                        value={state.paymentDay}
+                        placeholder={ru.accounts.paymentDayNone}
+                        data-testid="account-payment-day"
+                        onValueChange={(paymentDay) => patch({ paymentDay })}
+                      />
+                    )}
+                  </Field>
+
+                  <Field label={ru.accounts.minPaymentRate} hint={ru.accounts.minPaymentHint}>
+                    {(id) => (
+                      <NumberInput
+                        id={id}
+                        value={state.minPaymentRate}
+                        data-testid="account-min-payment-rate"
+                        onValueChange={(minPaymentRate) => patch({ minPaymentRate })}
+                      />
+                    )}
+                  </Field>
+
+                  <Field label={ru.accounts.minPaymentFloor}>
+                    {(id) => (
+                      <NumberInput
+                        id={id}
+                        value={state.monthlyPayment}
+                        data-testid="account-payment"
+                        onValueChange={(monthlyPayment) => patch({ monthlyPayment })}
+                      />
+                    )}
+                  </Field>
+
+                  <Field label={ru.accounts.freeTransfers} hint={ru.accounts.freeTransfersHint}>
+                    {(id) => (
+                      <NumberInput
+                        id={id}
+                        value={state.freeTransfers}
+                        data-testid="account-free-transfers"
+                        onValueChange={(freeTransfers) => patch({ freeTransfers })}
+                      />
+                    )}
+                  </Field>
+
+                  {state.statementDay ? null : (
+                    <Field label={ru.accounts.gracePeriodEnd} hint={ru.accounts.graceHint}>
+                      {(id) => (
+                        <Input
+                          id={id}
+                          type="date"
+                          value={state.gracePeriodEnd}
+                          data-testid="account-grace"
+                          onChange={(event) => patch({ gracePeriodEnd: event.target.value })}
+                        />
+                      )}
+                    </Field>
+                  )}
+                </div>
+              </fieldset>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label={`${ru.accounts.rate} (${ru.common.optional})`} hint={ru.accounts.debtRateHint}>
@@ -322,36 +444,6 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
                   />
                 )}
               </Field>
-            ) : null}
-
-            {state.type === 'credit_card' ? (
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label={`${ru.accounts.creditLimit} (${ru.common.optional})`}>
-                  {(id) => (
-                    <NumberInput
-                      id={id}
-                      value={state.creditLimit}
-                      data-testid="account-credit-limit"
-                      onValueChange={(creditLimit) => patch({ creditLimit })}
-                    />
-                  )}
-                </Field>
-
-                <Field
-                  label={`${ru.accounts.gracePeriodEnd} (${ru.common.optional})`}
-                  hint={ru.accounts.graceHint}
-                >
-                  {(id) => (
-                    <Input
-                      id={id}
-                      type="date"
-                      value={state.gracePeriodEnd}
-                      data-testid="account-grace"
-                      onChange={(event) => patch({ gracePeriodEnd: event.target.value })}
-                    />
-                  )}
-                </Field>
-              </div>
             ) : null}
 
             {state.side === 'liability' && state.type !== 'credit_card' ? (

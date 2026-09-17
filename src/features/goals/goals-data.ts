@@ -73,6 +73,7 @@ function toCoreAccount(account: Account): CoreAccount {
     openingDate: account.openingDate,
     archived: account.archived,
     monthlyPaymentMinor: account.monthlyPaymentMinor,
+    minPaymentRate: account.minPaymentRate,
   };
 }
 
@@ -163,7 +164,7 @@ export async function loadGoals(now: Date = new Date()): Promise<GoalsData> {
           .filter((line) => line.categoryId === LOAN_INTEREST_CATEGORY)
           .reduce((total, line) => total + line.amountMinor, 0)
       : categoryExpenseAverageMinor(transactions, basis.months, LOAN_INTEREST_CATEGORY);
-  const principalMinor = principalDueMinor(coreAccounts, interestMinor);
+  const principalMinor = principalDueMinor(coreAccounts, transactions, interestMinor);
   const availableMinor = basis.freeCashMinor - principalMinor;
 
   const reserveRequestMinor = reserveContributionMinor(reserve, basis.incomeMinor);

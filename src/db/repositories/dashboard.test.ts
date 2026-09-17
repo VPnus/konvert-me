@@ -26,7 +26,9 @@ describe('dashboard layout', () => {
 
     expect(layout.items).toHaveLength(DEFAULT_WIDGETS.length);
     expect(layout.items.every((item) => knownTypes.has(item.widgetType))).toBe(true);
-    expect(layout.items.map((item) => item.order)).toEqual([0, 1, 2, 3, 4, 5, 6]);
+    // the dates of payments and grace periods are on the overview from the start
+    expect(layout.items.map((item) => item.widgetType)).toContain('upcoming');
+    expect(layout.items.map((item) => item.order)).toEqual(DEFAULT_WIDGETS.map((_, index) => index));
     expect(new Set(layout.items.map((item) => item.instanceId)).size).toBe(layout.items.length);
   });
 
@@ -54,7 +56,7 @@ describe('dashboard layout', () => {
     const saved = await saveDashboardLayout(reordered);
 
     expect(saved.items[0].widgetType).toBe(layout.items[2].widgetType);
-    expect(saved.items.map((item) => item.order)).toEqual([0, 1, 2, 3, 4, 5, 6]);
+    expect(saved.items.map((item) => item.order)).toEqual(layout.items.map((_, index) => index));
   });
 
   it('survives a resize and a removal', async () => {

@@ -81,6 +81,86 @@ describe('upcoming: what is about to matter', () => {
     expect(near.map((event) => event.name)).toEqual(['Кредитная карта']);
   });
 
+  it('asks a card for the whole statement by its due day, and says the minimum after it', () => {
+    const platinum: UpcomingAccount = {
+      id: 'platinum',
+      name: 'Кредитка Платинум',
+      side: 'liability',
+      paymentDay: 14,
+      statementDay: 19,
+      monthlyPaymentMinor: 600 * 100,
+      minPaymentRate: 0.08,
+      balanceMinor: 78_000 * 100,
+      grace: {
+        kind: 'due',
+        statementDate: '2026-09-19',
+        dueDate: '2026-10-14',
+        statementMinor: 14_000 * 100,
+        paidMinor: 0,
+        remainingMinor: 14_000 * 100,
+        minimumMinor: 1_120 * 100,
+      },
+    };
+
+    expect(upcomingEvents({ today: '2026-10-13', accounts: [platinum] })).toEqual([
+      {
+        kind: 'card-statement',
+        id: 'platinum',
+        name: 'Кредитка Платинум',
+        date: '2026-10-14',
+        inDays: 1,
+        amountMinor: 14_000 * 100,
+        minimumMinor: 1_120 * 100,
+      },
+    ]);
+
+    // paid, or between the due day and the next statement: nothing to ask
+    expect(
+      upcomingEvents({ today: '2026-10-15', accounts: [{ ...platinum, grace: { kind: 'none' } }] }),
+    ).toEqual([]);
+
+    // a statement missed: the card pays like any debt, 8 % of the debt of today
+    const missed = upcomingEvents({
+      today: '2026-10-15',
+      accounts: [
+        {
+          ...platinum,
+          grace: {
+            kind: 'missed',
+            statementDate: '2026-09-19',
+            dueDate: '2026-10-14',
+            statementMinor: 14_000 * 100,
+            paidMinor: 0,
+            debtMinor: 78_000 * 100,
+            monthlyInterestMinor: 324_350,
+          },
+        },
+      ],
+    });
+    expect(missed).toMatchObject([{ kind: 'debt-payment', date: '2026-11-14', amountMinor: 6_240 * 100 }]);
+  });
+
+  it('asks nothing of a debt repaid, and the whole debt by the end of one long grace period', () => {
+    const repaid = upcomingEvents({
+      today: '2026-09-15',
+      accounts: [
+        { ...card, balanceMinor: 0 },
+        { ...loan, balanceMinor: 0 },
+      ],
+    });
+    expect(repaid).toEqual([]);
+
+    const events = upcomingEvents({
+      today: '2026-09-15',
+      accounts: [{ ...card, balanceMinor: 3_000 * 100 }],
+    });
+    expect(events).toMatchObject([
+      // the payment is never more than the debt
+      { kind: 'debt-payment', amountMinor: 3_000 * 100 },
+      { kind: 'grace-period', date: '2026-10-05', amountMinor: 3_000 * 100 },
+    ]);
+  });
+
   it('does not invent a payment day for an asset', () => {
     const events = upcomingEvents({
       today: '2026-09-15',

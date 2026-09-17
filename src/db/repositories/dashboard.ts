@@ -72,6 +72,8 @@ export const DEFAULT_WIDGETS: readonly Omit<WidgetInstance, 'instanceId' | 'orde
   { widgetType: 'goals', size: 'L', settings: {} },
   { widgetType: 'net-worth', size: 'S', settings: {} },
   { widgetType: 'debt-burden', size: 'S', settings: {} },
+  // the dates of payments and grace periods, where the reminder of a card is kept
+  { widgetType: 'upcoming', size: 'M', settings: {} },
   { widgetType: 'warnings', size: 'M', settings: {} },
   { widgetType: 'quick-add', size: 'M', settings: {} },
 ];

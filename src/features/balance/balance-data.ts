@@ -11,8 +11,9 @@ import {
   type InsuredAccount,
   type NetWorthPoint,
 } from '@/core/balance';
+import { cardGrace, type CardGrace } from '@/core/credit-card';
 import { latestRules, rulesForYear, type Norm } from '@/core/rules';
-import { addMonths, currentMonth, monthOfDate, compareMonths, type IsoMonth } from '@/core/time';
+import { addMonths, currentMonth, monthOfDate, compareMonths, todayIso, type IsoMonth } from '@/core/time';
 import { db } from '@/db/db';
 import type { Account, AccountType, InsurancePolicy } from '@/db/models';
 import { getAccountBalancesMinor } from '@/db/repositories/accounts';
@@ -32,6 +33,8 @@ export interface BalanceData {
   readonly banks: BankDeposits[];
   readonly insuranceLimit: Norm<number>;
   readonly policies: InsurancePolicy[];
+  /** Where the grace period of every debt stands today; a debt without grace terms says 'none'. */
+  readonly cards: Map<string, CardGrace>;
 }
 
 export interface BalanceOptions {
@@ -90,5 +93,10 @@ export async function loadBalance(
     banks: depositsByBank(insurable, transactions, limit.value),
     insuranceLimit: limit,
     policies,
+    cards: new Map(
+      live
+        .filter((account) => account.side === 'liability')
+        .map((account) => [account.id, cardGrace(account, transactions, todayIso(now))]),
+    ),
   };
 }

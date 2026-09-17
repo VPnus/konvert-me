@@ -43,8 +43,10 @@ export interface CoreAccount {
   readonly openingBalanceMinor: number;
   readonly openingDate: IsoDate;
   readonly archived?: boolean;
-  /** Scheduled monthly payment of a debt, used by the debt burden of formula 10. */
+  /** Scheduled monthly payment of a debt, used by the debt burden of formula 10; for a card, the floor of its minimum. */
   readonly monthlyPaymentMinor?: number;
+  /** A credit card: the minimum payment as a share of the debt, 0.08 for 8 %. */
+  readonly minPaymentRate?: number;
 }
 
 export interface CoreBudgetPlanLine {

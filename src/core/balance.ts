@@ -106,10 +106,30 @@ export function netWorthMinor(
   return totalAssetsMinor(accounts, transactions) - totalLiabilitiesMinor(accounts, transactions);
 }
 
-export function monthlyDebtPaymentsMinor(accounts: readonly CoreAccount[]): number {
+/**
+ * The payment a debt asks this month. A credit card asks its share of the debt, but not less than its
+ * floor in rubles; any other debt its payment of a month. Never more than the debt, nothing once repaid.
+ */
+export function minimumPaymentMinor(
+  debtMinor: number,
+  terms: Pick<CoreAccount, 'minPaymentRate' | 'monthlyPaymentMinor'>,
+): number {
+  if (debtMinor <= 0) return 0;
+  const share = terms.minPaymentRate ? Math.round(debtMinor * terms.minPaymentRate) : 0;
+  return Math.min(Math.max(share, terms.monthlyPaymentMinor ?? 0), debtMinor);
+}
+
+/** Formula 10: the payments of the active debts as they stand today. */
+export function monthlyDebtPaymentsMinor(
+  accounts: readonly CoreAccount[],
+  transactions: readonly CoreTransaction[],
+): number {
   return accounts
     .filter((account) => !account.archived && account.side === 'liability')
-    .reduce((total, account) => total + (account.monthlyPaymentMinor ?? 0), 0);
+    .reduce(
+      (total, account) => total + minimumPaymentMinor(accountBalanceMinor(account, transactions), account),
+      0,
+    );
 }
 
 /**
@@ -117,8 +137,12 @@ export function monthlyDebtPaymentsMinor(accounts: readonly CoreAccount[]): numb
  * less the interest already counted among the expenses. It is not an expense, and it is
  * not free money either — formula 8 hands the goals only what is left after it.
  */
-export function principalDueMinor(accounts: readonly CoreAccount[], interestInExpensesMinor: number): number {
-  return Math.max(monthlyDebtPaymentsMinor(accounts) - Math.max(interestInExpensesMinor, 0), 0);
+export function principalDueMinor(
+  accounts: readonly CoreAccount[],
+  transactions: readonly CoreTransaction[],
+  interestInExpensesMinor: number,
+): number {
+  return Math.max(monthlyDebtPaymentsMinor(accounts, transactions) - Math.max(interestInExpensesMinor, 0), 0);
 }
 
 export type DebtBurdenStatus = 'normal' | 'attention' | 'tense' | 'unknown';

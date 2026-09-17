@@ -8,6 +8,7 @@ import { UpdatedNotice } from '@/components/pwa/updated-notice';
 import { CatLogo } from '@/components/brand/cat-logo';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { NAV_ITEMS } from '@/app/navigation';
+import { CardReminderBanner } from '@/features/balance/card-reminder-banner';
 import { DeductionReminderBanner } from '@/features/deductions/deduction-reminder';
 import { ReportProblemButton } from '@/features/feedback/report-problem';
 import { PlanReviewReminderBanner } from '@/features/plan/review-reminder';
@@ -125,6 +126,7 @@ export function AppShell() {
         <ErrorBoundary>
           <UpdatedNotice />
           <DataRiskBanner />
+          <CardReminderBanner />
           <BackupReminder />
           <DeductionReminderBanner />
           <PlanReviewReminderBanner />

@@ -4,10 +4,13 @@
  * of a loan. Nothing here knows how it will be worded on screen.
  */
 
+import { minimumPaymentMinor } from './balance';
+import type { CardGrace } from './credit-card';
 import { nextPayday } from './payday';
 import { daysBetween, type IsoDate } from './time';
 
-export type UpcomingKind = 'debt-payment' | 'deposit-maturity' | 'grace-period' | 'policy-end' | 'debt-end';
+export type UpcomingKind =
+  'debt-payment' | 'card-statement' | 'deposit-maturity' | 'grace-period' | 'policy-end' | 'debt-end';
 
 export interface UpcomingEvent {
   readonly kind: UpcomingKind;
@@ -18,6 +21,8 @@ export interface UpcomingEvent {
   readonly date: IsoDate;
   readonly inDays: number;
   readonly amountMinor?: number;
+  /** A statement of a card: the minimum the bank asks, which does not keep the grace period. */
+  readonly minimumMinor?: number;
 }
 
 export interface UpcomingAccount {
@@ -26,10 +31,16 @@ export interface UpcomingAccount {
   readonly side: 'asset' | 'liability';
   readonly archived?: boolean;
   readonly monthlyPaymentMinor?: number;
+  readonly minPaymentRate?: number;
   readonly paymentDay?: number;
   readonly maturityDate?: IsoDate;
   readonly gracePeriodEnd?: IsoDate;
   readonly endDate?: IsoDate;
+  /** The debt of today: a repaid debt asks for nothing. Unknown, the payment of a month is shown as typed. */
+  readonly balanceMinor?: number;
+  /** A card with a statement every month or one long grace period: where it stands (core/credit-card). */
+  readonly grace?: CardGrace;
+  readonly statementDay?: number;
 }
 
 export interface UpcomingPolicy {
@@ -67,25 +78,49 @@ export function upcomingEvents({
 
   for (const account of accounts) {
     if (account.archived) continue;
+    const debt = account.side === 'liability';
+    // a debt repaid has no payment, no grace period and no last payment to wait for
+    if (debt && account.balanceMinor !== undefined && account.balanceMinor <= 0) continue;
+    const grace = account.grace;
 
-    if (account.side === 'liability' && account.paymentDay) {
+    if (debt && grace?.kind === 'due') {
+      // the whole statement keeps the grace period; the minimum is said, but after it
+      add({
+        kind: 'card-statement',
+        id: account.id,
+        name: account.name,
+        date: grace.dueDate,
+        amountMinor: grace.remainingMinor,
+        minimumMinor: grace.minimumMinor,
+      });
+    } else if (debt && account.paymentDay && !(account.statementDay && grace?.kind !== 'missed')) {
+      // a card with statements asks by its statement; once one is missed, it pays like any debt
       const payday = nextPayday(today, account.paymentDay);
       add({
         kind: 'debt-payment',
         id: account.id,
         name: account.name,
         date: payday.date,
-        amountMinor: account.monthlyPaymentMinor,
+        amountMinor:
+          account.balanceMinor === undefined
+            ? account.monthlyPaymentMinor
+            : minimumPaymentMinor(account.balanceMinor, account) || undefined,
       });
     }
 
     if (account.maturityDate) {
       add({ kind: 'deposit-maturity', id: account.id, name: account.name, date: account.maturityDate });
     }
-    if (account.gracePeriodEnd) {
-      add({ kind: 'grace-period', id: account.id, name: account.name, date: account.gracePeriodEnd });
+    if (debt && account.gracePeriodEnd && !account.statementDay) {
+      add({
+        kind: 'grace-period',
+        id: account.id,
+        name: account.name,
+        date: account.gracePeriodEnd,
+        amountMinor: account.balanceMinor,
+      });
     }
-    if (account.endDate && account.side === 'liability') {
+    if (account.endDate && debt) {
       add({ kind: 'debt-end', id: account.id, name: account.name, date: account.endDate });
     }
   }

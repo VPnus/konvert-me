@@ -10,6 +10,7 @@ import {
   liquidEnvelopesMinor,
   monthlyDebtPaymentsMinor,
   netWorthMinor,
+  principalDueMinor,
   reserveState,
   totalAssetsMinor,
   totalLiabilitiesMinor,
@@ -17,7 +18,15 @@ import {
   type DebtBurden,
   type ReserveState,
 } from '@/core/balance';
-import { budgetBasis, monthTotals, planTotals, type BudgetBasis, type MonthTotals } from '@/core/budget';
+import {
+  budgetBasis,
+  categoryExpenseAverageMinor,
+  monthTotals,
+  planTotals,
+  type BudgetBasis,
+  type MonthTotals,
+} from '@/core/budget';
+import { cardGrace, type CardGrace } from '@/core/credit-card';
 import { upcomingEvents, type UpcomingEvent } from '@/core/upcoming';
 import {
   contributionPlan,
@@ -25,12 +34,14 @@ import {
   savingsByGoalMinor,
   type ContributionPlan,
 } from '@/core/goals';
+import { formatForecast } from '@/core/money';
 import { currentMonth, todayIso, type IsoMonth } from '@/core/time';
 import type { CoreAccount, CoreCategory, CoreTransaction } from '@/core/types';
 import { db } from '@/db/db';
 import type { Account, AppSettings, Goal } from '@/db/models';
 import { DEFAULT_SETTINGS } from '@/db/models';
 import { getAccountBalancesMinor, holdsMoney } from '@/db/repositories/accounts';
+import { LOAN_INTEREST_CATEGORY } from '@/db/repositories/categories';
 import { RESERVE_GOAL_ID } from '@/db/repositories/goals';
 import {
   deductionsAtGlance,
@@ -62,6 +73,10 @@ export interface OverviewData {
   readonly liabilitiesMinor: number;
   readonly debtBurden: DebtBurden;
   readonly hasDebts: boolean;
+  /** The principal the debts take by schedule in a usual month, as formula 8 counts it. */
+  readonly principalDueMinor: number;
+  /** Where the grace period of every active debt stands today; 'none' for a debt without grace terms. */
+  readonly cards: Map<string, CardGrace>;
   readonly goals: GoalView[];
   readonly hasPlan: boolean;
   readonly hasTransactions: boolean;
@@ -81,6 +96,7 @@ function toCoreAccount(account: Account): CoreAccount {
     openingDate: account.openingDate,
     archived: account.archived,
     monthlyPaymentMinor: account.monthlyPaymentMinor,
+    minPaymentRate: account.minPaymentRate,
   };
 }
 
@@ -144,7 +160,20 @@ export async function loadOverview(now: Date = new Date()): Promise<OverviewData
 
   // Formula 10: the income of a usual month, not of the days of this one that have passed.
   const incomeForBurden = basis.incomeMinor;
-  const monthlyPayments = monthlyDebtPaymentsMinor(coreAccounts);
+  const monthlyPayments = monthlyDebtPaymentsMinor(coreAccounts, coreTransactions);
+
+  const today = todayIso(now);
+  const cards = new Map(
+    accounts
+      .filter((account) => account.side === 'liability' && !account.archived)
+      .map((account) => [account.id, cardGrace(account, coreTransactions, today)]),
+  );
+  const interestMinor =
+    basis.source === 'plan'
+      ? plans
+          .filter((line) => line.categoryId === LOAN_INTEREST_CATEGORY)
+          .reduce((total, line) => total + line.amountMinor, 0)
+      : categoryExpenseAverageMinor(coreTransactions, basis.months, LOAN_INTEREST_CATEGORY);
 
   const goalViews: GoalView[] = goals
     .filter((goal) => goal.status !== 'done')
@@ -189,9 +218,15 @@ export async function loadOverview(now: Date = new Date()): Promise<OverviewData
     liabilitiesMinor: totalLiabilitiesMinor(coreAccounts, coreTransactions),
     debtBurden: debtBurden(monthlyPayments, incomeForBurden),
     hasDebts: accounts.some((account) => account.side === 'liability' && !account.archived),
+    principalDueMinor: principalDueMinor(coreAccounts, coreTransactions, interestMinor),
+    cards,
     upcoming: upcomingEvents({
-      today: todayIso(now),
-      accounts,
+      today,
+      accounts: accounts.map((account) => ({
+        ...account,
+        balanceMinor: balances.get(account.id),
+        grace: cards.get(account.id),
+      })),
       policies: policies.map((policy) => ({
         id: policy.id,
         name: policy.name,
@@ -232,6 +267,27 @@ export function collectWarnings(data: Omit<OverviewData, 'warnings'>, texts: War
   }
   if (data.basis.freeCashMinor < 0) {
     warnings.push({ id: 'free-cash', text: texts.negativeFreeCash, to: '/budget' });
+  } else if (data.basis.incomeMinor > 0 && data.basis.freeCashMinor - data.principalDueMinor < 0) {
+    // the expenses are covered, the principal of the debts is not
+    warnings.push({
+      id: 'debts-short',
+      text: texts.debtsShort.replace(
+        '{amount}',
+        formatForecast(data.principalDueMinor - data.basis.freeCashMinor),
+      ),
+      to: '/goals',
+    });
+  }
+
+  for (const account of data.accounts) {
+    const grace = data.cards.get(account.id);
+    if (grace?.kind === 'missed' || grace?.kind === 'grace-ended') {
+      warnings.push({
+        id: `card-${account.id}`,
+        text: texts.cardMissed.replace('{name}', account.name),
+        to: '/balance',
+      });
+    }
   }
 
   for (const view of data.goals) {
@@ -265,6 +321,8 @@ export interface WarningTexts {
   readonly reserveLow: string;
   readonly noReserveData: string;
   readonly negativeFreeCash: string;
+  readonly debtsShort: string;
+  readonly cardMissed: string;
   readonly returnBelowInflation: string;
   readonly goalOverdue: string;
   readonly noBackup: string;

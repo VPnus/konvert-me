@@ -270,10 +270,42 @@ describe('balance: net worth (formula 11)', () => {
 
 describe('balance: scheduled debt payments', () => {
   it('sums the monthly payments of active debts only', () => {
-    expect(monthlyDebtPaymentsMinor([debit, card, mortgage])).toBe(r(40_000));
-    expect(monthlyDebtPaymentsMinor([{ ...card, archived: true }, mortgage])).toBe(r(35_000));
-    expect(monthlyDebtPaymentsMinor([{ ...card, monthlyPaymentMinor: undefined }])).toBe(0);
-    expect(monthlyDebtPaymentsMinor([])).toBe(0);
+    expect(monthlyDebtPaymentsMinor([debit, card, mortgage], [])).toBe(r(40_000));
+    expect(monthlyDebtPaymentsMinor([{ ...card, archived: true }, mortgage], [])).toBe(r(35_000));
+    expect(monthlyDebtPaymentsMinor([{ ...card, monthlyPaymentMinor: undefined }], [])).toBe(0);
+    expect(monthlyDebtPaymentsMinor([], [])).toBe(0);
+  });
+
+  it('asks of a card its share of the debt of today, and nothing of a repaid debt', () => {
+    // «Платинум» after a transfer: 8 % of 71 000, not the 600 typed when the debt was 14 000
+    const platinum: CoreAccount = {
+      id: 'platinum',
+      side: 'liability',
+      isLiquid: false,
+      openingBalanceMinor: r(14_000),
+      openingDate: '2026-09-01',
+      monthlyPaymentMinor: r(600),
+      minPaymentRate: 0.08,
+    };
+    const transfer: CoreTransaction = {
+      date: '2026-09-20',
+      amountMinor: r(57_000),
+      kind: 'transfer',
+      accountId: 'platinum',
+      toAccountId: 'old-card',
+    };
+    expect(monthlyDebtPaymentsMinor([platinum], [])).toBe(r(1_120));
+    expect(monthlyDebtPaymentsMinor([platinum], [transfer])).toBe(r(5_680));
+
+    // the old card, repaid by that transfer, asks nothing; a loan near its end asks what is left
+    const oldCard: CoreAccount = {
+      ...card,
+      id: 'old-card',
+      openingBalanceMinor: r(57_000),
+      openingDate: '2026-09-01',
+    };
+    expect(monthlyDebtPaymentsMinor([oldCard], [transfer])).toBe(0);
+    expect(monthlyDebtPaymentsMinor([{ ...mortgage, openingBalanceMinor: r(20_000) }], [])).toBe(r(20_000));
   });
 });
 
@@ -687,16 +719,16 @@ describe('balance: the principal due is not free money', () => {
 
   it('is the scheduled payments less the interest already counted as an expense', () => {
     // The worker of the scenario audit: 16 800 a month, of which 5 949 is interest.
-    expect(principalDueMinor(debts, r(5_949))).toBe(r(10_851));
+    expect(principalDueMinor(debts, [], r(5_949))).toBe(r(10_851));
   });
 
   it('is the whole payment when the interest is not written down separately', () => {
-    expect(principalDueMinor(debts, 0)).toBe(r(16_800));
+    expect(principalDueMinor(debts, [], 0)).toBe(r(16_800));
   });
 
   it('never goes below zero and skips archived debts', () => {
-    expect(principalDueMinor(debts, r(20_000))).toBe(0);
-    expect(principalDueMinor([{ ...debts[0], archived: true }], 0)).toBe(0);
+    expect(principalDueMinor(debts, [], r(20_000))).toBe(0);
+    expect(principalDueMinor([{ ...debts[0], archived: true }], [], 0)).toBe(0);
   });
 });
 

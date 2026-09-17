@@ -9,12 +9,15 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ErrorBoundary } from '@/components/common/error-boundary';
 import { AccountForm } from '@/features/balance/account-form';
 import { loadBalance, type BalanceData } from '@/features/balance/balance-data';
+import { accountDetails, cardStatus, fullDateLabel, limitStatus } from '@/features/balance/card-view';
 import { PaydayCard } from '@/features/balance/payday-card';
 import { PoliciesCard } from '@/features/balance/policies-card';
 import { useDataVersion } from '@/hooks/use-data-version';
+import type { CardGrace } from '@/core/credit-card';
 import type { Account } from '@/db/models';
 import { deleteAccount, setAccountArchived } from '@/db/repositories/accounts';
 import { ru } from '@/i18n/ru';
+import { cn } from '@/lib/utils';
 
 // Recharts is a chunk of its own: the balance screen is useful long before it draws.
 const CapitalChart = lazy(() => import('@/features/balance/capital-chart'));
@@ -25,29 +28,22 @@ const RANGES: readonly { readonly months?: number; readonly label: string }[] = 
   { label: ru.capital.rangeAll },
 ];
 
-/** The extra line under an account: its type and whatever dates it carries. */
-function accountDetails(account: Account): string {
-  const parts: string[] = [ru.accounts.types[account.type]];
-  if (account.bankName) parts.push(account.bankName);
-  if (account.paymentDay) parts.push(`платёж ${account.paymentDay} числа`);
-  if (account.maturityDate) parts.push(`${ru.accounts.maturityDate.toLowerCase()} ${account.maturityDate}`);
-  if (account.gracePeriodEnd)
-    parts.push(`${ru.accounts.gracePeriodEnd.toLowerCase()} ${account.gracePeriodEnd}`);
-  if (account.endDate) parts.push(`${ru.accounts.endDate.toLowerCase()} ${account.endDate}`);
-  return parts.join(' · ');
-}
-
 function AccountRow({
   account,
   balanceMinor,
+  grace,
   onEdit,
   onDelete,
 }: {
   account: Account;
   balanceMinor: number;
+  grace?: CardGrace;
   onEdit: (account: Account) => void;
   onDelete: (account: Account) => void;
 }) {
+  const limit = account.type === 'credit_card' ? limitStatus(account, balanceMinor) : null;
+  const status = grace ? cardStatus(grace) : null;
+
   return (
     <li className="flex items-center justify-between gap-3 border-b border-border py-3 last:border-b-0">
       <div className="min-w-0">
@@ -60,6 +56,19 @@ function AccountRow({
           ) : null}
         </p>
         <p className="truncate text-xs text-muted-foreground">{accountDetails(account)}</p>
+        {limit ? (
+          <p className="text-xs text-muted-foreground" data-testid={`limit-${account.name}`}>
+            {limit}
+          </p>
+        ) : null}
+        {status ? (
+          <p
+            className={cn('text-xs', status.warning ? 'font-medium text-warning' : 'text-muted-foreground')}
+            data-testid={`card-status-${account.name}`}
+          >
+            {status.text}
+          </p>
+        ) : null}
       </div>
 
       <div className="flex shrink-0 items-center gap-1">
@@ -197,7 +206,7 @@ function InsuranceCard({ data }: { data: BalanceData }) {
           <a href={limit.source} target="_blank" rel="noreferrer noopener" className="underline">
             {new URL(limit.source).hostname}
           </a>
-          , {ru.insurance.checkedAt} {limit.checkedAt}.
+          , {ru.insurance.checkedAt} {fullDateLabel(limit.checkedAt)}.
         </p>
       </CardContent>
     </Card>
@@ -328,6 +337,7 @@ export default function BalancePage() {
                   key={account.id}
                   account={account}
                   balanceMinor={balanceOf(account)}
+                  grace={data.cards.get(account.id)}
                   onEdit={openEdit}
                   onDelete={setPendingDelete}
                 />

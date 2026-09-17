@@ -133,6 +133,7 @@ function toCoreAccount(account: Account): CoreAccount {
     openingDate: account.openingDate,
     archived: account.archived,
     monthlyPaymentMinor: account.monthlyPaymentMinor,
+    minPaymentRate: account.minPaymentRate,
   };
 }
 

@@ -13,6 +13,7 @@ import { Select } from '@/components/ui/select';
 import { POLICY_TYPES, type InsurancePolicy } from '@/db/models';
 import { createPolicy, deletePolicy, updatePolicy } from '@/db/repositories/policies';
 import { daysLabel } from '@/features/balance/days-label';
+import { fullDateLabel } from '@/features/balance/card-view';
 import { ru } from '@/i18n/ru';
 import { parseNumericInput } from '@/lib/numeric-input';
 
@@ -248,7 +249,9 @@ export function PoliciesCard({ policies }: PoliciesCardProps) {
                         className={`mr-1 text-xs ${left < 0 ? 'text-destructive' : left <= 30 ? 'text-warning' : 'text-muted-foreground'}`}
                         data-testid={`policy-left-${policy.name}`}
                       >
-                        {left < 0 ? ru.policies.expired : `${ru.policies.expires} ${policy.endDate}`}
+                        {left < 0
+                          ? ru.policies.expired
+                          : `${ru.policies.expires} ${fullDateLabel(policy.endDate)}`}
                         {left >= 0 ? ` · ${daysLabel(left)}` : ''}
                       </span>
                       <Button

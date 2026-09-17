@@ -6,9 +6,21 @@
  */
 
 import { todayIso } from '@/core/time';
+import { currentLanguage } from '@/i18n/locale';
+import type { Language } from '@/i18n/types';
 import { readUsage } from '@/lib/usage';
 
 export type ReleaseNotes = Readonly<Record<string, readonly string[]>>;
+
+/** src/app/release-notes.json: the notes of each version in every language of the app. */
+export type ReleaseNotesByLanguage = Readonly<Record<string, Readonly<Record<Language, readonly string[]>>>>;
+
+/** The notes of every version in one language. */
+export function notesIn(all: ReleaseNotesByLanguage, language: Language = currentLanguage()): ReleaseNotes {
+  return Object.fromEntries(
+    Object.entries(all).map(([version, byLanguage]) => [version, byLanguage[language]]),
+  );
+}
 
 export interface Release {
   readonly version: string;
@@ -90,9 +102,18 @@ export async function fetchLatestRelease(fetcher: typeof fetch = fetch): Promise
   try {
     const response = await fetcher(RELEASE_FILE, { cache: 'no-store' });
     if (!response.ok) return null;
-    const body = (await response.json()) as Partial<Release>;
+    const body = (await response.json()) as Partial<Release> & {
+      notesByLanguage?: Partial<Record<Language, unknown>>;
+    };
     if (typeof body.version !== 'string') return null;
-    const notes = Array.isArray(body.notes) ? body.notes.filter((note) => typeof note === 'string') : [];
+    // notes stays Russian for the apps of 0.18, which read nothing else.
+    const inLanguage = body.notesByLanguage?.[currentLanguage()];
+    const raw: unknown[] = Array.isArray(inLanguage)
+      ? inLanguage
+      : Array.isArray(body.notes)
+        ? body.notes
+        : [];
+    const notes = raw.filter((note): note is string => typeof note === 'string');
     return { version: body.version, notes };
   } catch {
     return null;

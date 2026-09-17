@@ -23,7 +23,8 @@ import {
   rubles,
   t,
 } from '@/features/plan/plan-format';
-import { currentLocale, fill, strings } from '@/i18n';
+import { fill, strings } from '@/i18n';
+import { percentLabel } from '@/i18n/format';
 import { downloadBlob } from '@/lib/download';
 import { monthsLabel } from '@/features/goals/months-label';
 
@@ -305,7 +306,7 @@ function strategy(data: PlanData): Content[] {
           `${fill(t.pdf.allocation, { name: view.goal.name, term: s.horizon[horizonBand(months)] })}: ${ASSET_CLASSES.filter(
             (asset) => shares[asset] > 0,
           )
-            .map((asset) => `${s.classes[asset]} ${shares[asset].toLocaleString(currentLocale())} %`)
+            .map((asset) => `${s.classes[asset]} ${percentLabel(shares[asset])}`)
             .join(', ')}`,
         ),
       );

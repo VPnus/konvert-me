@@ -16,6 +16,7 @@ import { updateGoal } from '@/db/repositories/goals';
 import { monthLabel } from '@/features/budget/month-label';
 import { monthsLabel } from '@/features/goals/months-label';
 import { strings } from '@/i18n';
+import { percentLabel } from '@/i18n/format';
 
 const MIN_MONTHS = 1;
 const MAX_MONTHS = 360;
@@ -132,7 +133,7 @@ export function WhatIfPanel({ goal, savedMinor }: WhatIfPanelProps) {
       <label className="flex flex-col gap-1 text-xs">
         <span className="flex justify-between">
           <span>{strings.goals.whatIfReturn}</span>
-          <span className="font-medium tabular-nums">{ratePercent} %</span>
+          <span className="font-medium tabular-nums">{percentLabel(ratePercent, 1)}</span>
         </span>
         <Slider
           min={0}
@@ -159,7 +160,7 @@ export function WhatIfPanel({ goal, savedMinor }: WhatIfPanelProps) {
         </p>
         <p className="text-xs text-muted-foreground">
           {strings.goals.costFuture}: {formatForecast(target)} · {strings.goals.realReturn}:{' '}
-          {Math.round(realReturnRate(returnRate, goal.inflationRate) * 1000) / 10} %
+          {percentLabel(Math.round(realReturnRate(returnRate, goal.inflationRate) * 1000) / 10, 1)}
         </p>
         {returnBeatsInflation(returnRate, goal.inflationRate) ? null : (
           <p className="mt-1 text-xs text-warning">{strings.goals.returnBelowInflation}</p>

@@ -240,7 +240,7 @@ test.describe('the risk of losing the data', () => {
 
     const warning = page.getByTestId('data-risk');
     await expect(warning).toHaveAttribute('data-kind', 'space');
-    await expect(warning).toContainText('занято 9.0 ГБ из 10 ГБ');
+    await expect(warning).toContainText('занято 9 ГБ из 10 ГБ');
   });
 
   test('a window that refuses the private file system is taken for a private one', async ({ page }) => {

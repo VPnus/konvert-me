@@ -1,12 +1,26 @@
 {
-  "0.18.1": [
-    "На телефоне виджеты «Обзора» перетаскиваются пальцем, а высота меняется за уголок, который стал крупнее.",
-    "Значок во вкладке браузера стал крупнее и заметнее на тёмной и светлой теме."
-  ],
-  "0.18.0": [
-    "Кредитка с льготным периодом: вписываете день выписки, минимальный платёж и бесплатные переводы из договора, а приложение называет сумму, которая сохраняет льготный период, и напоминает о сроке.",
-    "На телефоне вкладки стоят столбиком у края экрана: справа или, для левшей, слева.",
-    "Значок жука в шапке: письмо о проблеме автору в пару касаний.",
-    "Приложение само замечает новую версию и предлагает её установить."
-  ]
+  "0.18.1": {
+    "ru": [
+      "На телефоне виджеты «Обзора» перетаскиваются пальцем, а высота меняется за уголок, который стал крупнее.",
+      "Значок во вкладке браузера стал крупнее и заметнее на тёмной и светлой теме."
+    ],
+    "en": [
+      "On a phone, the Overview widgets can be dragged with a finger, and their height changes by the corner, which got bigger.",
+      "The icon in the browser tab is bigger and easier to see in the dark and light themes."
+    ]
+  },
+  "0.18.0": {
+    "ru": [
+      "Кредитка с льготным периодом: вписываете день выписки, минимальный платёж и бесплатные переводы из договора, а приложение называет сумму, которая сохраняет льготный период, и напоминает о сроке.",
+      "На телефоне вкладки стоят столбиком у края экрана: справа или, для левшей, слева.",
+      "Значок жука в шапке: письмо о проблеме автору в пару касаний.",
+      "Приложение само замечает новую версию и предлагает её установить."
+    ],
+    "en": [
+      "A credit card with a grace period: you enter the statement day, the minimum payment and the fee-free transfers from the contract, and the app names the amount that keeps the grace period and reminds you of the date.",
+      "On a phone, the tabs stand in a column at the edge of the screen: on the right or, for left-handed people, on the left.",
+      "A bug icon in the header: an email to the author about a problem in a couple of taps.",
+      "The app notices a new version itself and offers to install it."
+    ]
+  }
 }

@@ -3,7 +3,7 @@
  * evict IndexedDB when the disk gets tight.
  */
 
-import { strings } from '@/i18n';
+import { currentLocale, strings } from '@/i18n';
 
 export interface StorageStatus {
   readonly supported: boolean;
@@ -46,5 +46,5 @@ export function formatBytes(bytes: number): string {
     value /= 1024;
     unitIndex += 1;
   }
-  return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[unitIndex]}`;
+  return `${value.toLocaleString(currentLocale(), { maximumFractionDigits: value >= 10 ? 0 : 1 })} ${units[unitIndex]}`;
 }

@@ -4,12 +4,14 @@ import releaseNotes from '@/app/release-notes.json';
 import {
   compareVersions,
   fetchLatestRelease,
+  notesIn,
   notesSince,
   pendingNotes,
   readSeenVersion,
   SEEN_VERSION_KEY,
   startUpdateChecks,
   writeSeenVersion,
+  type ReleaseNotesByLanguage,
 } from '@/lib/release';
 import { USAGE_STORAGE_KEY } from '@/lib/usage';
 
@@ -40,8 +42,16 @@ describe('versions and their notes', () => {
     expect(notesSince(null, '0.18.0', NOTES)).toEqual(['Кредитка', 'Вкладки сбоку']);
   });
 
-  it('has notes for the version of this build', () => {
-    expect((releaseNotes as Record<string, string[]>)[__APP_VERSION__]?.length).toBeGreaterThan(0);
+  it('has notes for the version of this build in every language', () => {
+    const notes = (releaseNotes as ReleaseNotesByLanguage)[__APP_VERSION__];
+    expect(notes?.ru.length).toBeGreaterThan(0);
+    expect(notes?.en.length).toBe(notes?.ru.length);
+  });
+
+  it('gives the notes of one language', () => {
+    const all = { '0.18.0': { ru: ['Кредитка'], en: ['Credit card'] } };
+    expect(notesIn(all, 'en')).toEqual({ '0.18.0': ['Credit card'] });
+    expect(notesIn(all, 'ru')).toEqual({ '0.18.0': ['Кредитка'] });
   });
 });
 
@@ -86,6 +96,11 @@ describe('the release on the site', () => {
       version: '0.18.0',
       notes: ['Кредитка'],
     });
+    expect(
+      await fetchLatestRelease(
+        answer({ version: '0.19.0', notes: ['Язык'], notesByLanguage: { ru: ['Язык'] } }),
+      ),
+    ).toEqual({ version: '0.19.0', notes: ['Язык'] });
     expect(await fetchLatestRelease(answer({ notes: [] }))).toBeNull();
     expect(await fetchLatestRelease(answer({}, false))).toBeNull();
     expect(await fetchLatestRelease(vi.fn().mockRejectedValue(new Error('offline')))).toBeNull();

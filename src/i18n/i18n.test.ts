@@ -6,7 +6,6 @@ import { monthsLabel } from '@/features/goals/months-label';
 import { strings } from '@/i18n';
 import { en } from '@/i18n/en';
 import { LANGUAGE_STORAGE_KEY, readLanguage, setLanguageForTests, writeLanguage } from '@/i18n/locale';
-import { mergeDraft } from '@/i18n/merge';
 import { pluralForm } from '@/i18n/plural';
 import { ru } from '@/i18n/ru';
 
@@ -104,25 +103,25 @@ describe('the formats', () => {
   });
 });
 
-describe('the English draft', () => {
-  it('has only words the Russian dictionary has, with the same placeholders', () => {
-    const russian = new Map(wordsOf(ru));
-    for (const [path, text] of wordsOf(en)) {
-      expect(russian.has(path), path).toBe(true);
-      expect(placeholders(text), path).toEqual(placeholders(russian.get(path) ?? ''));
+describe('the English dictionary', () => {
+  it('has every word of the Russian one, lists of the same length and the same placeholders', () => {
+    const english = new Map(wordsOf(en));
+    const russian = wordsOf(ru);
+    expect(english.size).toBe(russian.length);
+    for (const [path, text] of russian) {
+      expect(english.has(path), path).toBe(true);
+      expect(placeholders(english.get(path) ?? ''), path).toEqual(placeholders(text));
     }
   });
 
-  it('replaces the words it has and leaves the Russian ones it has not', () => {
-    const merged = mergeDraft(ru, en);
-    expect(merged.nav.budget).toBe('Budget');
-    expect(merged.overview).toBe(ru.overview);
-    expect(merged.budget.months).toBe(ru.budget.months);
+  it('has no Russian letters and no empty words', () => {
+    for (const [path, text] of wordsOf(en)) {
+      expect(text, path).not.toMatch(/[А-Яа-яЁё]/);
+      expect(text.trim(), path).not.toBe('');
+    }
   });
 
-  it('replaces a list as a whole', () => {
-    const merged = mergeDraft(ru, { budget: { monthsShort: ['Jan'] } });
-    expect(merged.budget.monthsShort).toEqual(['Jan']);
-    expect(merged.budget.months).toBe(ru.budget.months);
+  it('names the app Konvercat', () => {
+    expect(en.app.name).toBe('Konvercat');
   });
 });

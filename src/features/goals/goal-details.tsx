@@ -14,6 +14,7 @@ import type { GoalsData, GoalView } from '@/features/goals/goals-data';
 import { monthsLabel } from '@/features/goals/months-label';
 import { WhatIfPanel } from '@/features/goals/what-if-panel';
 import { strings } from '@/i18n';
+import { percentLabel } from '@/i18n/format';
 
 // The chart library is a chunk of its own: it is only needed once a goal is opened.
 const GoalChart = lazy(() => import('@/features/goals/goal-chart'));
@@ -97,7 +98,7 @@ export function GoalDetails({ view, data, open, onOpenChange }: GoalDetailsProps
             />
             <Figure
               label={strings.goals.realReturn}
-              value={`${Math.round(view.realReturnRate * 1000) / 10} %`}
+              value={percentLabel(Math.round(view.realReturnRate * 1000) / 10, 1)}
               muted
             />
           </div>

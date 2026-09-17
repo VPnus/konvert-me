@@ -8,6 +8,7 @@ import { formatForecast } from '@/core/money';
 import { todayIso, type IsoDate } from '@/core/time';
 import type { Account } from '@/db/models';
 import { currentLocale, fill, strings } from '@/i18n';
+import { percentLabel } from '@/i18n/format';
 
 const DAY_MONTH = new Intl.DateTimeFormat(currentLocale(), { day: 'numeric', month: 'long' });
 
@@ -26,7 +27,7 @@ export function dateLabel(date: IsoDate, today: IsoDate = todayIso()): string {
 
 /** 0.499 → «49,9 %». */
 export function rateLabel(rate: number): string {
-  return `${(Math.round(rate * 10_000) / 100).toLocaleString(currentLocale(), { maximumFractionDigits: 2 })} %`;
+  return percentLabel(Math.round(rate * 10_000) / 100, 2);
 }
 
 const rubles = (minor: number): string => formatForecast(minor);

@@ -207,7 +207,7 @@ function InsuranceCard({ data }: { data: BalanceData }) {
         ) : null}
 
         <p className="text-[11px] text-muted-foreground">
-          {limit.note} {strings.insurance.source}:{' '}
+          {strings.insurance.limitNote} {strings.insurance.source}:{' '}
           <a href={limit.source} target="_blank" rel="noreferrer noopener" className="underline">
             {new URL(limit.source).hostname}
           </a>

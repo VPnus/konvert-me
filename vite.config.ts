@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig, type Plugin } from 'vite';
-import { VitePWA } from 'vite-plugin-pwa';
+import { VitePWA, type ManifestOptions } from 'vite-plugin-pwa';
 
 import releaseNotes from './src/app/release-notes.json' with { type: 'json' };
 import site from './src/app/site.json' with { type: 'json' };
@@ -33,8 +33,59 @@ function releaseFile(): Plugin {
     name: 'konverkot-release-file',
     apply: 'build',
     generateBundle() {
-      const notes = (releaseNotes as Record<string, string[]>)[version] ?? [];
-      this.emitFile({ type: 'asset', fileName: 'version.json', source: JSON.stringify({ version, notes }) });
+      const notesByLanguage = (releaseNotes as Record<string, Record<string, string[]>>)[version] ?? {};
+      // notes stays Russian: the apps of 0.18 read only it.
+      const notes = notesByLanguage.ru ?? [];
+      this.emitFile({
+        type: 'asset',
+        fileName: 'version.json',
+        source: JSON.stringify({ version, notes, notesByLanguage }),
+      });
+    },
+  };
+}
+
+const manifest = {
+  // The identity of the installed app, kept apart from where it starts: the start may move,
+  // the identity may not, or browsers would take it for another app.
+  id: '/',
+  name: 'Конверкот',
+  short_name: 'Конверкот',
+  description: 'Личные финансы офлайн: бюджет, цели и конверты. Данные остаются на вашем устройстве.',
+  lang: 'ru-RU',
+  dir: 'ltr',
+  // The installed app opens on the app, not on the landing that the root shows to newcomers.
+  start_url: '/overview',
+  scope: '/',
+  display: 'standalone',
+  orientation: 'portrait-primary',
+  background_color: '#000000',
+  theme_color: '#000000',
+  categories: ['finance', 'productivity'],
+  icons: [
+    { src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+    { src: '/pwa-512x512.png', sizes: '512x512', type: 'image/png' },
+    { src: '/pwa-maskable-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+  ],
+} satisfies Partial<ManifestOptions>;
+
+/**
+ * The same app installed from an English page: its name and description in English. The page
+ * points to this file when English is its language (src/main.tsx); the identity stays the same.
+ */
+function englishManifest(): Plugin {
+  return {
+    name: 'konverkot-english-manifest',
+    apply: 'build',
+    generateBundle() {
+      const english = {
+        ...manifest,
+        name: 'Konvercat',
+        short_name: 'Konvercat',
+        description: 'Personal finance offline: budget, goals and envelopes. Your data stays on your device.',
+        lang: 'en-US',
+      };
+      this.emitFile({ type: 'asset', fileName: 'manifest.en.webmanifest', source: JSON.stringify(english) });
     },
   };
 }
@@ -48,35 +99,14 @@ export default defineConfig({
     tailwindcss(),
     siteAddress(),
     releaseFile(),
+    englishManifest(),
     VitePWA({
       // The user confirms the update: a reload must never interrupt data entry.
       registerType: 'prompt',
       includeAssets: ['favicon.ico', 'favicon.svg', 'favicon-64.png', 'apple-touch-icon.png'],
-      manifest: {
-        // The identity of the installed app, kept apart from where it starts: the start may move,
-        // the identity may not, or browsers would take it for another app.
-        id: '/',
-        name: 'Конверкот',
-        short_name: 'Конверкот',
-        description: 'Личные финансы офлайн: бюджет, цели и конверты. Данные остаются на вашем устройстве.',
-        lang: 'ru-RU',
-        dir: 'ltr',
-        // The installed app opens on the app, not on the landing that the root shows to newcomers.
-        start_url: '/overview',
-        scope: '/',
-        display: 'standalone',
-        orientation: 'portrait-primary',
-        background_color: '#000000',
-        theme_color: '#000000',
-        categories: ['finance', 'productivity'],
-        icons: [
-          { src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/pwa-512x512.png', sizes: '512x512', type: 'image/png' },
-          { src: '/pwa-maskable-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
-        ],
-      },
+      manifest,
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2,webmanifest}'],
         // The pictures of the landing and of the link preview are for visitors, who are online:
         // the offline copy of the app does not need them.
         globIgnores: ['**/node_modules/**/*', 'landing/**', 'og-image.png'],

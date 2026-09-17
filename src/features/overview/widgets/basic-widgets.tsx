@@ -3,6 +3,7 @@ import { monthsLabel } from '@/features/goals/months-label';
 import { strings } from '@/i18n';
 import { BigNumber, ProgressBar, WidgetEmpty, WidgetFrame } from '@/features/overview/widgets/widget-shell';
 import type { WidgetProps } from '@/features/overview/widgets/types';
+import { percentLabel } from '@/i18n/format';
 
 export function FreeCashWidget({ data }: WidgetProps) {
   if (!data.hasPlan && !data.hasTransactions) {
@@ -126,7 +127,7 @@ export function DebtBurdenWidget({ data }: WidgetProps) {
   return (
     <WidgetFrame title={strings.widgets.debtBurden.title}>
       <BigNumber
-        value={ratio === null ? '—' : `${(ratio * 100).toFixed(0)} %`}
+        value={ratio === null ? '—' : percentLabel(ratio * 100, 0)}
         tone={status === 'tense' ? 'negative' : 'default'}
       />
       {ratio !== null ? (

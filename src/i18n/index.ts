@@ -11,12 +11,7 @@ import { currentLanguage } from '@/i18n/locale';
 import type { Dictionary, Language } from '@/i18n/types';
 
 async function load(language: Language): Promise<Dictionary> {
-  const { ru } = await import('@/i18n/ru');
-  if (language === 'ru') return ru;
-
-  // Until the translation is whole, English is a draft over the Russian words.
-  const [{ en }, { mergeDraft }] = await Promise.all([import('@/i18n/en'), import('@/i18n/merge')]);
-  return mergeDraft(ru, en);
+  return language === 'en' ? (await import('@/i18n/en')).en : (await import('@/i18n/ru')).ru;
 }
 
 export const strings: Dictionary = await load(currentLanguage());

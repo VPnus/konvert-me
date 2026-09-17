@@ -4,11 +4,11 @@ import { useEffect, useState } from 'react';
 import releaseNotes from '@/app/release-notes.json';
 import { Button } from '@/components/ui/button';
 import { fill, strings } from '@/i18n';
-import { pendingNotes, readSeenVersion, writeSeenVersion } from '@/lib/release';
+import { notesIn, pendingNotes, readSeenVersion, writeSeenVersion } from '@/lib/release';
 
 /** Once after an update: what the new version brought. A first visit only remembers the version. */
 export function UpdatedNotice() {
-  const [notes, setNotes] = useState<string[]>(() => pendingNotes(__APP_VERSION__, releaseNotes));
+  const [notes, setNotes] = useState<string[]>(() => pendingNotes(__APP_VERSION__, notesIn(releaseNotes)));
 
   useEffect(() => {
     if (notes.length === 0 && readSeenVersion() !== __APP_VERSION__) writeSeenVersion(__APP_VERSION__);

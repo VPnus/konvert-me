@@ -14,13 +14,6 @@ export type Words<T> = T extends string
 
 export type Dictionary = Words<Ru>;
 
-/** A dictionary still being translated: what it does not have yet is taken from the Russian one. */
-export type Draft<T = Ru> = T extends string
-  ? string
-  : T extends readonly unknown[]
-    ? Words<T>
-    : { readonly [K in keyof T]?: Draft<T[K]> };
-
 /** A word that changes with a number: "1 месяц", "3 месяца", "5 месяцев"; English needs one and other. */
 export interface PluralForms {
   readonly one: string;

@@ -4,7 +4,8 @@ import { monthLabel } from '@/features/budget/month-label';
 import { dateOfYear } from '@/features/deductions/dates';
 import type { PlanAction } from '@/features/plan/actions';
 import type { Benchmark, DebtInQueue } from '@/features/plan/debts';
-import { currentLocale, fill, strings } from '@/i18n';
+import { fill, strings } from '@/i18n';
+import { percentLabel } from '@/i18n/format';
 
 export const t = strings.plan;
 
@@ -12,7 +13,7 @@ export const t = strings.plan;
 export const rubles = (minor: number): string => formatForecast(minor);
 
 export function percentOf(rate: number): string {
-  return `${(rate * 100).toLocaleString(currentLocale(), { maximumFractionDigits: 2 })} %`;
+  return percentLabel(rate * 100, 2);
 }
 
 /** "2034-09" → "сентябрь 2034", to sit in the middle of a sentence. */

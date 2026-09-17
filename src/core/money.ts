@@ -87,6 +87,8 @@ export function formatMinor(minor: Minor, options: FormatMinorOptions = {}): str
     formatter = new Intl.NumberFormat(locale, {
       style: withCurrency ? 'currency' : 'decimal',
       currency: 'RUB',
+      // ₽ in every language: English would otherwise write RUB.
+      currencyDisplay: 'narrowSymbol',
       minimumFractionDigits: fractionDigits,
       maximumFractionDigits: fractionDigits,
     });

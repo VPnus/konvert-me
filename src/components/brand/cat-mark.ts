@@ -56,6 +56,34 @@ export const CAT_MARK_SHAPES: readonly Shape[] = [
   { kind: 'circle', cx: 45.8, cy: 44, r: 3.9, fill: 'cat' },
 ];
 
+/**
+ * The same cat for a browser tab, where the whole mark is 16 pixels: only the head, the card and
+ * the paws, filling the square edge to edge like the icons next to it. No thin lines: at that size
+ * they turn grey. The eyes are solid with a hole, so they stay two dots.
+ */
+export const CAT_FAVICON_SHAPES: readonly Shape[] = [
+  // ears
+  { kind: 'path', d: 'M5 32 L8 2 L31 18 Z', fill: 'cat' },
+  { kind: 'path', d: 'M59 32 L56 2 L33 18 Z', fill: 'cat' },
+  // head
+  { kind: 'rect', x: 2, y: 13, w: 60, h: 51, rx: 19, fill: 'cat' },
+  {
+    kind: 'group',
+    transform: 'rotate(-4 32 43)',
+    children: [
+      { kind: 'rect', x: 11, y: 26, w: 42, h: 33, rx: 5, fill: 'card' },
+      { kind: 'circle', cx: 23, cy: 40, r: 7.5, fill: 'cat' },
+      { kind: 'circle', cx: 41, cy: 40, r: 7.5, fill: 'cat' },
+      { kind: 'circle', cx: 23.6, cy: 40.6, r: 3, fill: 'card' },
+      { kind: 'circle', cx: 41.6, cy: 40.6, r: 3, fill: 'card' },
+      { kind: 'circle', cx: 32, cy: 52, r: 2.2, fill: 'cat' },
+    ],
+  },
+  // paws holding the card
+  { kind: 'circle', cx: 10.5, cy: 47, r: 5.5, fill: 'cat' },
+  { kind: 'circle', cx: 53.5, cy: 47, r: 5.5, fill: 'cat' },
+];
+
 /** Renders the mark as an SVG string. Used by the icon generator, not by the app. */
 export function catMarkSvg(options: {
   size: number;
@@ -63,8 +91,9 @@ export function catMarkSvg(options: {
   card: string;
   background?: string;
   padding?: number;
+  shapes?: readonly Shape[];
 }): string {
-  const { size, cat, card, background, padding = 0 } = options;
+  const { size, cat, card, background, padding = 0, shapes = CAT_MARK_SHAPES } = options;
   const paint = (value: Paint | undefined): string =>
     value === 'cat' ? cat : value === 'card' ? card : 'none';
 
@@ -92,7 +121,7 @@ export function catMarkSvg(options: {
   };
 
   const scale = (64 - padding * 2) / 64;
-  const body = `<g transform="translate(${padding} ${padding}) scale(${scale})">${CAT_MARK_SHAPES.map(render).join('')}</g>`;
+  const body = `<g transform="translate(${padding} ${padding}) scale(${scale})">${shapes.map(render).join('')}</g>`;
   const backdrop = background ? `<rect width="64" height="64" rx="14" fill="${background}" />` : '';
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${CAT_MARK_VIEWBOX}" width="${size}" height="${size}" fill="none">${backdrop}${body}</svg>`;

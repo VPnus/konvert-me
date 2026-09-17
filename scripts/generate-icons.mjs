@@ -18,7 +18,7 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 // Vite loads the TypeScript source of the mark, so the geometry has one home.
 const vite = await createServer({ configFile: false, server: { middlewareMode: true }, appType: 'custom' });
-const { catMarkSvg } = await vite.ssrLoadModule('/src/components/brand/cat-mark.ts');
+const { CAT_FAVICON_SHAPES, catMarkSvg } = await vite.ssrLoadModule('/src/components/brand/cat-mark.ts');
 await vite.close();
 
 /** Black tile of the installed app, with the white cat on it. */
@@ -59,14 +59,24 @@ const jobs = [
     // a black cat on a light tab strip would vanish on a dark one, the tile shows on both.
     file: 'public/favicon-64.png',
     size: 64,
-    svg: catMarkSvg({ size: 64, cat: TILE_CAT, card: TILE_CARD, background: TILE_BACKGROUND, padding: 5 }),
+    svg: catMarkSvg({
+      size: 64,
+      cat: TILE_CAT,
+      card: TILE_CARD,
+      background: TILE_BACKGROUND,
+      padding: 5,
+      shapes: CAT_FAVICON_SHAPES,
+    }),
   },
 ];
 
 /** The sizes packed into favicon.ico, for the places that ask for it by that name: bookmarks, tiles, old tabs. */
 const ICO_SIZES = [16, 32, 48];
 
-/** The favicon follows the colour scheme of the browser, the app follows its own theme. */
+/**
+ * The favicon follows the colour scheme of the browser, the app follows its own theme. It is the
+ * cat for a tab (CAT_FAVICON_SHAPES): the whole mark would be a grey speck at 16 pixels.
+ */
 const faviconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
   <style>
     .cat { fill: ${LIGHT_CAT}; }
@@ -78,7 +88,7 @@ const faviconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" 
       .card { fill: ${DARK_CARD}; }
     }
   </style>
-  ${catMarkSvg({ size: 64, cat: 'CAT', card: 'CARD', padding: 2 })
+  ${catMarkSvg({ size: 64, cat: 'CAT', card: 'CARD', shapes: CAT_FAVICON_SHAPES })
     .replace(/^<svg[^>]*>/, '')
     .replace(/<\/svg>$/, '')
     // One class attribute per shape: an SVG picture is read as XML, and a second attribute of the
@@ -144,7 +154,14 @@ async function main() {
       size,
       png: await render(
         size,
-        catMarkSvg({ size, cat: TILE_CAT, card: TILE_CARD, background: TILE_BACKGROUND, padding }),
+        catMarkSvg({
+          size,
+          cat: TILE_CAT,
+          card: TILE_CARD,
+          background: TILE_BACKGROUND,
+          padding,
+          shapes: CAT_FAVICON_SHAPES,
+        }),
       ),
     });
   }

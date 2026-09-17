@@ -3,8 +3,31 @@ import { resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { CAT_FAVICON_SHAPES, type Shape } from '@/components/brand/cat-mark';
+
 // The tests run from the root of the project, where the icons and the page live.
 const file = (path: string) => readFileSync(resolve(process.cwd(), path));
+
+/** The box of the outer shapes on the 64 grid; a group is inside them (the card on the head). */
+function boundsOf(shapes: readonly Shape[]) {
+  const xs: number[] = [];
+  const ys: number[] = [];
+  for (const shape of shapes) {
+    if (shape.kind === 'rect') {
+      xs.push(shape.x, shape.x + shape.w);
+      ys.push(shape.y, shape.y + shape.h);
+    }
+    if (shape.kind === 'circle') {
+      xs.push(shape.cx - shape.r, shape.cx + shape.r);
+      ys.push(shape.cy - shape.r, shape.cy + shape.r);
+    }
+    if (shape.kind === 'path') {
+      const numbers = (shape.d.match(/-?\d+(\.\d+)?/g) ?? []).map(Number);
+      numbers.forEach((value, index) => (index % 2 === 0 ? xs : ys).push(value));
+    }
+  }
+  return { left: Math.min(...xs), right: Math.max(...xs), top: Math.min(...ys), bottom: Math.max(...ys) };
+}
 
 /**
  * The icons of the browser tab are generated (npm run icons) and never seen by the build, so a broken
@@ -18,6 +41,17 @@ describe('the icon of the browser tab', () => {
     expect(svg.getElementsByTagName('parsererror')).toHaveLength(0);
     expect(svg.documentElement.tagName).toBe('svg');
     expect(text).not.toMatch(/class="[^"]*"\s+class=/);
+  });
+
+  it('fills its square like the icons next to it: the whole cat was a grey speck in a tab', () => {
+    const box = boundsOf(CAT_FAVICON_SHAPES);
+    expect(box.left).toBeLessThanOrEqual(2);
+    expect(box.top).toBeLessThanOrEqual(2);
+    expect(box.right).toBeGreaterThanOrEqual(62);
+    expect(box.bottom).toBeGreaterThanOrEqual(62);
+
+    // and the SVG of the tab draws it without a margin
+    expect(file('public/favicon.svg').toString('utf8')).toContain('transform="translate(0 0) scale(1)"');
   });
 
   it('has an .ico of PNG pictures for the places that ask for it by name', () => {

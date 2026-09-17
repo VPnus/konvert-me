@@ -26,6 +26,9 @@
 | страхование вкладов               | deposit insurance                                           |                                    |
 | полис, страховка                  | policy, insurance                                           |                                    |
 | знакомство                        | getting started, introduction                               | первые пять вопросов               |
+| страна, Россия, США               | country, Russia, United States                              | настройки и знакомство             |
+| раздел                            | section                                                     | вкладка в предупреждениях          |
+| суммы не пересчитываются          | sums are not converted                                      | смена страны                       |
 | «Скоро»                           | Coming up                                                   | лента ближайших дат                |
 | резервная копия                   | backup                                                      |                                    |
 | внешние источники, лента          | external sources, feed                                      | новости                            |

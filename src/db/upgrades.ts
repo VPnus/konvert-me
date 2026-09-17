@@ -6,6 +6,7 @@
 
 import { splitUsedBefore } from '@/core/deductions';
 import { rulesForYear } from '@/core/rules';
+import { CATEGORIES_OF_SCHEMA_8, DEFAULT_CATEGORIES } from '@/db/default-categories';
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -36,4 +37,22 @@ export function upgradeDeductionYear(record: unknown): unknown {
   } catch {
     return record;
   }
+}
+
+interface StoredCategory {
+  readonly id: string;
+  readonly sortOrder: number;
+}
+
+/**
+ * Schema 8: the starter categories added since, for someone who began earlier. Nothing is added to
+ * a person with no categories at all: they have not been through the onboarding yet, it adds them all.
+ */
+export function categoriesOfSchema8<T extends StoredCategory>(existing: readonly T[]) {
+  if (existing.length === 0) return [];
+  const ids = new Set(existing.map((category) => category.id));
+  let sortOrder = Math.max(...existing.map((category) => category.sortOrder)) + 1;
+  return DEFAULT_CATEGORIES.filter(
+    (category) => CATEGORIES_OF_SCHEMA_8.includes(category.id) && !ids.has(category.id),
+  ).map((category) => ({ ...category, sortOrder: sortOrder++, archived: false }));
 }

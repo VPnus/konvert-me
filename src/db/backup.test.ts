@@ -14,6 +14,7 @@ import {
 } from '@/db/backup';
 import { SCHEMA_VERSION, TABLE_NAMES } from '@/db/models';
 import { createAccount } from '@/db/repositories/accounts';
+import { seedDefaultCategories } from '@/db/repositories/categories';
 import { getDeductionYear, saveDeductionYear } from '@/db/repositories/deductions';
 import { getFinancialPlan, saveEducationPlan, setRiskProfile } from '@/db/repositories/financial-plan';
 import { addDocument, listDocuments, readDocumentContent } from '@/db/repositories/documents';
@@ -148,6 +149,23 @@ describe('backup: a broken file never reaches the database', () => {
 
     expect(parsed.data.incomeSources).toEqual([]);
     expect(parsed.data.links).toEqual([]);
+  });
+
+  it('gives a file of schema 7 the category of subscriptions, unless it has no categories at all', async () => {
+    await seedDefaultCategories();
+    const backup = await collectBackup();
+    const categories = backup.data.categories.filter((category) => category.id !== 'subscriptions');
+
+    const parsed = await parseBackup(
+      JSON.stringify({ ...backup, schemaVersion: 7, data: { ...backup.data, categories } }),
+    );
+    expect(parsed.data.categories.map((category) => category.id)).toContain('subscriptions');
+    expect(parsed.data.categories).toHaveLength(categories.length + 1);
+
+    const bare = await parseBackup(
+      JSON.stringify({ ...backup, schemaVersion: 7, data: { ...backup.data, categories: [] } }),
+    );
+    expect(bare.data.categories).toEqual([]);
   });
 
   it('rejects a file from a newer schema', async () => {

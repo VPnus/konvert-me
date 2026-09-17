@@ -23,7 +23,7 @@ import type {
   TaxDocument,
   Transaction,
 } from '@/db/models';
-import { upgradeDeductionYear } from '@/db/upgrades';
+import { categoriesOfSchema8, upgradeDeductionYear } from '@/db/upgrades';
 
 export const DATABASE_NAME = 'konvert-me';
 
@@ -106,6 +106,16 @@ export class KonvertDatabase extends Dexie {
             if (upgraded !== record) record.property = upgraded.property;
           }),
       );
+
+    // v8 adds the terms of a credit card to the account, all optional, and the category of subscriptions
+    // and bank fees. No table or index changes; only the category is written for those who have the rest.
+    this.version(8)
+      .stores({})
+      .upgrade(async (transaction) => {
+        const categories = transaction.table('categories');
+        const added = categoriesOfSchema8(await categories.toArray());
+        if (added.length > 0) await categories.bulkAdd(added);
+      });
   }
 }
 

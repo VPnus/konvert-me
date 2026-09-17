@@ -10,7 +10,7 @@ import { z } from 'zod';
 import { RISK_PROFILES } from '@/core/portfolio';
 import { isIsoDate, isIsoMonth } from '@/core/time';
 
-export const SCHEMA_VERSION = 7;
+export const SCHEMA_VERSION = 8;
 
 const isoDate = z.string().refine(isIsoDate, { message: 'Дата должна быть в формате ГГГГ-ММ-ДД' });
 const isoMonth = z.string().refine(isIsoMonth, { message: 'Месяц должен быть в формате ГГГГ-ММ' });
@@ -24,6 +24,11 @@ const rate = z.number().min(-1).max(10);
 const name = z.string().trim().min(1, 'Название не может быть пустым').max(120);
 const note = z.string().max(500).optional();
 const timestamp = z.number().int().nonnegative();
+const dayOfMonth = z
+  .number()
+  .int('Число месяца — целое число')
+  .min(1, 'Число месяца — от 1 до 31')
+  .max(31, 'Число месяца — от 1 до 31');
 
 export const ASSET_TYPES = [
   'cash',
@@ -63,17 +68,23 @@ export const accountSchema = z
     bankName: z.string().max(120).optional(),
     rate: rate.optional(),
     maturityDate: isoDate.optional(),
+    /**
+     * The payment of a month. For a credit card it is the floor of the minimum payment in rubles, and
+     * minPaymentRate its share of the debt: «8 %, но не меньше 600 ₽».
+     */
     monthlyPaymentMinor: nonNegativeMinor.optional(),
-    /** Day of the month the payment is due; the "soon" feed of stage 6 uses it. */
-    paymentDay: z
-      .number()
-      .int('Число месяца — целое число')
-      .min(1, 'Число месяца — от 1 до 31')
-      .max(31, 'Число месяца — от 1 до 31')
-      .optional(),
+    /** Day of the month the payment is due; for a card, the last day to pay the whole statement. */
+    paymentDay: dayOfMonth.optional(),
     endDate: isoDate.optional(),
     creditLimitMinor: nonNegativeMinor.optional(),
+    /** A card with one grace period for all its purchases, «120 дней»: the day it ends. */
     gracePeriodEnd: isoDate.optional(),
+    /** Schema 8, a credit card: the day of the month its statement is made. */
+    statementDay: dayOfMonth.optional(),
+    /** Schema 8, a credit card: the minimum payment as a share of the debt, 0.08 for 8 %. */
+    minPaymentRate: z.number().min(0, 'Процент не может быть отрицательным').max(1).optional(),
+    /** Schema 8, a credit card: transfers free of charge within a calendar month. */
+    freeTransfersMinor: nonNegativeMinor.optional(),
     note,
     createdAt: timestamp,
     updatedAt: timestamp,
@@ -88,6 +99,10 @@ export const accountSchema = z
   .refine((account) => account.side === 'asset' || account.openingBalanceMinor >= 0, {
     message: 'Остаток долга указывается положительным числом',
     path: ['openingBalanceMinor'],
+  })
+  .refine((account) => account.statementDay === undefined || account.paymentDay !== undefined, {
+    message: 'Укажите, до какого числа нужно внести выписку',
+    path: ['paymentDay'],
   });
 
 export const categorySchema = z.object({
@@ -547,6 +562,8 @@ export const settingsSchema = z.object({
     .object({ kind: z.string().max(32), at: timestamp })
     .nullable()
     .default(null),
+  /** Schema 8: the reminders of a credit card hidden, as 'kind:account:date'; the newest are kept. */
+  cardRemindersDismissed: z.array(z.string().max(120)).max(50).default([]),
   schemaVersion: z.number().int().positive(),
 });
 
@@ -588,6 +605,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   externalFeedsEnabled: false,
   deductionReminderDismissed: null,
   dataRiskDismissed: null,
+  cardRemindersDismissed: [],
   schemaVersion: SCHEMA_VERSION,
 };
 

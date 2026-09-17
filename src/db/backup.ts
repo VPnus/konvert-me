@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { db } from '@/db/db';
 import { RepositoryError } from '@/db/errors';
 import { SCHEMA_VERSION, TABLE_NAMES, TABLE_SCHEMAS, type TableName } from '@/db/models';
-import { upgradeDeductionYear } from '@/db/upgrades';
+import { categoriesOfSchema8, upgradeDeductionYear } from '@/db/upgrades';
 import { parseOrThrow } from '@/db/validate';
 import { decryptText, encryptText, fromBase64, toBase64, type EncryptedPayload } from '@/lib/crypto';
 
@@ -219,6 +219,9 @@ export async function parseBackup(text: string, password?: string): Promise<Back
       `Файл создан более новой версией приложения (схема ${file.schemaVersion}). Обновите приложение и повторите импорт.`,
     );
   }
+
+  // A file of an older schema gets the categories added since, as the upgrade of a database would.
+  if (file.schemaVersion < 8) file.data.categories.push(...categoriesOfSchema8(file.data.categories));
 
   return file;
 }

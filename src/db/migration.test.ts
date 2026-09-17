@@ -204,7 +204,7 @@ describe('schema migration', () => {
     opened.push(v7);
     await v7.open();
 
-    expect(v7.verno).toBe(7);
+    expect(v7.verno).toBeGreaterThanOrEqual(7);
     expect((await v7.deductionYears.get(2025))?.property).toEqual({
       purchaseMinor: 3_000_000 * RUB,
       mortgageInterestMinor: 800_000 * RUB,
@@ -213,6 +213,77 @@ describe('schema migration', () => {
       usedBeforeInterestMinor: 500_000 * RUB,
     });
     expect(await v7.deductionYears.get(2024)).toEqual(year(2024));
+  });
+
+  it('adds the category of subscriptions when schema 8 arrives, and only to someone who has categories', async () => {
+    const schema7 = (database: Dexie) => {
+      database.version(1).stores(V1_STORES);
+      database
+        .version(2)
+        .stores({ links: 'id, sortOrder', feeds: 'id, enabled', feedItems: 'id, feedId, publishedAt' });
+      database.version(3).stores({ incomeSources: 'id, sortOrder, archived' });
+      database.version(4).stores({ policies: 'id, endDate, archived' });
+      database
+        .version(5)
+        .stores({ deductionYears: 'year, status', documents: 'id, year, category', documentFiles: 'id' });
+      database.version(6).stores({ financialPlans: 'id' });
+      database.version(7).stores({});
+    };
+    const card = {
+      id: 'card',
+      name: 'Кредитка',
+      side: 'liability',
+      type: 'credit_card',
+      currency: 'RUB',
+      openingBalanceMinor: 14_000_00,
+      openingDate: '2026-08-20',
+      isLiquid: false,
+      archived: false,
+      monthlyPaymentMinor: 600_00,
+      gracePeriodEnd: '2026-10-14',
+      createdAt: 1,
+      updatedAt: 1,
+    };
+
+    const withData = `konvert-me-v8-${crypto.randomUUID()}`;
+    const v7 = open(withData, schema7);
+    await v7.table('categories').bulkAdd([
+      { id: 'salary', name: 'Зарплата', kind: 'income', sortOrder: 0, archived: false },
+      {
+        id: 'other-variable',
+        name: 'Прочие переменные',
+        kind: 'expense',
+        group: 'variable',
+        sortOrder: 20,
+        archived: false,
+      },
+    ]);
+    await v7.table('accounts').add(card);
+    v7.close();
+
+    const v8 = new KonvertDatabase(withData);
+    opened.push(v8);
+    await v8.open();
+    expect(v8.verno).toBe(8);
+    expect(await v8.categories.get('subscriptions')).toEqual({
+      id: 'subscriptions',
+      name: 'Подписки и комиссии',
+      kind: 'expense',
+      group: 'variable',
+      sortOrder: 21,
+      archived: false,
+    });
+    // the terms of a card are new fields, all optional: the card of schema 7 stays as it was
+    expect(await v8.accounts.get('card')).toEqual(card);
+
+    const empty = `konvert-me-v8-empty-${crypto.randomUUID()}`;
+    const bare = open(empty, schema7);
+    await bare.open();
+    bare.close();
+    const fresh = new KonvertDatabase(empty);
+    opened.push(fresh);
+    await fresh.open();
+    expect(await fresh.categories.count()).toBe(0);
   });
 
   it('closes the old connection when another tab upgrades the schema', async () => {

@@ -52,7 +52,16 @@ export async function seedDefaultCategories(): Promise<number> {
 export async function createCategory(
   input: Omit<DefaultCategory, 'id'> & { id?: string },
 ): Promise<Category> {
-  const count = await db.categories.count();
+  const existing = await db.categories.toArray();
+  const name = input.name.trim().toLocaleLowerCase('ru');
+  if (
+    existing.some(
+      (category) => category.kind === input.kind && category.name.toLocaleLowerCase('ru') === name,
+    )
+  ) {
+    throw new RepositoryError('Такая категория уже есть. Если она в архиве, верните её.');
+  }
+  const count = existing.length;
   const category = parseOrThrow(
     categorySchema,
     { ...input, id: input.id ?? crypto.randomUUID(), sortOrder: count, archived: false },

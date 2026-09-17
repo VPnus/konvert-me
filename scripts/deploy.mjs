@@ -92,7 +92,10 @@ async function publish(commit) {
     console.warn(`\n✓ На сайте уже эта сборка, публиковать нечего: ${site.origin}`);
     return;
   }
-  git(['commit', '--quiet', '-m', `Конверкот ${version} (${commit})`], WORKTREE);
+  // The site repository is public: its commits carry the name of the site, not the personal name
+  // and mail of whoever publishes, which the clone would not know anyway.
+  const author = ['-c', 'user.name=Конверкот', '-c', `user.email=site@${new URL(site.origin).hostname}`];
+  git([...author, 'commit', '--quiet', '-m', `Конверкот ${version} (${commit})`], WORKTREE);
 
   const push = spawnSync('git', ['push', '--quiet', 'origin', `HEAD:${site.branch}`], {
     cwd: WORKTREE,

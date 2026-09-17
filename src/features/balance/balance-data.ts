@@ -12,10 +12,20 @@ import {
   type NetWorthPoint,
 } from '@/core/balance';
 import { cardGrace, type CardGrace } from '@/core/credit-card';
+import { monthInterestMinor } from '@/core/interest';
 import { latestRules, rulesForYear, type Norm } from '@/core/rules';
-import { addMonths, currentMonth, monthOfDate, compareMonths, todayIso, type IsoMonth } from '@/core/time';
+import {
+  addMonths,
+  currentMonth,
+  daysInMonth,
+  monthOfDate,
+  compareMonths,
+  todayIso,
+  withDayOfMonth,
+  type IsoMonth,
+} from '@/core/time';
 import { db } from '@/db/db';
-import type { Account, AccountType, InsurancePolicy } from '@/db/models';
+import type { Account, AccountType, Category, InsurancePolicy, Transaction } from '@/db/models';
 import { getAccountBalancesMinor } from '@/db/repositories/accounts';
 import { listPolicies } from '@/db/repositories/policies';
 
@@ -35,6 +45,51 @@ export interface BalanceData {
   readonly policies: InsurancePolicy[];
   /** Where the grace period of every debt stands today; a debt without grace terms says 'none'. */
   readonly cards: Map<string, CardGrace>;
+  /** Savings with a rate whose interest of last month is not written down yet. */
+  readonly interestDue: InterestDue[];
+  /** The categories an operation of the balance screen can take. */
+  readonly categories: Category[];
+}
+
+export interface InterestDue {
+  readonly account: Account;
+  readonly month: IsoMonth;
+  readonly amountMinor: number;
+}
+
+export const INTEREST_CATEGORY = 'interest';
+
+/**
+ * The interest of last month to write down: a savings account, or a card account with a rate, open
+ * through the month, with no income of that month on a savings account and no interest on a card.
+ */
+export function interestToRecord(
+  accounts: readonly Account[],
+  transactions: readonly Transaction[],
+  month: IsoMonth,
+): InterestDue[] {
+  const previous = addMonths(month, -1);
+  const lastDay = withDayOfMonth(previous, daysInMonth(previous));
+  return accounts
+    .filter((account) => !account.archived && account.side === 'asset' && (account.rate ?? 0) > 0)
+    .filter((account) => account.type === 'savings' || account.type === 'debit')
+    .filter((account) => account.openingDate <= lastDay)
+    .filter(
+      (account) =>
+        !transactions.some(
+          (tx) =>
+            tx.accountId === account.id &&
+            tx.kind === 'income' &&
+            tx.date.startsWith(previous) &&
+            (account.type === 'savings' || tx.categoryId === INTEREST_CATEGORY),
+        ),
+    )
+    .map((account) => ({
+      account,
+      month: previous,
+      amountMinor: monthInterestMinor(account, transactions, previous, account.rate ?? 0),
+    }))
+    .filter((due) => due.amountMinor > 0);
 }
 
 export interface BalanceOptions {
@@ -49,11 +104,12 @@ export async function loadBalance(
 ): Promise<BalanceData> {
   const month = currentMonth(now);
 
-  const [accounts, transactions, balances, policies] = await Promise.all([
+  const [accounts, transactions, balances, policies, categories] = await Promise.all([
     db.accounts.toArray(),
     db.transactions.toArray(),
     getAccountBalancesMinor(),
     listPolicies({ includeArchived: options.includeArchived }),
+    db.categories.toArray(),
   ]);
 
   const live = accounts.filter((account) => !account.archived);
@@ -98,5 +154,7 @@ export async function loadBalance(
         .filter((account) => account.side === 'liability')
         .map((account) => [account.id, cardGrace(account, transactions, todayIso(now))]),
     ),
+    interestDue: interestToRecord(live, transactions, month),
+    categories: categories.filter((category) => !category.archived).sort((a, b) => a.sortOrder - b.sortOrder),
   };
 }

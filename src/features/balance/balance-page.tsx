@@ -10,6 +10,7 @@ import { ErrorBoundary } from '@/components/common/error-boundary';
 import { AccountForm } from '@/features/balance/account-form';
 import { loadBalance, type BalanceData } from '@/features/balance/balance-data';
 import { accountDetails, cardStatus, fullDateLabel, limitStatus } from '@/features/balance/card-view';
+import { InterestCard } from '@/features/balance/interest-card';
 import { PaydayCard } from '@/features/balance/payday-card';
 import { PoliciesCard } from '@/features/balance/policies-card';
 import { useDataVersion } from '@/hooks/use-data-version';
@@ -346,6 +347,8 @@ export default function BalancePage() {
           </CardContent>
         </Card>
       ) : null}
+
+      <InterestCard data={data} />
 
       <InsuranceCard data={data} />
 

@@ -48,7 +48,34 @@ interface FormState {
   note: string;
 }
 
-function initialState(accounts: readonly Account[], transaction?: Transaction): FormState {
+/** A new operation filled in advance, for the person to check and save: the interest of an account. */
+export interface TransactionDraft {
+  readonly kind: Kind;
+  readonly date: string;
+  readonly amountMinor: number;
+  readonly accountId: string;
+  readonly categoryId?: string;
+  readonly note?: string;
+}
+
+function initialState(
+  accounts: readonly Account[],
+  transaction?: Transaction,
+  draft?: TransactionDraft,
+): FormState {
+  if (draft) {
+    return {
+      kind: draft.kind,
+      date: draft.date,
+      amount: String(minorToRubles(draft.amountMinor)),
+      accountId: draft.accountId,
+      toAccountId: '',
+      categoryId: draft.categoryId ?? '',
+      direction: 'increase',
+      note: draft.note ?? '',
+    };
+  }
+
   if (transaction) {
     return {
       kind: transaction.kind,
@@ -76,6 +103,7 @@ function initialState(accounts: readonly Account[], transaction?: Transaction): 
 
 interface TransactionFormProps {
   readonly transaction?: Transaction;
+  readonly draft?: TransactionDraft;
   readonly accounts: readonly Account[];
   readonly categories: readonly Category[];
   readonly open: boolean;
@@ -85,12 +113,13 @@ interface TransactionFormProps {
 /** One dialog for all six kinds of operation: the fields follow the kind. */
 export function TransactionForm({
   transaction,
+  draft,
   accounts,
   categories,
   open,
   onOpenChange,
 }: TransactionFormProps) {
-  const [state, setState] = useState<FormState>(() => initialState(accounts, transaction));
+  const [state, setState] = useState<FormState>(() => initialState(accounts, transaction, draft));
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 

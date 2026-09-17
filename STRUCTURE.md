@@ -40,7 +40,7 @@ konvert-me/
 │       └── ci.yml                # CI: линт → типы → тесты с покрытием → сборка → e2e
 │
 ├── scripts/
-│   ├── generate-icons.mjs        # Иконки из cat-mark.ts браузером Playwright: PWA, favicon.svg по теме, favicon.ico 16/32/48 (npm run icons)
+│   ├── generate-icons.mjs        # Иконки из cat-mark.ts браузером Playwright: PWA, крупный значок вкладки (favicon.svg по теме, favicon.ico 16/32/48) (npm run icons)
 │   ├── generate-og-image.mjs     # Картинка превью ссылки 1200×630 с котом (npm run og-image)
 │   └── deploy.mjs                # Публикация на GitVerse Pages: сборка из коммита, 404.html и копии по адресам, push (npm run deploy)
 │
@@ -165,7 +165,7 @@ konvert-me/
     │   ├── overview/
     │   │   ├── overview-page.tsx        # Дашборд: режим настройки, каталог, сброс
     │   │   ├── overview-data.ts         # Один расчёт на весь экран: кредитки, основной долг, лента «Скоро», предупреждения, сводка вычетов
-    │   │   ├── dashboard-grid.tsx       # Сетка 4/2/1 колонки, dnd-kit, Error Boundary на каждый виджет
+    │   │   ├── dashboard-grid.tsx       # Сетка 4/2/1 колонки, dnd-kit, мышь, клавиатура и палец, Error Boundary на каждый виджет
     │   │   ├── widget-catalog.tsx       # Диалог «Добавить виджет»
     │   │   └── widgets/
     │   │       ├── registry.ts          # Реестр: тип, название, описание, размеры, компонент
@@ -276,7 +276,7 @@ konvert-me/
     │
     ├── components/               # ===== ОБЩИЕ КОМПОНЕНТЫ =====
     │   ├── brand/
-    │   │   ├── cat-mark.ts       # Геометрия знака — единственный источник для логотипа и иконок
+    │   │   ├── cat-mark.ts       # Геометрия знака и значка вкладки — единственный источник для логотипа и иконок
     │   │   ├── favicon.test.ts   # Значок вкладки читается как XML, .ico из PNG, ссылки страницы
     │   │   └── cat-logo.tsx      # Логотип: рисуется currentColor, следует теме
     │   ├── ui/                   # shadcn-подобные примитивы

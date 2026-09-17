@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
 
 import { BackupReminder } from '@/components/common/backup-reminder';
@@ -7,9 +8,11 @@ import { CatLogo } from '@/components/brand/cat-logo';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { NAV_ITEMS } from '@/app/navigation';
 import { DeductionReminderBanner } from '@/features/deductions/deduction-reminder';
+import { ReportProblemButton } from '@/features/feedback/report-problem';
 import { PlanReviewReminderBanner } from '@/features/plan/review-reminder';
 import { PilotReminderBanner } from '@/features/settings/pilot-reminder';
 import { ru } from '@/i18n/ru';
+import { listenForErrors } from '@/lib/last-error';
 import { cn } from '@/lib/utils';
 
 const tabBase =
@@ -54,6 +57,9 @@ function TabBar() {
 }
 
 export function AppShell() {
+  // A message about a problem may carry the last error, the ones no screen caught included.
+  useEffect(() => listenForErrors(), []);
+
   return (
     <div className="flex min-h-dvh w-full flex-col">
       <header className="sticky top-0 z-30 border-b border-border bg-card">
@@ -63,7 +69,8 @@ export function AppShell() {
               <CatLogo className="size-10 shrink-0 md:size-11" />
               <span className="truncate text-base font-semibold md:text-lg">{ru.app.name}</span>
             </NavLink>
-            <div className="md:hidden">
+            <div className="flex items-center md:hidden">
+              <ReportProblemButton />
               <ThemeToggle />
             </div>
           </div>
@@ -72,7 +79,8 @@ export function AppShell() {
             <TabBar />
           </div>
 
-          <div className="hidden shrink-0 md:block">
+          <div className="hidden shrink-0 items-center md:flex">
+            <ReportProblemButton />
             <ThemeToggle />
           </div>
         </div>

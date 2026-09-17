@@ -2,6 +2,7 @@ import { Component, type ErrorInfo, type ReactNode } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { ru } from '@/i18n/ru';
+import { rememberError } from '@/lib/last-error';
 
 interface Props {
   readonly children: ReactNode;
@@ -25,6 +26,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   override componentDidCatch(error: Error, info: ErrorInfo): void {
+    rememberError(error);
     console.error('Ошибка на экране:', error, info.componentStack);
   }
 

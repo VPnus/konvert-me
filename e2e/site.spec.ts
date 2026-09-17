@@ -163,3 +163,46 @@ test.describe('the pilot', () => {
     expect(firstDays).toBeLessThanOrEqual(1);
   });
 });
+
+test.describe('a message about a problem', () => {
+  test('the bug beside the theme prepares a letter with the text and what the author needs to find the problem', async ({
+    page,
+    context,
+  }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await skipOnboarding(page);
+    await page.goto('/plan?step=7');
+
+    await page.locator('[data-testid="report-problem"]:visible').click();
+    await expect(page.getByTestId('report-dialog')).toBeVisible();
+    // nothing to send until something is written
+    await expect(page.getByTestId('report-send')).toBeDisabled();
+
+    await page.getByTestId('report-message').fill('Галочка у действия не ставится');
+    const technical = page.getByTestId('report-technical');
+    await expect(technical).toContainText('Страница: /plan?step=7');
+    await expect(technical).toContainText('Последняя ошибка: нет');
+    await expect(technical).not.toContainText('₽');
+
+    const bodyOf = async () => {
+      const href = (await page.getByTestId('report-send').getAttribute('href')) ?? '';
+      expect(href).toMatch(/^mailto:[^?\s]+@[^?\s]+\?subject=[^&]+&body=/);
+      return new URLSearchParams(href.slice(href.indexOf('?') + 1));
+    };
+    const letter = await bodyOf();
+    expect(letter.get('subject')).toMatch(/^Конверкот \S+: проблема$/);
+    expect(letter.get('body')).toContain('Галочка у действия не ставится\r\n\r\nТехническая информация:');
+    expect(letter.get('body')).toContain('Страница: /plan?step=7');
+
+    // the person may keep the technical lines to themselves
+    await page.getByTestId('report-attach').uncheck();
+    await expect(technical).toHaveCount(0);
+    expect((await bodyOf()).get('body')).toBe('Галочка у действия не ставится');
+
+    await page.getByTestId('report-copy').click();
+    await expect(page.getByTestId('report-copy-status')).toHaveText(/Скопировано/);
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toContain(
+      'Галочка у действия не ставится',
+    );
+  });
+});

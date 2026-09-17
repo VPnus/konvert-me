@@ -96,10 +96,12 @@ for (const size of WIDTHS) {
         ['/balance', 'add-income-source'],
         ['/plan?step=2', 'education-add'],
         ['/settings', 'wipe-data'],
+        ['/overview', 'report-problem'],
       ];
       for (const [path, opener] of opened) {
         await page.goto(path);
-        await page.getByTestId(opener).click();
+        // the header keeps two of some buttons, one for each width: the one on the screen is pressed
+        await page.locator(`[data-testid="${opener}"]:visible`).first().click();
         const dialog = await page
           .locator(DIALOG)
           .first()

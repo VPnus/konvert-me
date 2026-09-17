@@ -53,7 +53,11 @@ export default function PrivacyPage() {
       }}
     >
       <main className="mx-auto w-full max-w-3xl px-4 py-10 text-sm md:px-8 md:py-14 md:text-base">
-        <h1 className="text-3xl font-semibold tracking-tight">{t.title}</h1>
+        {/* «конфиденциальности» is wider than a phone at 30px in a wide font (DejaVu Sans): smaller
+            there, and hyphenated or broken rather than scrolled sideways on a narrower screen still */}
+        <h1 className="text-2xl font-semibold tracking-tight break-words hyphens-auto sm:text-3xl">
+          {t.title}
+        </h1>
         <p className="mt-2 text-sm text-muted-foreground">{t.edition}</p>
         <p className="mt-6 leading-relaxed font-medium">{t.summary}</p>
 

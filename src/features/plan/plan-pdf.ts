@@ -12,7 +12,6 @@ import type { Content, TDocumentDefinitions, TVirtualFileSystem } from 'pdfmake/
 import { horizonBand, strategicAllocation, ASSET_CLASSES } from '@/core/portfolio';
 import { monthsBetween, todayIso, type IsoDate } from '@/core/time';
 import { RESERVE_GOAL_ID } from '@/db/repositories/goals';
-import { fill } from '@/features/deductions/fill';
 import type { PlanData } from '@/features/plan/plan-data';
 import { debtQueue, savingsBenchmark } from '@/features/plan/debts';
 import {
@@ -24,7 +23,7 @@ import {
   rubles,
   t,
 } from '@/features/plan/plan-format';
-import { ru } from '@/i18n/ru';
+import { fill, strings } from '@/i18n';
 import { downloadBlob } from '@/lib/download';
 import { monthsLabel } from '@/features/goals/months-label';
 
@@ -312,7 +311,7 @@ function strategy(data: PlanData): Content[] {
       );
     }
   }
-  content.push(paragraph(s.rebalance), paragraph(`${s.example} ${ru.app.disclaimer}`));
+  content.push(paragraph(s.rebalance), paragraph(`${s.example} ${strings.app.disclaimer}`));
   return content;
 }
 
@@ -345,7 +344,7 @@ export function buildPlanDocument(data: PlanData, today: IsoDate): TDocumentDefi
   return {
     pageSize: 'A4',
     pageMargins: [48, 48, 48, 56],
-    info: { title: t.pdf.title, creator: ru.app.name },
+    info: { title: t.pdf.title, creator: strings.app.name },
     defaultStyle: { font: 'Roboto', fontSize: 10, lineHeight: 1.2 },
     styles: {
       title: { fontSize: 20, bold: true, margin: [0, 0, 0, 4] },
@@ -366,7 +365,7 @@ export function buildPlanDocument(data: PlanData, today: IsoDate): TDocumentDefi
     ],
     footer: (page, pages) => ({
       columns: [
-        { text: ru.app.disclaimer, fontSize: 7, color: '#777777', width: '*' },
+        { text: strings.app.disclaimer, fontSize: 7, color: '#777777', width: '*' },
         {
           text: fill(t.pdf.page, { page, pages }),
           fontSize: 7,

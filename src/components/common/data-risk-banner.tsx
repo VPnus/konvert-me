@@ -5,12 +5,12 @@ import { Notice } from '@/components/common/notice';
 import { updateSettings } from '@/db/repositories/settings';
 import { useDataVersion } from '@/hooks/use-data-version';
 import { useSettingsState } from '@/hooks/use-settings';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 import { dataRisk, type DataRisk } from '@/lib/data-risk';
 import { formatBytes, getStorageStatus, type StorageStatus } from '@/lib/persist';
 import { detectPlatform, looksPrivate } from '@/lib/platform';
 
-const t = ru.settings.dataRisk;
+const t = strings.settings.dataRisk;
 
 function textOf(risk: DataRisk): string {
   switch (risk.kind) {

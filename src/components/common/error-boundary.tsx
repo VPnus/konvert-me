@@ -1,7 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 
 import { Button } from '@/components/ui/button';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 import { rememberError } from '@/lib/last-error';
 
 interface Props {
@@ -39,14 +39,14 @@ export class ErrorBoundary extends Component<Props, State> {
 
     return (
       <div role="alert" className="rounded-xl border border-destructive/40 bg-destructive/10 p-5">
-        <p className="text-sm font-semibold">{ru.errors.screenTitle}</p>
+        <p className="text-sm font-semibold">{strings.errors.screenTitle}</p>
         <p className="mt-1 text-sm text-muted-foreground">{error.message}</p>
         <div className="mt-3 flex gap-2">
           <Button size="sm" variant="outline" onClick={this.reset}>
-            {ru.errors.retry}
+            {strings.errors.retry}
           </Button>
           <Button size="sm" variant="outline" onClick={() => window.location.reload()}>
-            {ru.database.blockedAction}
+            {strings.database.blockedAction}
           </Button>
         </div>
       </div>

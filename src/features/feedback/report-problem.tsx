@@ -6,7 +6,6 @@ import { useLocation } from 'react-router-dom';
 import { SITE } from '@/app/site';
 import { useTheme } from '@/components/theme/theme-provider';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { fill } from '@/features/deductions/fill';
 import {
   mailtoHref,
   reportBody,
@@ -14,12 +13,12 @@ import {
   technicalLines,
   type ReportEnvironment,
 } from '@/features/feedback/problem-report';
-import { ru } from '@/i18n/ru';
+import { fill, strings } from '@/i18n';
 import { copyText } from '@/lib/clipboard';
 import { lastErrorMessage } from '@/lib/last-error';
 import { isStandaloneDisplay } from '@/lib/platform';
 
-const t = ru.feedback;
+const t = strings.feedback;
 const MAX_MESSAGE = 1000;
 /** The same width the tab bar and the pilot stats call a phone. */
 const NARROW_SCREEN = '(max-width: 767px)';
@@ -124,7 +123,7 @@ function ReportDialog({ email, onOpenChange }: { email: string; onOpenChange: (o
             <div className="flex flex-wrap justify-end gap-2">
               <Dialog.Close asChild>
                 <Button type="button" variant="outline" size="sm">
-                  {ru.common.cancel}
+                  {strings.common.cancel}
                 </Button>
               </Dialog.Close>
               <Button

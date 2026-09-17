@@ -2,9 +2,9 @@ import { useEffect } from 'react';
 
 import { SITE } from '@/app/site';
 import { SiteFrame } from '@/features/site/site-frame';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 
-const t = ru.site.privacy;
+const t = strings.site.privacy;
 
 /** Where to ask about the data: an address, else the questionnaire, else nothing is promised. */
 function Contact() {
@@ -47,8 +47,8 @@ export default function PrivacyPage() {
     <SiteFrame
       action={{
         to: '/overview',
-        label: ru.site.openApp,
-        shortLabel: ru.site.openAppShort,
+        label: strings.site.openApp,
+        shortLabel: strings.site.openAppShort,
         testId: 'privacy-open-app',
       }}
     >

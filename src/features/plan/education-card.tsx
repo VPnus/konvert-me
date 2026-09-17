@@ -13,11 +13,10 @@ import {
   saveEducationAsGoal,
   saveEducationPlan,
 } from '@/db/repositories/financial-plan';
-import { fill } from '@/features/deductions/fill';
 import { educationView, type EducationView } from '@/features/plan/calculations';
 import { monthInText, rateText, rubles, t } from '@/features/plan/plan-format';
 import { Muted, Row } from '@/features/plan/plan-parts';
-import { ru } from '@/i18n/ru';
+import { fill, strings } from '@/i18n';
 import { parseNumericInput } from '@/lib/numeric-input';
 
 const e = t.education;
@@ -154,7 +153,7 @@ export function EducationCard({ item, savedMinor, goalName, settings, onDone }: 
     try {
       setMessage(await action());
     } catch (cause) {
-      setMessage(cause instanceof Error ? cause.message : ru.common.error);
+      setMessage(cause instanceof Error ? cause.message : strings.common.error);
     } finally {
       setBusy(false);
     }

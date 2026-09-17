@@ -6,7 +6,7 @@ import { NumberInput } from '@/components/ui/number-input';
 import type { Account, Envelope } from '@/db/models';
 import { holdsMoney } from '@/db/repositories/accounts';
 import { deleteEnvelope, setEnvelope } from '@/db/repositories/goals';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 import { parseNumericInput } from '@/lib/numeric-input';
 
 interface EnvelopesPanelProps {
@@ -47,19 +47,19 @@ export function EnvelopesPanel({ goalId, envelopes, accounts, balances }: Envelo
       if (next === 0) await deleteEnvelope(goalId, accountId);
       else await setEnvelope(goalId, accountId, next);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : ru.common.error);
+      setError(cause instanceof Error ? cause.message : strings.common.error);
     }
   };
 
   return (
     <section className="flex flex-col gap-2" data-testid="envelopes">
       <div>
-        <h3 className="text-sm font-semibold">{ru.goals.envelopes}</h3>
-        <p className="text-xs text-muted-foreground">{ru.goals.envelopesHint}</p>
+        <h3 className="text-sm font-semibold">{strings.goals.envelopes}</h3>
+        <p className="text-xs text-muted-foreground">{strings.goals.envelopesHint}</p>
       </div>
 
       {shown.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{ru.goals.envelopeEmpty}</p>
+        <p className="text-sm text-muted-foreground">{strings.goals.envelopeEmpty}</p>
       ) : (
         <ul className="flex flex-col">
           {shown.map((account) => {
@@ -74,18 +74,18 @@ export function EnvelopesPanel({ goalId, envelopes, accounts, balances }: Envelo
                 <div className="min-w-0">
                   <p className="truncate text-sm">{account.name}</p>
                   <p className="truncate text-xs text-muted-foreground">
-                    {ru.accounts.balance}: {formatForecast(balances.get(account.id) ?? 0)}
+                    {strings.accounts.balance}: {formatForecast(balances.get(account.id) ?? 0)}
                   </p>
                   {holdsMoney(account) ? null : (
                     <p className="text-xs text-warning" data-testid={`envelope-not-money-${account.name}`}>
-                      {ru.goals.envelopeNotMoney}
+                      {strings.goals.envelopeNotMoney}
                     </p>
                   )}
                 </div>
 
                 <NumberInput
                   value={value}
-                  aria-label={`${ru.goals.envelopeAmount}: ${account.name}`}
+                  aria-label={`${strings.goals.envelopeAmount}: ${account.name}`}
                   data-testid={`envelope-${account.name}`}
                   className="h-9 w-32 text-right tabular-nums"
                   onValueChange={(next) => setDrafts((current) => ({ ...current, [account.id]: next }))}
@@ -140,7 +140,7 @@ export function ContributeForm({ accounts: all, onContribute }: ContributeFormPr
       });
       setAmount('');
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : ru.common.error);
+      setError(cause instanceof Error ? cause.message : strings.common.error);
     } finally {
       setBusy(false);
     }
@@ -151,23 +151,23 @@ export function ContributeForm({ accounts: all, onContribute }: ContributeFormPr
   return (
     <form className="flex flex-col gap-2" onSubmit={(event) => void submit(event)} data-testid="contribute">
       <div>
-        <h3 className="text-sm font-semibold">{ru.goals.contribute}</h3>
-        <p className="text-xs text-muted-foreground">{ru.goals.contributeHint}</p>
+        <h3 className="text-sm font-semibold">{strings.goals.contribute}</h3>
+        <p className="text-xs text-muted-foreground">{strings.goals.contributeHint}</p>
       </div>
 
       <div className="grid gap-2 sm:grid-cols-3">
         <NumberInput
           required
           value={amount}
-          aria-label={ru.goals.contributeAmount}
-          placeholder={ru.goals.contributeAmount}
+          aria-label={strings.goals.contributeAmount}
+          placeholder={strings.goals.contributeAmount}
           data-testid="contribute-amount"
           onValueChange={setAmount}
         />
 
         <select
           value={accountId}
-          aria-label={ru.goals.contributeTo}
+          aria-label={strings.goals.contributeTo}
           data-testid="contribute-to"
           className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
           onChange={(event) => setAccountId(event.target.value)}
@@ -181,12 +181,12 @@ export function ContributeForm({ accounts: all, onContribute }: ContributeFormPr
 
         <select
           value={fromAccountId}
-          aria-label={ru.goals.contributeFrom}
+          aria-label={strings.goals.contributeFrom}
           data-testid="contribute-from"
           className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
           onChange={(event) => setFromAccountId(event.target.value)}
         >
-          <option value="">{ru.goals.contributeFromNone}</option>
+          <option value="">{strings.goals.contributeFromNone}</option>
           {accounts
             .filter((account) => account.id !== accountId)
             .map((account) => (
@@ -204,7 +204,7 @@ export function ContributeForm({ accounts: all, onContribute }: ContributeFormPr
       ) : null}
 
       <Button type="submit" size="sm" className="w-fit" disabled={busy} data-testid="contribute-save">
-        {ru.goals.contribute}
+        {strings.goals.contribute}
       </Button>
     </form>
   );

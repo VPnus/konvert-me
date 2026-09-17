@@ -1,7 +1,6 @@
-import { fill } from '@/features/deductions/fill';
-import { ru } from '@/i18n/ru';
+import { fill, strings } from '@/i18n';
 
-const t = ru.feedback;
+const t = strings.feedback;
 
 /**
  * A message about a problem. The app only prepares the letter: the person sends it from their own

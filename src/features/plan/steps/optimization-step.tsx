@@ -1,4 +1,4 @@
-import { fill } from '@/features/deductions/fill';
+import { fill } from '@/i18n';
 import { debtQueue, savingsBenchmark } from '@/features/plan/debts';
 import type { PlanData } from '@/features/plan/plan-data';
 import { debtAdvice, percentOf, rubles, t } from '@/features/plan/plan-format';

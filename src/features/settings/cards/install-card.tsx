@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 import { detectPlatform } from '@/lib/platform';
 
 export function InstallCard() {
@@ -8,16 +8,18 @@ export function InstallCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{ru.settings.installTitle}</CardTitle>
-        <CardDescription>{ru.settings.installText}</CardDescription>
+        <CardTitle>{strings.settings.installTitle}</CardTitle>
+        <CardDescription>{strings.settings.installText}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-2 text-sm">
-        <p className={platform.isIos ? 'font-medium' : 'text-muted-foreground'}>{ru.settings.installIos}</p>
+        <p className={platform.isIos ? 'font-medium' : 'text-muted-foreground'}>
+          {strings.settings.installIos}
+        </p>
         <p className={platform.isSafari && !platform.isIos ? 'font-medium' : 'text-muted-foreground'}>
-          {ru.settings.installMac}
+          {strings.settings.installMac}
         </p>
         <p className={!platform.isSafari && !platform.isIos ? 'font-medium' : 'text-muted-foreground'}>
-          {ru.settings.installOther}
+          {strings.settings.installOther}
         </p>
       </CardContent>
     </Card>

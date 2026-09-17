@@ -3,8 +3,7 @@ import { useEffect, useState } from 'react';
 
 import releaseNotes from '@/app/release-notes.json';
 import { Button } from '@/components/ui/button';
-import { fill } from '@/features/deductions/fill';
-import { ru } from '@/i18n/ru';
+import { fill, strings } from '@/i18n';
 import { pendingNotes, readSeenVersion, writeSeenVersion } from '@/lib/release';
 
 /** Once after an update: what the new version brought. A first visit only remembers the version. */
@@ -25,7 +24,7 @@ export function UpdatedNotice() {
     >
       <Sparkles className="mt-px size-4 shrink-0" aria-hidden />
       <div className="min-w-0 flex-1">
-        <p className="font-medium">{fill(ru.pwa.updated, { version: __APP_VERSION__ })}</p>
+        <p className="font-medium">{fill(strings.pwa.updated, { version: __APP_VERSION__ })}</p>
         <ul className="mt-1 flex list-disc flex-col gap-0.5 pl-4">
           {notes.map((note) => (
             <li key={note}>{note}</li>
@@ -41,7 +40,7 @@ export function UpdatedNotice() {
             setNotes([]);
           }}
         >
-          {ru.pwa.updatedDismiss}
+          {strings.pwa.updatedDismiss}
         </Button>
       </div>
     </div>

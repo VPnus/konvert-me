@@ -3,7 +3,7 @@ import { monthsOfYear } from '@/core/time';
 import type { MonthTotals } from '@/core/budget';
 import type { BudgetYearData } from '@/features/budget/budget-data';
 import { shortMonthLabel } from '@/features/budget/month-label';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 
 function money(minor: number): string {
   return formatMinor(minor, { withCurrency: false, fractionDigits: 0 });
@@ -30,7 +30,7 @@ function Cell({ factMinor, planMinor, negativeIsBad = false, testId }: CellProps
       </span>
       {planMinor === 0 ? null : (
         <span className="block text-[10px] text-muted-foreground">
-          {ru.budget.year.planned} {money(planMinor)}
+          {strings.budget.year.planned} {money(planMinor)}
         </span>
       )}
     </td>
@@ -47,10 +47,10 @@ export function YearTable({ data }: { data: BudgetYearData }) {
         <table className="w-full min-w-[320px] border-collapse text-xs sm:text-sm">
           <thead>
             <tr className="border-b border-border text-right text-[11px] text-muted-foreground sm:text-xs">
-              <th className="py-2 text-left font-medium">{ru.budget.year.month}</th>
-              <th className="py-2 pl-2 font-medium">{ru.budget.year.income}</th>
-              <th className="py-2 pl-2 font-medium">{ru.budget.year.expense}</th>
-              <th className="py-2 pl-2 font-medium">{ru.budget.year.free}</th>
+              <th className="py-2 text-left font-medium">{strings.budget.year.month}</th>
+              <th className="py-2 pl-2 font-medium">{strings.budget.year.income}</th>
+              <th className="py-2 pl-2 font-medium">{strings.budget.year.expense}</th>
+              <th className="py-2 pl-2 font-medium">{strings.budget.year.free}</th>
             </tr>
           </thead>
 
@@ -81,7 +81,7 @@ export function YearTable({ data }: { data: BudgetYearData }) {
 
           <tfoot>
             <tr className="font-semibold">
-              <td className="py-2 pr-2">{ru.budget.year.total}</td>
+              <td className="py-2 pr-2">{strings.budget.year.total}</td>
               <Cell
                 factMinor={data.fact.incomeMinor}
                 planMinor={data.plan.incomeMinor}
@@ -103,7 +103,7 @@ export function YearTable({ data }: { data: BudgetYearData }) {
         </table>
       </div>
 
-      <p className="pt-3 text-xs text-muted-foreground">{ru.budget.year.hint}</p>
+      <p className="pt-3 text-xs text-muted-foreground">{strings.budget.year.hint}</p>
     </div>
   );
 }

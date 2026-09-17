@@ -15,7 +15,7 @@ import type { Goal } from '@/db/models';
 import { updateGoal } from '@/db/repositories/goals';
 import { monthLabel } from '@/features/budget/month-label';
 import { monthsLabel } from '@/features/goals/months-label';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 
 const MIN_MONTHS = 1;
 const MAX_MONTHS = 360;
@@ -92,13 +92,13 @@ export function WhatIfPanel({ goal, savedMinor }: WhatIfPanelProps) {
   return (
     <section className="flex flex-col gap-3" data-testid="what-if">
       <div>
-        <h3 className="text-sm font-semibold">{ru.goals.whatIf}</h3>
-        <p className="text-xs text-muted-foreground">{ru.goals.whatIfHint}</p>
+        <h3 className="text-sm font-semibold">{strings.goals.whatIf}</h3>
+        <p className="text-xs text-muted-foreground">{strings.goals.whatIfHint}</p>
       </div>
 
       <label className="flex flex-col gap-1 text-xs">
         <span className="flex justify-between">
-          <span>{ru.goals.whatIfMonths}</span>
+          <span>{strings.goals.whatIfMonths}</span>
           <span className="font-medium tabular-nums">
             {monthsLabel(months)} · {monthLabel(targetMonth)}
           </span>
@@ -108,14 +108,14 @@ export function WhatIfPanel({ goal, savedMinor }: WhatIfPanelProps) {
           max={MAX_MONTHS}
           value={months}
           data-testid="what-if-months"
-          aria-label={ru.goals.whatIfMonths}
+          aria-label={strings.goals.whatIfMonths}
           onValueChange={setMonths}
         />
       </label>
 
       <label className="flex flex-col gap-1 text-xs">
         <span className="flex justify-between">
-          <span>{ru.goals.cost}</span>
+          <span>{strings.goals.cost}</span>
           <span className="font-medium tabular-nums">{formatForecast(costMinor)}</span>
         </span>
         <Slider
@@ -124,14 +124,14 @@ export function WhatIfPanel({ goal, savedMinor }: WhatIfPanelProps) {
           step={1000}
           value={costRub}
           data-testid="what-if-cost"
-          aria-label={ru.goals.cost}
+          aria-label={strings.goals.cost}
           onValueChange={setCostRub}
         />
       </label>
 
       <label className="flex flex-col gap-1 text-xs">
         <span className="flex justify-between">
-          <span>{ru.goals.whatIfReturn}</span>
+          <span>{strings.goals.whatIfReturn}</span>
           <span className="font-medium tabular-nums">{ratePercent} %</span>
         </span>
         <Slider
@@ -140,29 +140,29 @@ export function WhatIfPanel({ goal, savedMinor }: WhatIfPanelProps) {
           step={0.5}
           value={ratePercent}
           data-testid="what-if-return"
-          aria-label={ru.goals.whatIfReturn}
+          aria-label={strings.goals.whatIfReturn}
           onValueChange={setRatePercent}
         />
       </label>
 
       <div className="rounded-lg border border-border bg-muted/40 p-3">
         <p className="text-sm">
-          {ru.goals.contribution}:{' '}
+          {strings.goals.contribution}:{' '}
           <span className="font-semibold tabular-nums" data-testid="what-if-contribution">
             {formatForecast(contributionMinor)}
           </span>
         </p>
         <p className="text-xs text-muted-foreground" data-testid="what-if-term">
           {termMonths === null
-            ? ru.goals.whatIfNever
-            : ru.goals.whatIfResult.replace('{months}', monthsLabel(termMonths))}
+            ? strings.goals.whatIfNever
+            : strings.goals.whatIfResult.replace('{months}', monthsLabel(termMonths))}
         </p>
         <p className="text-xs text-muted-foreground">
-          {ru.goals.costFuture}: {formatForecast(target)} · {ru.goals.realReturn}:{' '}
+          {strings.goals.costFuture}: {formatForecast(target)} · {strings.goals.realReturn}:{' '}
           {Math.round(realReturnRate(returnRate, goal.inflationRate) * 1000) / 10} %
         </p>
         {returnBeatsInflation(returnRate, goal.inflationRate) ? null : (
-          <p className="mt-1 text-xs text-warning">{ru.goals.returnBelowInflation}</p>
+          <p className="mt-1 text-xs text-warning">{strings.goals.returnBelowInflation}</p>
         )}
       </div>
 
@@ -173,10 +173,10 @@ export function WhatIfPanel({ goal, savedMinor }: WhatIfPanelProps) {
           data-testid="what-if-apply"
           onClick={() => void apply()}
         >
-          {ru.goals.whatIfApply}
+          {strings.goals.whatIfApply}
         </Button>
         <Button size="sm" variant="outline" disabled={!changed} onClick={reset}>
-          {ru.goals.whatIfReset}
+          {strings.goals.whatIfReset}
         </Button>
       </div>
     </section>

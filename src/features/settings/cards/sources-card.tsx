@@ -19,19 +19,21 @@ import { updateSettings } from '@/db/repositories/settings';
 import { FeedForm } from '@/features/settings/cards/feed-form';
 import { useDataVersion } from '@/hooks/use-data-version';
 import { useSettings } from '@/hooks/use-settings';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 import { maskSecret, maskUrl } from '@/lib/secrets';
 
 function authLabel(feed: Feed): string {
   const auth = feed.auth ?? { kind: 'none' };
-  if (auth.kind === 'none') return ru.sources.keyNone;
-  if (auth.kind === 'query') return `${ru.sources.keyStored} · ${auth.paramName}=${maskSecret(auth.key)}`;
-  if (auth.kind === 'header') return `${ru.sources.keyStored} · ${auth.headerName}: ${maskSecret(auth.key)}`;
-  return `${ru.sources.keyStored} · Bearer ${maskSecret(auth.key)}`;
+  if (auth.kind === 'none') return strings.sources.keyNone;
+  if (auth.kind === 'query')
+    return `${strings.sources.keyStored} · ${auth.paramName}=${maskSecret(auth.key)}`;
+  if (auth.kind === 'header')
+    return `${strings.sources.keyStored} · ${auth.headerName}: ${maskSecret(auth.key)}`;
+  return `${strings.sources.keyStored} · Bearer ${maskSecret(auth.key)}`;
 }
 
 function formatMoment(timestamp: number | null): string {
-  if (timestamp === null) return ru.widgets.news.never;
+  if (timestamp === null) return strings.widgets.news.never;
   return new Intl.DateTimeFormat('ru-RU', { dateStyle: 'short', timeStyle: 'short' }).format(timestamp);
 }
 
@@ -58,17 +60,17 @@ export function SourcesCard() {
    */
   const checkFeed = async (feed: Feed) => {
     if (!externalEnabled) {
-      setChecked({ ok: false, text: ru.sources.checkOffline });
+      setChecked({ ok: false, text: strings.sources.checkOffline });
       return;
     }
 
-    setChecked({ ok: true, text: ru.sources.checking });
+    setChecked({ ok: true, text: strings.sources.checking });
     try {
       const count = await refreshFeed(feed);
-      setChecked({ ok: true, text: ru.sources.checkOk.replace('{count}', String(count)) });
+      setChecked({ ok: true, text: strings.sources.checkOk.replace('{count}', String(count)) });
     } catch (cause) {
-      const reason = cause instanceof Error ? cause.message : ru.common.error;
-      setChecked({ ok: false, text: `${ru.sources.checkFailed} ${reason}` });
+      const reason = cause instanceof Error ? cause.message : strings.common.error;
+      setChecked({ ok: false, text: `${strings.sources.checkFailed} ${reason}` });
     }
   };
 
@@ -94,8 +96,8 @@ export function SourcesCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{ru.sources.title}</CardTitle>
-        <CardDescription>{ru.sources.text}</CardDescription>
+        <CardTitle>{strings.sources.title}</CardTitle>
+        <CardDescription>{strings.sources.text}</CardDescription>
       </CardHeader>
 
       <CardContent className="flex flex-col gap-4">
@@ -111,11 +113,11 @@ export function SourcesCard() {
               void updateSettings({ externalFeedsEnabled: next }).catch(() => setPendingEnabled(null));
             }}
           />
-          {ru.sources.enable}
+          {strings.sources.enable}
         </label>
 
         <div className="flex flex-col gap-3 border-t border-border pt-4">
-          <p className="text-sm font-medium">{ru.sources.feedsTitle}</p>
+          <p className="text-sm font-medium">{strings.sources.feedsTitle}</p>
 
           {feeds.length > 0 ? (
             <ul className="flex flex-col gap-2">
@@ -131,11 +133,11 @@ export function SourcesCard() {
                         {authLabel(feed)}
                       </p>
                       <p className="text-xs text-muted-foreground" data-testid="feed-updated">
-                        {ru.widgets.news.updated}: {formatMoment(feed.lastFetchedAt)}
+                        {strings.widgets.news.updated}: {formatMoment(feed.lastFetchedAt)}
                       </p>
                       {feed.lastError ? (
                         <p className="mt-1 text-xs text-destructive" data-testid="feed-last-error">
-                          {ru.sources.feedError}: {feed.lastError}
+                          {strings.sources.feedError}: {feed.lastError}
                         </p>
                       ) : null}
                     </div>
@@ -146,16 +148,16 @@ export function SourcesCard() {
                           type="checkbox"
                           checked={feed.enabled}
                           className="size-4 accent-[var(--color-primary)]"
-                          aria-label={feed.enabled ? ru.sources.feedOn : ru.sources.feedOff}
+                          aria-label={feed.enabled ? strings.sources.feedOn : strings.sources.feedOff}
                           onChange={(event) => void setFeedEnabled(feed.id, event.target.checked)}
                         />
-                        {feed.enabled ? ru.sources.feedOn : ru.sources.feedOff}
+                        {feed.enabled ? strings.sources.feedOn : strings.sources.feedOff}
                       </label>
                       <Button
                         size="icon"
                         variant="ghost"
                         className="size-8"
-                        aria-label={`${ru.sources.feedEdit}: ${feed.title}`}
+                        aria-label={`${strings.sources.feedEdit}: ${feed.title}`}
                         data-testid={`feed-edit-${feed.title}`}
                         onClick={() => setEditingId(editingId === feed.id ? null : feed.id)}
                       >
@@ -165,7 +167,7 @@ export function SourcesCard() {
                         size="icon"
                         variant="ghost"
                         className="size-8"
-                        aria-label={`${ru.sources.feedRemove}: ${feed.title}`}
+                        aria-label={`${strings.sources.feedRemove}: ${feed.title}`}
                         onClick={() => void deleteFeed(feed.id)}
                       >
                         <Trash2 className="size-4" aria-hidden />
@@ -209,11 +211,11 @@ export function SourcesCard() {
             data-testid="feed-refresh"
           >
             <RefreshCw className="size-4" aria-hidden />
-            {ru.sources.refreshAll}
+            {strings.sources.refreshAll}
           </Button>
 
-          <p className="text-xs text-muted-foreground">{ru.sources.corsNote}</p>
-          <p className="text-xs text-muted-foreground">{ru.sources.apiNote}</p>
+          <p className="text-xs text-muted-foreground">{strings.sources.corsNote}</p>
+          <p className="text-xs text-muted-foreground">{strings.sources.apiNote}</p>
         </div>
       </CardContent>
     </Card>

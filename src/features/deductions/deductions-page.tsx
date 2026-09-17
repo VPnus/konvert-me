@@ -5,12 +5,11 @@ import { formatMinor } from '@/core/money';
 import { Button } from '@/components/ui/button';
 import { loadDeductions, type DeductionYearView } from '@/features/deductions/deductions-data';
 import { DocumentsCard } from '@/features/deductions/documents-card';
-import { fill } from '@/features/deductions/fill';
 import { YearPanel } from '@/features/deductions/year-panel';
 import { useDataVersion } from '@/hooks/use-data-version';
-import { ru } from '@/i18n/ru';
+import { fill, strings } from '@/i18n';
 
-const t = ru.deductions;
+const t = strings.deductions;
 
 /** Under the year: what it gives back or owes, or where it stands if neither yet. */
 function yearCaption(view: DeductionYearView): string {
@@ -35,12 +34,12 @@ export default function DeductionsPage() {
   return (
     <section className="mx-auto flex w-full max-w-3xl flex-col gap-4">
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">{ru.pages.deductions.title}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{strings.pages.deductions.title}</h1>
         <p className="text-sm text-muted-foreground">{t.subtitle}</p>
       </div>
 
       {!data || !view ? (
-        <p className="text-sm text-muted-foreground">{ru.common.loading}</p>
+        <p className="text-sm text-muted-foreground">{strings.common.loading}</p>
       ) : (
         <>
           <div className="flex flex-wrap gap-2" role="tablist" aria-label={t.yearsLabel}>

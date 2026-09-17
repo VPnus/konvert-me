@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 import { useSettings } from '@/hooks/use-settings';
 import {
   downloadBackup,
@@ -33,10 +33,10 @@ export function BackupCard() {
     setError(null);
     try {
       await downloadBackup(password);
-      setMessage(ru.settings.backupExported);
+      setMessage(strings.settings.backupExported);
       setPassword('');
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : ru.common.error);
+      setError(cause instanceof Error ? cause.message : strings.common.error);
     }
   };
 
@@ -55,11 +55,11 @@ export function BackupCard() {
     setError(null);
     try {
       const summary = await importBackupFile(pendingFile, importPassword || undefined);
-      setMessage(`${ru.settings.backupImported} Записей: ${summary.total}.`);
+      setMessage(`${strings.settings.backupImported} Записей: ${summary.total}.`);
       setPendingFile(null);
       if (fileInput.current) fileInput.current.value = '';
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : ru.common.error);
+      setError(cause instanceof Error ? cause.message : strings.common.error);
     } finally {
       setBusy(false);
     }
@@ -79,19 +79,19 @@ export function BackupCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{ru.settings.backupTitle}</CardTitle>
-        <CardDescription>{ru.settings.backupText}</CardDescription>
+        <CardTitle>{strings.settings.backupTitle}</CardTitle>
+        <CardDescription>{strings.settings.backupText}</CardDescription>
       </CardHeader>
 
       <CardContent className="flex flex-col gap-5">
         <p className="text-sm text-muted-foreground" data-testid="last-backup">
-          {ru.settings.backupLast}: {lastBackupLabel(settings.lastBackupAt)}
+          {strings.settings.backupLast}: {lastBackupLabel(settings.lastBackupAt)}
         </p>
 
         <div className="flex flex-col gap-3">
           <Field
-            label={`${ru.settings.backupPassword} (${ru.common.optional})`}
-            hint={ru.settings.backupPasswordHint}
+            label={`${strings.settings.backupPassword} (${strings.common.optional})`}
+            hint={strings.settings.backupPasswordHint}
           >
             {(id) => (
               <Input
@@ -105,13 +105,13 @@ export function BackupCard() {
             )}
           </Field>
           <Button className="w-fit" onClick={() => void exportNow()} data-testid="backup-export">
-            {ru.settings.backupExport}
+            {strings.settings.backupExport}
           </Button>
         </div>
 
         <div className="flex flex-col gap-2 border-t border-border pt-4">
-          <p className="text-sm font-medium">{ru.settings.backupImport}</p>
-          <p className="text-xs text-muted-foreground">{ru.settings.backupImportHint}</p>
+          <p className="text-sm font-medium">{strings.settings.backupImport}</p>
+          <p className="text-xs text-muted-foreground">{strings.settings.backupImportHint}</p>
           <input
             ref={fileInput}
             type="file"
@@ -134,8 +134,8 @@ export function BackupCard() {
         ) : null}
 
         <div className="flex flex-col gap-2 border-t border-border pt-4">
-          <p className="text-sm font-medium">{ru.settings.dangerTitle}</p>
-          <p className="text-xs text-muted-foreground">{ru.settings.dangerText}</p>
+          <p className="text-sm font-medium">{strings.settings.dangerTitle}</p>
+          <p className="text-xs text-muted-foreground">{strings.settings.dangerText}</p>
           <Button
             variant="destructive"
             size="sm"
@@ -143,16 +143,16 @@ export function BackupCard() {
             onClick={() => setWipeOpen(true)}
             data-testid="wipe-data"
           >
-            {ru.settings.dangerAction}
+            {strings.settings.dangerAction}
           </Button>
         </div>
       </CardContent>
 
       <ConfirmDialog
         open={pendingFile !== null}
-        title={ru.settings.backupImportConfirmTitle}
-        description={ru.settings.backupImportConfirmText}
-        confirmLabel={ru.settings.backupImport}
+        title={strings.settings.backupImportConfirmTitle}
+        description={strings.settings.backupImportConfirmText}
+        confirmLabel={strings.settings.backupImport}
         destructive
         busy={busy}
         onConfirm={() => void confirmImport()}
@@ -163,7 +163,7 @@ export function BackupCard() {
         <div className="flex flex-col gap-3">
           <BackupFirst />
           {needsPassword ? (
-            <Field label={ru.settings.backupImportPassword}>
+            <Field label={strings.settings.backupImportPassword}>
               {(id) => (
                 <Input
                   id={id}
@@ -181,9 +181,9 @@ export function BackupCard() {
 
       <ConfirmDialog
         open={wipeOpen}
-        title={ru.settings.dangerConfirmTitle}
-        description={ru.settings.dangerConfirmText}
-        confirmLabel={ru.settings.dangerAction}
+        title={strings.settings.dangerConfirmTitle}
+        description={strings.settings.dangerConfirmText}
+        confirmLabel={strings.settings.dangerAction}
         destructive
         busy={busy}
         onConfirm={() => void confirmWipe()}

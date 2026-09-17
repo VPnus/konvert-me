@@ -4,8 +4,7 @@ import { Link } from 'react-router-dom';
 import { CatLogo } from '@/components/brand/cat-logo';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { buttonVariants } from '@/components/ui/button';
-import { fill } from '@/features/deductions/fill';
-import { ru } from '@/i18n/ru';
+import { fill, strings } from '@/i18n';
 
 interface SiteFrameProps {
   /** The one button of the header: into the app, or to start it. A long label has a short one for a phone. */
@@ -27,9 +26,9 @@ export function SiteFrame({ action, children }: SiteFrameProps) {
     <div className="flex min-h-dvh w-full flex-col">
       <header className="sticky top-0 z-30 border-b border-border bg-card">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-2 md:px-8 md:py-3">
-          <Link to="/" aria-label={ru.site.home} className="flex min-w-0 items-center gap-2">
+          <Link to="/" aria-label={strings.site.home} className="flex min-w-0 items-center gap-2">
             <CatLogo className="size-10 shrink-0 md:size-11" />
-            <span className="truncate text-base font-semibold md:text-lg">{ru.app.name}</span>
+            <span className="truncate text-base font-semibold md:text-lg">{strings.app.name}</span>
           </Link>
           <div className="flex shrink-0 items-center gap-1 sm:gap-2">
             <ThemeToggle />
@@ -51,16 +50,16 @@ export function SiteFrame({ action, children }: SiteFrameProps) {
 
       <footer className="border-t border-border">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-4 py-6 text-xs text-muted-foreground md:flex-row md:items-center md:justify-between md:px-8">
-          <p>{ru.app.disclaimer}</p>
+          <p>{strings.app.disclaimer}</p>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
             <Link
               to="/privacy"
               className="underline underline-offset-2 hover:text-foreground"
               data-testid="site-privacy-link"
             >
-              {ru.site.privacyLink}
+              {strings.site.privacyLink}
             </Link>
-            <span>{fill(ru.site.version, { version: __APP_VERSION__ })}</span>
+            <span>{fill(strings.site.version, { version: __APP_VERSION__ })}</span>
           </div>
         </div>
       </footer>

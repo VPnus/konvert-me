@@ -10,8 +10,7 @@ import { daysBetween, type IsoDate } from '@/core/time';
 import { db } from '@/db/db';
 import type { Account } from '@/db/models';
 import { dateLabel, rateLabel } from '@/features/balance/card-view';
-import { fill } from '@/features/deductions/fill';
-import { ru } from '@/i18n/ru';
+import { fill, strings } from '@/i18n';
 
 export type CardReminderKind = 'week' | 'day' | 'grace-week' | 'grace-day' | 'missed' | 'grace-ended';
 
@@ -81,7 +80,7 @@ export function isWarning(reminder: CardReminder): boolean {
 }
 
 export function reminderText(reminder: CardReminder, today: IsoDate): string {
-  const t = ru.cards.reminder;
+  const t = strings.cards.reminder;
   const { account, grace } = reminder;
   const rubles = (minor: number) => formatForecast(minor);
   const rate = account.rate === undefined ? '' : fill(t.rate, { rate: rateLabel(account.rate) });

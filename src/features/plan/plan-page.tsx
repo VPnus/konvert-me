@@ -4,7 +4,6 @@ import { useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
-import { fill } from '@/features/deductions/fill';
 import { loadPlan, type PlanData } from '@/features/plan/plan-data';
 import { t } from '@/features/plan/plan-format';
 import { ActionsStep } from '@/features/plan/steps/actions-step';
@@ -16,7 +15,7 @@ import { ProtectionStep } from '@/features/plan/steps/protection-step';
 import { ReviewStep } from '@/features/plan/steps/review-step';
 import { StrategyStep } from '@/features/plan/steps/strategy-step';
 import { useDataVersion } from '@/hooks/use-data-version';
-import { ru } from '@/i18n/ru';
+import { fill, strings } from '@/i18n';
 import { cn } from '@/lib/utils';
 
 const STEPS: readonly ((props: { data: PlanData }) => ReactNode)[] = [
@@ -57,7 +56,9 @@ export default function PlanPage() {
       await downloadPlanPdf(data);
       setPdfState('idle');
     } catch (cause) {
-      setPdfState(fill(t.pdf.failed, { reason: cause instanceof Error ? cause.message : ru.common.error }));
+      setPdfState(
+        fill(t.pdf.failed, { reason: cause instanceof Error ? cause.message : strings.common.error }),
+      );
     }
   };
 
@@ -65,7 +66,7 @@ export default function PlanPage() {
     <section className="mx-auto flex w-full max-w-3xl flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 flex-1 basis-64 flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">{ru.pages.plan.title}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{strings.pages.plan.title}</h1>
           <p className="text-sm text-muted-foreground">{t.subtitle}</p>
         </div>
         <Button
@@ -113,7 +114,11 @@ export default function PlanPage() {
         <p className="text-sm text-muted-foreground">{t.steps[step - 1].lead}</p>
       </div>
 
-      {data ? <Step data={data} /> : <p className="text-sm text-muted-foreground">{ru.common.loading}</p>}
+      {data ? (
+        <Step data={data} />
+      ) : (
+        <p className="text-sm text-muted-foreground">{strings.common.loading}</p>
+      )}
 
       <div className="flex justify-between gap-2">
         <Button variant="outline" disabled={step === 1} data-testid="plan-back" onClick={() => go(step - 1)}>

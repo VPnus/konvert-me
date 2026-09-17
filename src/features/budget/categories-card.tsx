@@ -9,11 +9,10 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import type { Category } from '@/db/models';
 import { createCategory, listCategories, setCategoryArchived } from '@/db/repositories/categories';
-import { fill } from '@/features/deductions/fill';
 import { useDataVersion } from '@/hooks/use-data-version';
-import { ru } from '@/i18n/ru';
+import { fill, strings } from '@/i18n';
 
-const t = ru.categories;
+const t = strings.categories;
 
 type Group = keyof typeof t.groups;
 
@@ -46,7 +45,7 @@ export function CategoriesCard() {
       setName('');
       setMessage({ text: fill(t.added, { name: created.name }), error: false });
     } catch (cause) {
-      setMessage({ text: cause instanceof Error ? cause.message : ru.common.error, error: true });
+      setMessage({ text: cause instanceof Error ? cause.message : strings.common.error, error: true });
     } finally {
       setBusy(false);
     }

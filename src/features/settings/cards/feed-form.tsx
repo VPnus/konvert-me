@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import type { Feed, FeedAuth } from '@/db/models';
 import type { FeedInput } from '@/db/repositories/feeds';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 import { FEED_PRESETS, findFeedPreset, type FeedPreset } from '@/lib/feed-presets';
 
 interface FeedFormProps {
@@ -38,7 +38,8 @@ export function FeedForm({ feed, onSubmit, onCancel }: FeedFormProps) {
   const [busy, setBusy] = useState(false);
 
   const preset = presetId ? findFeedPreset(presetId) : undefined;
-  const presetText = (item: FeedPreset) => ru.sources.presets[item.id as keyof typeof ru.sources.presets];
+  const presetText = (item: FeedPreset) =>
+    strings.sources.presets[item.id as keyof typeof strings.sources.presets];
 
   /** Picking a ready-made source fills in everything except the key itself. */
   const applyPreset = (chosen: FeedPreset | undefined, id: string) => {
@@ -82,7 +83,7 @@ export function FeedForm({ feed, onSubmit, onCancel }: FeedFormProps) {
         setKey('');
       }
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : ru.common.error);
+      setError(cause instanceof Error ? cause.message : strings.common.error);
     } finally {
       setBusy(false);
     }
@@ -91,7 +92,7 @@ export function FeedForm({ feed, onSubmit, onCancel }: FeedFormProps) {
   return (
     <form className="flex flex-col gap-3" onSubmit={(event) => void submit(event)}>
       {feed ? null : (
-        <Field label={ru.sources.presetLabel} hint={preset ? undefined : ru.sources.presetHint}>
+        <Field label={strings.sources.presetLabel} hint={preset ? undefined : strings.sources.presetHint}>
           {(id) => (
             <Select
               id={id}
@@ -99,7 +100,7 @@ export function FeedForm({ feed, onSubmit, onCancel }: FeedFormProps) {
               data-testid="feed-preset"
               onChange={(event) => applyPreset(findFeedPreset(event.target.value), event.target.value)}
             >
-              <option value="">{ru.sources.presetNone}</option>
+              <option value="">{strings.sources.presetNone}</option>
               {FEED_PRESETS.map((item) => (
                 <option key={item.id} value={item.id}>
                   {presetText(item).label}
@@ -117,7 +118,7 @@ export function FeedForm({ feed, onSubmit, onCancel }: FeedFormProps) {
           </p>
           {preset.browserBlocked ? (
             <p className="text-xs text-warning" data-testid="feed-preset-blocked">
-              {ru.sources.presetBlocked}
+              {strings.sources.presetBlocked}
             </p>
           ) : null}
           {preset.keyUrl ? (
@@ -127,13 +128,13 @@ export function FeedForm({ feed, onSubmit, onCancel }: FeedFormProps) {
               rel="noreferrer noopener"
               className="w-fit text-xs underline underline-offset-2"
             >
-              {ru.sources.presetKeyLink}
+              {strings.sources.presetKeyLink}
             </a>
           ) : null}
         </div>
       ) : null}
 
-      <Field label={ru.sources.feedName}>
+      <Field label={strings.sources.feedName}>
         {(id) => (
           <Input
             id={id}
@@ -145,7 +146,7 @@ export function FeedForm({ feed, onSubmit, onCancel }: FeedFormProps) {
         )}
       </Field>
 
-      <Field label={ru.sources.feedUrl} hint={ru.sources.feedUrlHint}>
+      <Field label={strings.sources.feedUrl} hint={strings.sources.feedUrlHint}>
         {(id) => (
           <Input
             id={id}
@@ -159,7 +160,7 @@ export function FeedForm({ feed, onSubmit, onCancel }: FeedFormProps) {
         )}
       </Field>
 
-      <Field label={ru.sources.authTitle}>
+      <Field label={strings.sources.authTitle}>
         {(id) => (
           <Select
             id={id}
@@ -167,16 +168,16 @@ export function FeedForm({ feed, onSubmit, onCancel }: FeedFormProps) {
             data-testid="feed-auth-kind"
             onChange={(event) => setAuthKind(event.target.value as AuthKind)}
           >
-            <option value="none">{ru.sources.authNone}</option>
-            <option value="query">{ru.sources.authQuery}</option>
-            <option value="header">{ru.sources.authHeader}</option>
-            <option value="bearer">{ru.sources.authBearer}</option>
+            <option value="none">{strings.sources.authNone}</option>
+            <option value="query">{strings.sources.authQuery}</option>
+            <option value="header">{strings.sources.authHeader}</option>
+            <option value="bearer">{strings.sources.authBearer}</option>
           </Select>
         )}
       </Field>
 
       {authKind === 'query' ? (
-        <Field label={ru.sources.authParamName}>
+        <Field label={strings.sources.authParamName}>
           {(id) => (
             <Input
               id={id}
@@ -190,7 +191,7 @@ export function FeedForm({ feed, onSubmit, onCancel }: FeedFormProps) {
       ) : null}
 
       {authKind === 'header' ? (
-        <Field label={ru.sources.authHeaderName}>
+        <Field label={strings.sources.authHeaderName}>
           {(id) => (
             <Input
               id={id}
@@ -204,7 +205,10 @@ export function FeedForm({ feed, onSubmit, onCancel }: FeedFormProps) {
       ) : null}
 
       {authKind !== 'none' ? (
-        <Field label={ru.sources.authKey} hint={keptKey ? ru.sources.authKeyKeep : ru.sources.authKeyHint}>
+        <Field
+          label={strings.sources.authKey}
+          hint={keptKey ? strings.sources.authKeyKeep : strings.sources.authKeyHint}
+        >
           {(id) => (
             <Input
               id={id}
@@ -222,7 +226,7 @@ export function FeedForm({ feed, onSubmit, onCancel }: FeedFormProps) {
       ) : null}
 
       {advanced ? (
-        <Field label={ru.sources.itemsPath} hint={ru.sources.itemsPathHint}>
+        <Field label={strings.sources.itemsPath} hint={strings.sources.itemsPathHint}>
           {(id) => (
             <Input
               id={id}
@@ -239,7 +243,7 @@ export function FeedForm({ feed, onSubmit, onCancel }: FeedFormProps) {
           className="w-fit text-xs text-muted-foreground underline-offset-2 hover:underline"
           onClick={() => setAdvanced(true)}
         >
-          {ru.sources.advanced}
+          {strings.sources.advanced}
         </button>
       )}
 
@@ -251,11 +255,11 @@ export function FeedForm({ feed, onSubmit, onCancel }: FeedFormProps) {
 
       <div className="flex flex-wrap gap-2">
         <Button type="submit" size="sm" disabled={busy} data-testid={feed ? 'feed-save' : 'feed-add'}>
-          {feed ? ru.sources.feedSave : ru.sources.feedAdd}
+          {feed ? strings.sources.feedSave : strings.sources.feedAdd}
         </Button>
         {onCancel ? (
           <Button type="button" size="sm" variant="outline" onClick={onCancel}>
-            {ru.sources.feedCancel}
+            {strings.sources.feedCancel}
           </Button>
         ) : null}
       </div>

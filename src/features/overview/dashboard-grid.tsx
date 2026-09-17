@@ -20,7 +20,7 @@ import { useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { ErrorBoundary } from '@/components/common/error-boundary';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { findWidget } from '@/features/overview/widgets/registry';
 import type { OverviewData } from '@/features/overview/overview-data';
@@ -200,7 +200,7 @@ function WidgetCell({ item, data, editing, onResize, onRemove }: WidgetCellProps
             type="button"
             // touch-none: otherwise a finger on a phone scrolls the page and the drag is cancelled
             className="flex cursor-grab touch-none items-center gap-1 rounded-md px-1 py-1 text-xs text-muted-foreground select-none hover:bg-accent active:cursor-grabbing pointer-coarse:py-2"
-            aria-label={`${ru.overview.drag}: ${title}`}
+            aria-label={`${strings.overview.drag}: ${title}`}
             {...attributes}
             {...listeners}
           >
@@ -216,7 +216,7 @@ function WidgetCell({ item, data, editing, onResize, onRemove }: WidgetCellProps
               size="icon"
               variant="ghost"
               className="size-7"
-              aria-label={`${ru.overview.remove}: ${title}`}
+              aria-label={`${strings.overview.remove}: ${title}`}
               data-testid={`remove-${item.widgetType}`}
               onClick={() => onRemove(item.instanceId)}
             >
@@ -229,7 +229,7 @@ function WidgetCell({ item, data, editing, onResize, onRemove }: WidgetCellProps
       <ErrorBoundary
         fallback={(error) => (
           <div className="p-4">
-            <p className="text-sm font-semibold">{ru.overview.widgetBroken}</p>
+            <p className="text-sm font-semibold">{strings.overview.widgetBroken}</p>
             <p className="mt-1 text-xs text-muted-foreground">{error.message}</p>
           </div>
         )}
@@ -238,7 +238,7 @@ function WidgetCell({ item, data, editing, onResize, onRemove }: WidgetCellProps
           {definition ? (
             <definition.Component data={data} settings={item.settings} />
           ) : (
-            <div className="p-4 text-sm text-muted-foreground">{ru.overview.widgetBroken}</div>
+            <div className="p-4 text-sm text-muted-foreground">{strings.overview.widgetBroken}</div>
           )}
         </div>
       </ErrorBoundary>
@@ -246,8 +246,8 @@ function WidgetCell({ item, data, editing, onResize, onRemove }: WidgetCellProps
       {editing ? (
         <button
           type="button"
-          aria-label={`${ru.overview.resize}: ${title}`}
-          title={ru.overview.resizeHint}
+          aria-label={`${strings.overview.resize}: ${title}`}
+          title={strings.overview.resizeHint}
           data-testid={`resize-${item.widgetType}`}
           // Bigger under a finger; touch-none so that pulling it does not scroll the page.
           className="absolute right-0 bottom-0 flex size-6 cursor-se-resize touch-none items-center justify-center rounded-tl-md rounded-br-xl bg-accent text-muted-foreground select-none hover:text-foreground pointer-coarse:size-10"

@@ -7,8 +7,7 @@ import type { CardGrace } from '@/core/credit-card';
 import { formatForecast } from '@/core/money';
 import { todayIso, type IsoDate } from '@/core/time';
 import type { Account } from '@/db/models';
-import { fill } from '@/features/deductions/fill';
-import { ru } from '@/i18n/ru';
+import { fill, strings } from '@/i18n';
 
 const DAY_MONTH = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long' });
 
@@ -34,8 +33,8 @@ const rubles = (minor: number): string => formatForecast(minor);
 
 /** The line under an account: its type and whatever terms and dates it carries, the dates in words. */
 export function accountDetails(account: Account): string {
-  const d = ru.accounts.details;
-  const parts: string[] = [ru.accounts.types[account.type]];
+  const d = strings.accounts.details;
+  const parts: string[] = [strings.accounts.types[account.type]];
   if (account.bankName) parts.push(account.bankName);
   if (account.rate !== undefined) parts.push(fill(d.rate, { rate: rateLabel(account.rate) }));
   if (account.statementDay && account.paymentDay) {
@@ -59,7 +58,7 @@ export interface CardStatus {
 
 /** Where the grace period of a card stands, in one sentence; nothing when there is nothing to say. */
 export function cardStatus(grace: CardGrace, today: IsoDate = todayIso()): CardStatus | null {
-  const t = ru.cards.status;
+  const t = strings.cards.status;
   switch (grace.kind) {
     case 'none':
       return null;
@@ -99,7 +98,7 @@ export function cardStatus(grace: CardGrace, today: IsoDate = todayIso()): CardS
 export function limitStatus(account: Pick<Account, 'creditLimitMinor'>, debtMinor: number): string | null {
   const limit = account.creditLimitMinor;
   if (!limit) return null;
-  const t = ru.cards.status;
+  const t = strings.cards.status;
   return debtMinor > limit
     ? fill(t.overLimit, { limit: rubles(limit), over: rubles(debtMinor - limit) })
     : fill(t.limit, { limit: rubles(limit), free: rubles(limit - Math.max(debtMinor, 0)) });

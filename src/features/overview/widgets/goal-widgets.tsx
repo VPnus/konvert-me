@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 
 import { formatMinor, roundToMinor } from '@/core/money';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 import { BigNumber, ProgressBar, WidgetEmpty, WidgetFrame } from '@/features/overview/widgets/widget-shell';
 import type { GoalView } from '@/features/overview/overview-data';
 import type { WidgetProps } from '@/features/overview/widgets/types';
@@ -15,11 +15,11 @@ function goalProgress(view: GoalView): number {
 function GoalLine({ view }: { view: GoalView }) {
   const status =
     view.plan?.status === 'funded'
-      ? ru.widgets.goals.funded
+      ? strings.widgets.goals.funded
       : view.plan?.status === 'overdue'
-        ? ru.widgets.goals.overdue
+        ? strings.widgets.goals.overdue
         : view.plan
-          ? `${ru.widgets.goals.contribution}: ${formatMinor(roundToMinor(view.plan.contributionMinor), { fractionDigits: 0 })}`
+          ? `${strings.widgets.goals.contribution}: ${formatMinor(roundToMinor(view.plan.contributionMinor), { fractionDigits: 0 })}`
           : '';
 
   return (
@@ -42,21 +42,25 @@ function GoalLine({ view }: { view: GoalView }) {
 export function GoalsWidget({ data }: WidgetProps) {
   if (data.goals.length === 0) {
     return (
-      <WidgetFrame title={ru.widgets.goals.title}>
-        <WidgetEmpty text={ru.widgets.goals.empty} actionLabel={ru.widgets.goals.emptyAction} to="/goals" />
+      <WidgetFrame title={strings.widgets.goals.title}>
+        <WidgetEmpty
+          text={strings.widgets.goals.empty}
+          actionLabel={strings.widgets.goals.emptyAction}
+          to="/goals"
+        />
       </WidgetFrame>
     );
   }
 
   return (
-    <WidgetFrame title={ru.widgets.goals.title}>
+    <WidgetFrame title={strings.widgets.goals.title}>
       <ul className="flex flex-col gap-3">
         {data.goals.map((view) => (
           <GoalLine key={view.goal.id} view={view} />
         ))}
       </ul>
       <Link to="/goals" className="text-xs text-primary underline-offset-2 hover:underline">
-        {ru.widgets.goals.emptyAction}
+        {strings.widgets.goals.emptyAction}
       </Link>
     </WidgetFrame>
   );
@@ -70,10 +74,10 @@ export function GoalProgressWidget({ data, settings }: WidgetProps) {
 
   if (!view) {
     return (
-      <WidgetFrame title={ru.widgets.goalProgress.title}>
+      <WidgetFrame title={strings.widgets.goalProgress.title}>
         <WidgetEmpty
-          text={ru.widgets.goalProgress.empty}
-          actionLabel={ru.widgets.goalProgress.emptyAction}
+          text={strings.widgets.goalProgress.empty}
+          actionLabel={strings.widgets.goalProgress.emptyAction}
           to="/goals"
         />
       </WidgetFrame>
@@ -83,11 +87,11 @@ export function GoalProgressWidget({ data, settings }: WidgetProps) {
   const target = view.plan?.futureValueMinor ?? view.goal.costMinor;
 
   return (
-    <WidgetFrame title={view.goal.name} hint={ru.widgets.goalProgress.title}>
+    <WidgetFrame title={view.goal.name} hint={strings.widgets.goalProgress.title}>
       <BigNumber value={formatMinor(roundToMinor(view.savedMinor), { fractionDigits: 0 })} />
       <ProgressBar value={goalProgress(view)} />
       <p className="text-xs text-muted-foreground">
-        {ru.widgets.goals.contribution}:{' '}
+        {strings.widgets.goals.contribution}:{' '}
         {view.plan ? formatMinor(roundToMinor(view.plan.contributionMinor), { fractionDigits: 0 }) : '—'} ·{' '}
         {formatMinor(roundToMinor(target), { fractionDigits: 0 })}
       </p>
@@ -100,14 +104,14 @@ export function WarningsWidget({ data }: WidgetProps) {
 
   if (warnings.length === 0) {
     return (
-      <WidgetFrame title={ru.widgets.warnings.title}>
-        <p className="text-sm text-muted-foreground">{ru.widgets.warnings.empty}</p>
+      <WidgetFrame title={strings.widgets.warnings.title}>
+        <p className="text-sm text-muted-foreground">{strings.widgets.warnings.empty}</p>
       </WidgetFrame>
     );
   }
 
   return (
-    <WidgetFrame title={ru.widgets.warnings.title}>
+    <WidgetFrame title={strings.widgets.warnings.title}>
       <ul className="flex flex-col gap-2">
         {warnings.map((warning) => (
           <li key={warning.id} className="flex gap-2 text-sm">

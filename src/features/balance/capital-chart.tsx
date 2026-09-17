@@ -3,7 +3,7 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YA
 import type { NetWorthPoint } from '@/core/balance';
 import { formatCompactMinor, formatMinor } from '@/core/money';
 import { shortMonthLabel } from '@/features/budget/month-label';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 
 /** Capital month by month. One line, because one number is the point of this screen. */
 export default function CapitalChart({ points }: { points: readonly NetWorthPoint[] }) {
@@ -48,14 +48,14 @@ export default function CapitalChart({ points }: { points: readonly NetWorthPoin
             }}
             formatter={(value) => [
               formatMinor(typeof value === 'number' ? value : 0, { fractionDigits: 0 }),
-              ru.capital.netWorth,
+              strings.capital.netWorth,
             ]}
           />
 
           <Area
             type="monotone"
             dataKey="net"
-            name={ru.capital.netWorth}
+            name={strings.capital.netWorth}
             stroke="var(--color-foreground)"
             strokeWidth={2}
             fill="url(#capital-net)"

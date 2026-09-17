@@ -3,7 +3,7 @@ import { AlertTriangle } from 'lucide-react';
 import { Notice } from '@/components/common/notice';
 import { isBackupDue } from '@/db/repositories/settings';
 import { useSettingsState } from '@/hooks/use-settings';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 
 /** Once every thirty days: the data lives on this device only. */
 export function BackupReminder() {
@@ -15,9 +15,11 @@ export function BackupReminder() {
       testId="backup-reminder"
       icon={AlertTriangle}
       tone="warning"
-      action={{ to: '/settings', label: ru.settings.backupReminderAction }}
+      action={{ to: '/settings', label: strings.settings.backupReminderAction }}
     >
-      {settings.lastBackupAt === null ? ru.settings.backupReminderNever : ru.settings.backupReminder}
+      {settings.lastBackupAt === null
+        ? strings.settings.backupReminderNever
+        : strings.settings.backupReminder}
     </Notice>
   );
 }

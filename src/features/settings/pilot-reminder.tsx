@@ -5,7 +5,7 @@ import { Notice } from '@/components/common/notice';
 import { todayIso } from '@/core/time';
 import { PILOT_CARD_ID } from '@/features/settings/pilot-stats';
 import { useUsage } from '@/hooks/use-usage';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 import { dueMilestone, recordShared } from '@/lib/usage';
 
 /**
@@ -23,11 +23,11 @@ export function PilotReminderBanner() {
       icon={MessageSquareHeart}
       tone="reminder"
       kind={`day-${milestone}`}
-      action={{ to: `/settings#${PILOT_CARD_ID}`, label: ru.pilotReminder.action }}
-      dismiss={{ label: ru.pilotReminder.dismiss, testId: 'pilot-reminder-dismiss' }}
+      action={{ to: `/settings#${PILOT_CARD_ID}`, label: strings.pilotReminder.action }}
+      dismiss={{ label: strings.pilotReminder.dismiss, testId: 'pilot-reminder-dismiss' }}
       onDismiss={() => recordShared()}
     >
-      {milestone >= 30 ? ru.pilotReminder.month : ru.pilotReminder.week}
+      {milestone >= 30 ? strings.pilotReminder.month : strings.pilotReminder.week}
     </Notice>
   );
 }

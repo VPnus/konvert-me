@@ -11,7 +11,7 @@ import { NumberInput } from '@/components/ui/number-input';
 import { Select } from '@/components/ui/select';
 import { ASSET_TYPES, LIABILITY_TYPES, type Account, type AccountType } from '@/db/models';
 import { createAccount, isLiquidByDefault, updateAccount } from '@/db/repositories/accounts';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 
 interface AccountFormProps {
   readonly account?: Account;
@@ -150,7 +150,7 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
       onOpenChange(false);
       setState(initialState());
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : ru.common.error);
+      setError(cause instanceof Error ? cause.message : strings.common.error);
     } finally {
       setBusy(false);
     }
@@ -164,28 +164,28 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
         <Dialog.Overlay className="fixed inset-0 z-40 bg-black/60" />
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[90dvh] w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl border border-border bg-card p-5 shadow-xl">
           <Dialog.Title className="text-base font-semibold">
-            {account ? ru.accounts.editTitle : ru.accounts.addTitle}
+            {account ? strings.accounts.editTitle : strings.accounts.addTitle}
           </Dialog.Title>
           <Dialog.Description className="mt-1 text-sm text-muted-foreground">
-            {ru.accounts.openingBalanceHint}
+            {strings.accounts.openingBalanceHint}
           </Dialog.Description>
 
           <form className="mt-4 flex flex-col gap-4" onSubmit={(event) => void submit(event)}>
-            <Field label={ru.accounts.name}>
+            <Field label={strings.accounts.name}>
               {(id) => (
                 <Input
                   id={id}
                   value={state.name}
                   required
                   autoFocus
-                  placeholder={ru.accounts.namePlaceholder}
+                  placeholder={strings.accounts.namePlaceholder}
                   data-testid="account-name"
                   onChange={(event) => patch({ name: event.target.value })}
                 />
               )}
             </Field>
 
-            <Field label={ru.accounts.side}>
+            <Field label={strings.accounts.side}>
               {(id) => (
                 <Select
                   id={id}
@@ -193,13 +193,13 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
                   data-testid="account-side"
                   onChange={(event) => changeSide(event.target.value as Account['side'])}
                 >
-                  <option value="asset">{ru.accounts.sideAsset}</option>
-                  <option value="liability">{ru.accounts.sideLiability}</option>
+                  <option value="asset">{strings.accounts.sideAsset}</option>
+                  <option value="liability">{strings.accounts.sideLiability}</option>
                 </Select>
               )}
             </Field>
 
-            <Field label={ru.accounts.type}>
+            <Field label={strings.accounts.type}>
               {(id) => (
                 <Select
                   id={id}
@@ -212,7 +212,7 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
                 >
                   {types.map((type) => (
                     <option key={type} value={type}>
-                      {ru.accounts.types[type]}
+                      {strings.accounts.types[type]}
                     </option>
                   ))}
                 </Select>
@@ -220,7 +220,11 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
             </Field>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label={state.side === 'asset' ? ru.accounts.openingBalance : ru.accounts.debtBalance}>
+              <Field
+                label={
+                  state.side === 'asset' ? strings.accounts.openingBalance : strings.accounts.debtBalance
+                }
+              >
                 {(id) => (
                   <NumberInput
                     id={id}
@@ -232,7 +236,7 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
                 )}
               </Field>
 
-              <Field label={ru.accounts.openingDate} hint={ru.accounts.openingDateHint}>
+              <Field label={strings.accounts.openingDate} hint={strings.accounts.openingDateHint}>
                 {(id) => (
                   <Input
                     id={id}
@@ -255,14 +259,14 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
                   data-testid="account-liquid"
                   onChange={(event) => patch({ isLiquid: event.target.checked })}
                 />
-                {ru.accounts.isLiquid}
+                {strings.accounts.isLiquid}
               </label>
             ) : state.type === 'credit_card' ? (
               <fieldset className="flex flex-col gap-3 rounded-lg border border-border p-3">
-                <legend className="px-1 text-sm font-medium">{ru.accounts.cardTerms}</legend>
-                <p className="text-xs text-muted-foreground">{ru.accounts.cardTermsHint}</p>
+                <legend className="px-1 text-sm font-medium">{strings.accounts.cardTerms}</legend>
+                <p className="text-xs text-muted-foreground">{strings.accounts.cardTermsHint}</p>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label={ru.accounts.cardRate} hint={ru.accounts.cardRateHint}>
+                  <Field label={strings.accounts.cardRate} hint={strings.accounts.cardRateHint}>
                     {(id) => (
                       <NumberInput
                         id={id}
@@ -273,7 +277,7 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
                     )}
                   </Field>
 
-                  <Field label={ru.accounts.creditLimit}>
+                  <Field label={strings.accounts.creditLimit}>
                     {(id) => (
                       <NumberInput
                         id={id}
@@ -284,35 +288,35 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
                     )}
                   </Field>
 
-                  <Field label={ru.accounts.statementDay} hint={ru.accounts.statementDayHint}>
+                  <Field label={strings.accounts.statementDay} hint={strings.accounts.statementDayHint}>
                     {(id) => (
                       <NumberInput
                         id={id}
                         integer
                         maxLength={2}
                         value={state.statementDay}
-                        placeholder={ru.accounts.statementDayNone}
+                        placeholder={strings.accounts.statementDayNone}
                         data-testid="account-statement-day"
                         onValueChange={(statementDay) => patch({ statementDay })}
                       />
                     )}
                   </Field>
 
-                  <Field label={ru.accounts.cardPaymentDay} hint={ru.accounts.cardPaymentDayHint}>
+                  <Field label={strings.accounts.cardPaymentDay} hint={strings.accounts.cardPaymentDayHint}>
                     {(id) => (
                       <NumberInput
                         id={id}
                         integer
                         maxLength={2}
                         value={state.paymentDay}
-                        placeholder={ru.accounts.paymentDayNone}
+                        placeholder={strings.accounts.paymentDayNone}
                         data-testid="account-payment-day"
                         onValueChange={(paymentDay) => patch({ paymentDay })}
                       />
                     )}
                   </Field>
 
-                  <Field label={ru.accounts.minPaymentRate} hint={ru.accounts.minPaymentHint}>
+                  <Field label={strings.accounts.minPaymentRate} hint={strings.accounts.minPaymentHint}>
                     {(id) => (
                       <NumberInput
                         id={id}
@@ -323,7 +327,7 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
                     )}
                   </Field>
 
-                  <Field label={ru.accounts.minPaymentFloor}>
+                  <Field label={strings.accounts.minPaymentFloor}>
                     {(id) => (
                       <NumberInput
                         id={id}
@@ -334,7 +338,7 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
                     )}
                   </Field>
 
-                  <Field label={ru.accounts.freeTransfers} hint={ru.accounts.freeTransfersHint}>
+                  <Field label={strings.accounts.freeTransfers} hint={strings.accounts.freeTransfersHint}>
                     {(id) => (
                       <NumberInput
                         id={id}
@@ -346,7 +350,7 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
                   </Field>
 
                   {state.statementDay ? null : (
-                    <Field label={ru.accounts.gracePeriodEnd} hint={ru.accounts.graceHint}>
+                    <Field label={strings.accounts.gracePeriodEnd} hint={strings.accounts.graceHint}>
                       {(id) => (
                         <Input
                           id={id}
@@ -362,7 +366,10 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
               </fieldset>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label={`${ru.accounts.rate} (${ru.common.optional})`} hint={ru.accounts.debtRateHint}>
+                <Field
+                  label={`${strings.accounts.rate} (${strings.common.optional})`}
+                  hint={strings.accounts.debtRateHint}
+                >
                   {(id) => (
                     <NumberInput
                       id={id}
@@ -373,7 +380,7 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
                   )}
                 </Field>
 
-                <Field label={`${ru.accounts.monthlyPayment} (${ru.common.optional})`}>
+                <Field label={`${strings.accounts.monthlyPayment} (${strings.common.optional})`}>
                   {(id) => (
                     <NumberInput
                       id={id}
@@ -384,14 +391,14 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
                   )}
                 </Field>
 
-                <Field label={ru.accounts.paymentDay} hint={ru.accounts.paymentDayHint}>
+                <Field label={strings.accounts.paymentDay} hint={strings.accounts.paymentDayHint}>
                   {(id) => (
                     <NumberInput
                       id={id}
                       integer
                       maxLength={2}
                       value={state.paymentDay}
-                      placeholder={ru.accounts.paymentDayNone}
+                      placeholder={strings.accounts.paymentDayNone}
                       data-testid="account-payment-day"
                       onValueChange={(paymentDay) => patch({ paymentDay })}
                     />
@@ -403,8 +410,8 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
             {state.side === 'asset' && INSURABLE_TYPES.includes(state.type) ? (
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field
-                  label={`${ru.accounts.bankName} (${ru.common.optional})`}
-                  hint={ru.accounts.bankNameHint}
+                  label={`${strings.accounts.bankName} (${strings.common.optional})`}
+                  hint={strings.accounts.bankNameHint}
                 >
                   {(id) => (
                     <Input
@@ -416,7 +423,7 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
                   )}
                 </Field>
 
-                <Field label={`${ru.accounts.rate} (${ru.common.optional})`}>
+                <Field label={`${strings.accounts.rate} (${strings.common.optional})`}>
                   {(id) => (
                     <NumberInput
                       id={id}
@@ -431,8 +438,8 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
 
             {state.type === 'deposit' ? (
               <Field
-                label={`${ru.accounts.maturityDate} (${ru.common.optional})`}
-                hint={ru.accounts.maturityHint}
+                label={`${strings.accounts.maturityDate} (${strings.common.optional})`}
+                hint={strings.accounts.maturityHint}
               >
                 {(id) => (
                   <Input
@@ -447,7 +454,10 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
             ) : null}
 
             {state.side === 'liability' && state.type !== 'credit_card' ? (
-              <Field label={`${ru.accounts.endDate} (${ru.common.optional})`} hint={ru.accounts.endDateHint}>
+              <Field
+                label={`${strings.accounts.endDate} (${strings.common.optional})`}
+                hint={strings.accounts.endDateHint}
+              >
                 {(id) => (
                   <Input
                     id={id}
@@ -460,7 +470,7 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
               </Field>
             ) : null}
 
-            <Field label={`${ru.accounts.note} (${ru.common.optional})`}>
+            <Field label={`${strings.accounts.note} (${strings.common.optional})`}>
               {(id) => (
                 <Input
                   id={id}
@@ -481,11 +491,11 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
             <div className="flex justify-end gap-2">
               <Dialog.Close asChild>
                 <Button type="button" variant="outline" size="sm">
-                  {ru.common.cancel}
+                  {strings.common.cancel}
                 </Button>
               </Dialog.Close>
               <Button type="submit" size="sm" disabled={busy} data-testid="account-submit">
-                {ru.common.save}
+                {strings.common.save}
               </Button>
             </div>
           </form>

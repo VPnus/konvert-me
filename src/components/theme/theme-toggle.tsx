@@ -2,7 +2,7 @@ import { Moon, Sun } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/components/theme/theme-provider';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 
 /**
  * The icon of the theme that will be switched to. Both icons live in the same box and
@@ -10,7 +10,7 @@ import { ru } from '@/i18n/ru';
  */
 export function ThemeToggle({ className }: { className?: string }) {
   const { theme, toggleTheme } = useTheme();
-  const label = theme === 'dark' ? ru.theme.light : ru.theme.dark;
+  const label = theme === 'dark' ? strings.theme.light : strings.theme.dark;
   const dark = theme === 'dark';
 
   return (

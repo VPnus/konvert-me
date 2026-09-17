@@ -10,11 +10,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { setRiskProfile } from '@/db/repositories/financial-plan';
 import { RESERVE_GOAL_ID } from '@/db/repositories/goals';
-import { fill } from '@/features/deductions/fill';
 import type { PlanData } from '@/features/plan/plan-data';
 import { rubles, t } from '@/features/plan/plan-format';
 import { Muted, PlanCard } from '@/features/plan/plan-parts';
-import { ru } from '@/i18n/ru';
+import { fill, strings } from '@/i18n';
 
 const s = t.strategy;
 
@@ -105,7 +104,7 @@ export function StrategyStep({ data }: { data: PlanData }) {
       </PlanCard>
 
       <p className="text-xs text-muted-foreground" data-testid="plan-disclaimer">
-        {s.example} {ru.app.disclaimer}
+        {s.example} {strings.app.disclaimer}
       </p>
     </div>
   );

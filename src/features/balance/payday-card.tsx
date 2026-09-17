@@ -20,7 +20,7 @@ import {
   updateIncomeSource,
 } from '@/db/repositories/income-sources';
 import { useDataVersion } from '@/hooks/use-data-version';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 import { parseNumericInput } from '@/lib/numeric-input';
 
 const DATE_FORMAT = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long' });
@@ -96,7 +96,7 @@ export function PaydayCard() {
       else await createIncomeSource(payload);
       close();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : ru.common.error);
+      setError(cause instanceof Error ? cause.message : strings.common.error);
     }
   };
 
@@ -114,21 +114,21 @@ export function PaydayCard() {
       onSubmit={(event) => void submit(event)}
     >
       <div className="grid gap-3 sm:grid-cols-3">
-        <Field label={ru.income.name}>
+        <Field label={strings.income.name}>
           {(id) => (
             <Input
               id={id}
               required
               value={form.name}
               maxLength={60}
-              placeholder={ru.income.namePlaceholder}
+              placeholder={strings.income.namePlaceholder}
               data-testid="income-name"
               onChange={(event) => setForm({ ...form, name: event.target.value })}
             />
           )}
         </Field>
 
-        <Field label={ru.income.day} hint={ru.income.dayHint}>
+        <Field label={strings.income.day} hint={strings.income.dayHint}>
           {(id) => (
             <NumberInput
               id={id}
@@ -142,7 +142,7 @@ export function PaydayCard() {
           )}
         </Field>
 
-        <Field label={ru.income.amount} hint={ru.income.amountHint}>
+        <Field label={strings.income.amount} hint={strings.income.amountHint}>
           {(id) => (
             <NumberInput
               id={id}
@@ -162,10 +162,10 @@ export function PaydayCard() {
 
       <div className="flex gap-2">
         <Button type="submit" size="sm" data-testid="income-save">
-          {ru.common.save}
+          {strings.common.save}
         </Button>
         <Button type="button" size="sm" variant="outline" onClick={close}>
-          {ru.common.cancel}
+          {strings.common.cancel}
         </Button>
       </div>
     </form>
@@ -175,19 +175,19 @@ export function PaydayCard() {
     <Card data-testid="payday-card">
       <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
         <div>
-          <CardTitle className="text-base">{ru.income.title}</CardTitle>
-          <p className="text-sm text-muted-foreground">{ru.income.subtitle}</p>
+          <CardTitle className="text-base">{strings.income.title}</CardTitle>
+          <p className="text-sm text-muted-foreground">{strings.income.subtitle}</p>
         </div>
         <Button size="sm" onClick={openAdd} data-testid="add-income-source">
           <Plus className="size-4" aria-hidden />
-          {ru.common.add}
+          {strings.common.add}
         </Button>
       </CardHeader>
 
       <CardContent className="flex flex-col gap-3">
         {paydays.length === 0 && !adding ? (
           <p className="text-sm text-muted-foreground" data-testid="payday-empty">
-            {ru.income.empty}
+            {strings.income.empty}
           </p>
         ) : null}
 
@@ -219,7 +219,7 @@ export function PaydayCard() {
                       variant="ghost"
                       size="icon"
                       className="size-8"
-                      aria-label={`${ru.common.edit}: ${payday.source.name}`}
+                      aria-label={`${strings.common.edit}: ${payday.source.name}`}
                       data-testid={`edit-income-${payday.source.name}`}
                       onClick={() => openEdit(payday.source)}
                     >
@@ -229,7 +229,7 @@ export function PaydayCard() {
                       variant="ghost"
                       size="icon"
                       className="size-8"
-                      aria-label={`${ru.income.remove}: ${payday.source.name}`}
+                      aria-label={`${strings.income.remove}: ${payday.source.name}`}
                       onClick={() => setPendingDelete(payday.source)}
                     >
                       <Trash2 className="size-4" aria-hidden />
@@ -245,7 +245,7 @@ export function PaydayCard() {
 
         {monthTotalMinor > 0 ? (
           <p className="text-sm" data-testid="payday-total">
-            {ru.income.monthTotal}:{' '}
+            {strings.income.monthTotal}:{' '}
             <span className="font-semibold tabular-nums">{formatForecast(monthTotalMinor)}</span>
           </p>
         ) : null}
@@ -255,9 +255,9 @@ export function PaydayCard() {
 
       <ConfirmDialog
         open={pendingDelete !== null}
-        title={ru.income.deleteConfirmTitle}
-        description={ru.income.deleteConfirmText}
-        confirmLabel={ru.common.delete}
+        title={strings.income.deleteConfirmTitle}
+        description={strings.income.deleteConfirmText}
+        confirmLabel={strings.common.delete}
         destructive
         onConfirm={() => void confirmDelete()}
         onOpenChange={(open) => {

@@ -8,11 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { INTEREST_CATEGORY, type BalanceData, type InterestDue } from '@/features/balance/balance-data';
 import { rateLabel } from '@/features/balance/card-view';
 import { TransactionForm, type TransactionDraft } from '@/features/budget/transaction-form';
-import { fill } from '@/features/deductions/fill';
 import { monthInText } from '@/features/plan/plan-format';
-import { ru } from '@/i18n/ru';
+import { fill, strings } from '@/i18n';
 
-const t = ru.interest;
+const t = strings.interest;
 
 function draftOf(due: InterestDue): TransactionDraft {
   return {

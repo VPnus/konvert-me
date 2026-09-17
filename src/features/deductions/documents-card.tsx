@@ -13,11 +13,11 @@ import {
   type TaxDocument,
 } from '@/db/models';
 import { addDocument, deleteDocument, documentBlob } from '@/db/repositories/documents';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 import { downloadBlob } from '@/lib/download';
 import { formatBytes } from '@/lib/persist';
 
-const t = ru.deductions;
+const t = strings.deductions;
 
 interface DocumentsCardProps {
   readonly year: number;
@@ -51,7 +51,7 @@ export function DocumentsCard({ year, documents, totalSizeBytes }: DocumentsCard
         content: await file.arrayBuffer(),
       });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : ru.common.error);
+      setError(cause instanceof Error ? cause.message : strings.common.error);
     } finally {
       setBusy(false);
       if (fileInput.current) fileInput.current.value = '';
@@ -63,7 +63,7 @@ export function DocumentsCard({ year, documents, totalSizeBytes }: DocumentsCard
     try {
       downloadBlob(await documentBlob(paper), paper.fileName);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : ru.common.error);
+      setError(cause instanceof Error ? cause.message : strings.common.error);
     }
   };
 
@@ -168,7 +168,7 @@ export function DocumentsCard({ year, documents, totalSizeBytes }: DocumentsCard
         open={pendingDelete !== null}
         title={t.docDeleteConfirmTitle}
         description={t.docDeleteConfirmText}
-        confirmLabel={ru.common.delete}
+        confirmLabel={strings.common.delete}
         destructive
         onConfirm={() => {
           if (pendingDelete) void deleteDocument(pendingDelete.id);

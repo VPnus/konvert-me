@@ -4,11 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { setChecklistItem } from '@/db/repositories/deductions';
 import type { ChecklistGroup } from '@/features/deductions/checklist';
 import type { DeductionYearView } from '@/features/deductions/deductions-data';
-import { fill } from '@/features/deductions/fill';
-import { ru } from '@/i18n/ru';
+import { fill, strings } from '@/i18n';
 import { cn } from '@/lib/utils';
 
-const t = ru.deductions.checklist;
+const t = strings.deductions.checklist;
 
 interface ChecklistCardProps {
   readonly view: DeductionYearView;
@@ -39,7 +38,7 @@ export function ChecklistCard({ view, groups }: ChecklistCardProps) {
     try {
       await setChecklistItem(view.year, key, checked);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : ru.common.error);
+      setError(cause instanceof Error ? cause.message : strings.common.error);
     }
   };
 

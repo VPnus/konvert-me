@@ -9,7 +9,7 @@ import { NumberInput } from '@/components/ui/number-input';
 import { Select } from '@/components/ui/select';
 import { listCategories } from '@/db/repositories/categories';
 import { createTransaction } from '@/db/repositories/transactions';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 import { WidgetEmpty, WidgetFrame } from '@/features/overview/widgets/widget-shell';
 import type { WidgetProps } from '@/features/overview/widgets/types';
 
@@ -31,10 +31,10 @@ export function QuickAddWidget({ data }: WidgetProps) {
 
   if (accounts.length === 0 || categories.length === 0) {
     return (
-      <WidgetFrame title={ru.widgets.quickAdd.title}>
+      <WidgetFrame title={strings.widgets.quickAdd.title}>
         <WidgetEmpty
-          text={ru.widgets.quickAdd.empty}
-          actionLabel={ru.widgets.quickAdd.emptyAction}
+          text={strings.widgets.quickAdd.empty}
+          actionLabel={strings.widgets.quickAdd.emptyAction}
           to="/balance"
         />
       </WidgetFrame>
@@ -57,12 +57,12 @@ export function QuickAddWidget({ data }: WidgetProps) {
       setSaved(true);
       window.setTimeout(() => setSaved(false), 2_000);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : ru.common.error);
+      setError(cause instanceof Error ? cause.message : strings.common.error);
     }
   };
 
   return (
-    <WidgetFrame title={ru.widgets.quickAdd.title}>
+    <WidgetFrame title={strings.widgets.quickAdd.title}>
       <form className="flex flex-col gap-2" onSubmit={(event) => void submit(event)}>
         <div className="flex gap-2">
           <Button
@@ -75,7 +75,7 @@ export function QuickAddWidget({ data }: WidgetProps) {
               setCategoryId('');
             }}
           >
-            {ru.widgets.quickAdd.expense}
+            {strings.widgets.quickAdd.expense}
           </Button>
           <Button
             type="button"
@@ -87,22 +87,22 @@ export function QuickAddWidget({ data }: WidgetProps) {
               setCategoryId('');
             }}
           >
-            {ru.widgets.quickAdd.income}
+            {strings.widgets.quickAdd.income}
           </Button>
         </div>
 
         <NumberInput
           required
           value={amount}
-          aria-label={ru.widgets.quickAdd.amount}
-          placeholder={ru.widgets.quickAdd.amount}
+          aria-label={strings.widgets.quickAdd.amount}
+          placeholder={strings.widgets.quickAdd.amount}
           data-testid="quick-amount"
           onValueChange={setAmount}
         />
 
         <Select
           value={chosenCategory}
-          aria-label={ru.widgets.quickAdd.category}
+          aria-label={strings.widgets.quickAdd.category}
           data-testid="quick-category"
           onChange={(event) => setCategoryId(event.target.value)}
         >
@@ -116,7 +116,7 @@ export function QuickAddWidget({ data }: WidgetProps) {
         {accounts.length > 1 ? (
           <Select
             value={chosenAccount}
-            aria-label={ru.widgets.quickAdd.account}
+            aria-label={strings.widgets.quickAdd.account}
             data-testid="quick-account"
             onChange={(event) => setAccountId(event.target.value)}
           >
@@ -129,12 +129,12 @@ export function QuickAddWidget({ data }: WidgetProps) {
         ) : null}
 
         <Button type="submit" size="sm" data-testid="quick-submit">
-          {ru.widgets.quickAdd.submit}
+          {strings.widgets.quickAdd.submit}
         </Button>
 
         {saved ? (
           <p role="status" className="text-xs text-success" data-testid="quick-saved">
-            {ru.widgets.quickAdd.saved}
+            {strings.widgets.quickAdd.saved}
           </p>
         ) : null}
         {error ? (

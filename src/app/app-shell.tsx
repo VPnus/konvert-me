@@ -14,7 +14,7 @@ import { ReportProblemButton } from '@/features/feedback/report-problem';
 import { PlanReviewReminderBanner } from '@/features/plan/review-reminder';
 import { PilotReminderBanner } from '@/features/settings/pilot-reminder';
 import { useHand } from '@/hooks/use-hand';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 import type { Hand } from '@/lib/hand';
 import { listenForErrors } from '@/lib/last-error';
 import { cn } from '@/lib/utils';
@@ -29,7 +29,7 @@ const tabActive = 'bg-primary/15 text-primary hover:bg-primary/20 hover:text-pri
  */
 function TabBar() {
   return (
-    <nav aria-label={ru.nav.mainMenu} className="flex items-center gap-1" data-testid="tab-bar">
+    <nav aria-label={strings.nav.mainMenu} className="flex items-center gap-1" data-testid="tab-bar">
       {NAV_ITEMS.map((item) => (
         <NavLink
           key={item.to}
@@ -62,7 +62,7 @@ const RAIL_SIDE: Record<Hand, { readonly rail: string; readonly page: string }> 
 function TabRail({ hand }: { hand: Hand }) {
   return (
     <nav
-      aria-label={ru.nav.mainMenu}
+      aria-label={strings.nav.mainMenu}
       data-testid="tab-rail"
       data-hand={hand}
       className={cn(
@@ -101,7 +101,7 @@ export function AppShell() {
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-2 px-4 py-2 md:justify-start md:gap-4 md:px-8 md:py-3">
           <NavLink to="/overview" className="flex min-w-0 items-center gap-2">
             <CatLogo className="size-10 shrink-0 md:size-11" />
-            <span className="truncate text-base font-semibold md:text-lg">{ru.app.name}</span>
+            <span className="truncate text-base font-semibold md:text-lg">{strings.app.name}</span>
           </NavLink>
 
           <div className="hidden min-w-0 flex-1 md:block">
@@ -141,13 +141,13 @@ export function AppShell() {
           RAIL_SIDE[hand].page,
         )}
       >
-        <span>{ru.app.disclaimer}</span>
+        <span>{strings.app.disclaimer}</span>
         <Link
           to="/privacy"
           className="shrink-0 underline underline-offset-2 hover:text-foreground"
           data-testid="app-privacy-link"
         >
-          {ru.site.privacyLink}
+          {strings.site.privacyLink}
         </Link>
       </footer>
     </div>

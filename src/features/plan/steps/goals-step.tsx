@@ -3,7 +3,7 @@ import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { RESERVE_GOAL_ID } from '@/db/repositories/goals';
-import { fill } from '@/features/deductions/fill';
+import { fill } from '@/i18n';
 import type { GoalView } from '@/features/goals/goals-data';
 import { EducationCard } from '@/features/plan/education-card';
 import { PensionCard } from '@/features/plan/pension-card';

@@ -1,4 +1,4 @@
-import { fill } from '@/features/deductions/fill';
+import { fill } from '@/i18n';
 import type { PlanData } from '@/features/plan/plan-data';
 import { rubles, t } from '@/features/plan/plan-format';
 import { Muted, NoteCard, PlanCard, Row } from '@/features/plan/plan-parts';

@@ -15,7 +15,7 @@ import { envelopeSchema, goalSchema, type Envelope, type Goal } from '@/db/model
 import { assertEnvelopesFit, holdsMoney } from '@/db/repositories/accounts';
 import { createTransaction, deleteTransaction } from '@/db/repositories/transactions';
 import { getSettings } from '@/db/repositories/settings';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 import { parseOrThrow } from '@/db/validate';
 import { publishAppEvent } from '@/lib/broadcast';
 
@@ -226,7 +226,7 @@ export async function contributeToGoal(input: ContributionInput): Promise<Envelo
         kind: 'transfer',
         accountId: input.fromAccountId as string,
         toAccountId: input.accountId,
-        note: input.note ?? ru.goals.contributionNote.replace('{name}', goal.name),
+        note: input.note ?? strings.goals.contributionNote.replace('{name}', goal.name),
       })
     : null;
 

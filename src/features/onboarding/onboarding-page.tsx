@@ -16,7 +16,7 @@ import {
   type OnboardingAnswers,
 } from '@/features/onboarding/complete-onboarding';
 import { useSettingsState } from '@/hooks/use-settings';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 
 const STEPS = 5;
 
@@ -71,7 +71,7 @@ export default function OnboardingPage() {
       else await completeOnboarding(answers);
       navigate('/overview', { replace: true });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : ru.common.error);
+      setError(cause instanceof Error ? cause.message : strings.common.error);
     } finally {
       setBusy(false);
     }
@@ -86,8 +86,8 @@ export default function OnboardingPage() {
       <header className="flex items-center gap-3">
         <CatLogo className="size-12 shrink-0" />
         <div>
-          <p className="text-lg font-semibold">{ru.app.name}</p>
-          <p className="text-sm text-muted-foreground">{ru.onboarding.intro}</p>
+          <p className="text-lg font-semibold">{strings.app.name}</p>
+          <p className="text-sm text-muted-foreground">{strings.onboarding.intro}</p>
         </div>
       </header>
 
@@ -99,16 +99,16 @@ export default function OnboardingPage() {
           />
         </div>
         <span className="text-xs text-muted-foreground">
-          {ru.onboarding.step} {step} {ru.onboarding.of} {STEPS}
+          {strings.onboarding.step} {step} {strings.onboarding.of} {STEPS}
         </span>
       </div>
 
       <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-5">
         {step === 1 ? (
           <>
-            <h1 className="text-xl font-semibold">{ru.onboarding.incomeTitle}</h1>
-            <p className="text-sm text-muted-foreground">{ru.onboarding.incomeText}</p>
-            <Field label={ru.onboarding.incomeLabel}>
+            <h1 className="text-xl font-semibold">{strings.onboarding.incomeTitle}</h1>
+            <p className="text-sm text-muted-foreground">{strings.onboarding.incomeText}</p>
+            <Field label={strings.onboarding.incomeLabel}>
               {(id) => (
                 <NumberInput
                   id={id}
@@ -124,9 +124,9 @@ export default function OnboardingPage() {
 
         {step === 2 ? (
           <>
-            <h1 className="text-xl font-semibold">{ru.onboarding.mandatoryTitle}</h1>
-            <p className="text-sm text-muted-foreground">{ru.onboarding.mandatoryText}</p>
-            <Field label={ru.onboarding.mandatoryLabel}>
+            <h1 className="text-xl font-semibold">{strings.onboarding.mandatoryTitle}</h1>
+            <p className="text-sm text-muted-foreground">{strings.onboarding.mandatoryText}</p>
+            <Field label={strings.onboarding.mandatoryLabel}>
               {(id) => (
                 <NumberInput
                   id={id}
@@ -142,9 +142,9 @@ export default function OnboardingPage() {
 
         {step === 3 ? (
           <>
-            <h1 className="text-xl font-semibold">{ru.onboarding.variableTitle}</h1>
-            <p className="text-sm text-muted-foreground">{ru.onboarding.variableText}</p>
-            <Field label={ru.onboarding.variableLabel}>
+            <h1 className="text-xl font-semibold">{strings.onboarding.variableTitle}</h1>
+            <p className="text-sm text-muted-foreground">{strings.onboarding.variableText}</p>
+            <Field label={strings.onboarding.variableLabel}>
               {(id) => (
                 <NumberInput
                   id={id}
@@ -156,19 +156,20 @@ export default function OnboardingPage() {
               )}
             </Field>
             <p className="text-sm" data-testid="onboarding-free-cash">
-              {ru.onboarding.freeCash}: <strong>{formatMinor(freeCashMinor, { fractionDigits: 0 })}</strong>
+              {strings.onboarding.freeCash}:{' '}
+              <strong>{formatMinor(freeCashMinor, { fractionDigits: 0 })}</strong>
             </p>
             {freeCashMinor < 0 ? (
-              <p className="text-xs text-destructive">{ru.onboarding.freeCashNegative}</p>
+              <p className="text-xs text-destructive">{strings.onboarding.freeCashNegative}</p>
             ) : null}
           </>
         ) : null}
 
         {step === 4 ? (
           <>
-            <h1 className="text-xl font-semibold">{ru.onboarding.accountsTitle}</h1>
-            <p className="text-sm text-muted-foreground">{ru.onboarding.accountsText}</p>
-            <Field label={ru.onboarding.savingsLabel}>
+            <h1 className="text-xl font-semibold">{strings.onboarding.accountsTitle}</h1>
+            <p className="text-sm text-muted-foreground">{strings.onboarding.accountsText}</p>
+            <Field label={strings.onboarding.savingsLabel}>
               {(id) => (
                 <NumberInput
                   id={id}
@@ -180,7 +181,7 @@ export default function OnboardingPage() {
               )}
             </Field>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label={ru.onboarding.debtBalanceLabel}>
+              <Field label={strings.onboarding.debtBalanceLabel}>
                 {(id) => (
                   <NumberInput
                     id={id}
@@ -191,7 +192,7 @@ export default function OnboardingPage() {
                   />
                 )}
               </Field>
-              <Field label={ru.onboarding.debtPaymentLabel}>
+              <Field label={strings.onboarding.debtPaymentLabel}>
                 {(id) => (
                   <NumberInput
                     id={id}
@@ -202,7 +203,7 @@ export default function OnboardingPage() {
                   />
                 )}
               </Field>
-              <Field label={ru.onboarding.debtRateLabel}>
+              <Field label={strings.onboarding.debtRateLabel}>
                 {(id) => (
                   <NumberInput
                     id={id}
@@ -224,14 +225,14 @@ export default function OnboardingPage() {
 
         {step === 5 ? (
           <>
-            <h1 className="text-xl font-semibold">{ru.onboarding.goalTitle}</h1>
-            <p className="text-sm text-muted-foreground">{ru.onboarding.goalText}</p>
-            <Field label={ru.onboarding.goalNameLabel}>
+            <h1 className="text-xl font-semibold">{strings.onboarding.goalTitle}</h1>
+            <p className="text-sm text-muted-foreground">{strings.onboarding.goalText}</p>
+            <Field label={strings.onboarding.goalNameLabel}>
               {(id) => (
                 <Input
                   id={id}
                   autoFocus
-                  placeholder={ru.onboarding.goalNamePlaceholder}
+                  placeholder={strings.onboarding.goalNamePlaceholder}
                   defaultValue={answers.goalName}
                   data-testid="onboarding-goal-name"
                   onChange={(event) =>
@@ -241,7 +242,7 @@ export default function OnboardingPage() {
               )}
             </Field>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label={ru.onboarding.goalCostLabel}>
+              <Field label={strings.onboarding.goalCostLabel}>
                 {(id) => (
                   <NumberInput
                     id={id}
@@ -252,7 +253,7 @@ export default function OnboardingPage() {
                   />
                 )}
               </Field>
-              <Field label={ru.onboarding.goalMonthLabel}>
+              <Field label={strings.onboarding.goalMonthLabel}>
                 {(id) => (
                   <Input
                     id={id}
@@ -277,16 +278,16 @@ export default function OnboardingPage() {
                     setAnswers((current) => ({ ...current, goalExactSum: event.target.checked }))
                   }
                 />
-                {ru.onboarding.goalExactLabel}
+                {strings.onboarding.goalExactLabel}
               </label>
               {answers.goalExactSum ? null : (
-                <p className="pl-6 text-xs text-muted-foreground">{ru.onboarding.goalInflationNote}</p>
+                <p className="pl-6 text-xs text-muted-foreground">{strings.onboarding.goalInflationNote}</p>
               )}
             </div>
             <div className="rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
-              <p className="font-medium text-foreground">{ru.onboarding.summaryTitle}</p>
-              <p className="mt-1">{ru.onboarding.summaryPlan}</p>
-              <p className="mt-1">{ru.onboarding.summaryReserve}</p>
+              <p className="font-medium text-foreground">{strings.onboarding.summaryTitle}</p>
+              <p className="mt-1">{strings.onboarding.summaryPlan}</p>
+              <p className="mt-1">{strings.onboarding.summaryReserve}</p>
             </div>
           </>
         ) : null}
@@ -306,7 +307,7 @@ export default function OnboardingPage() {
           onClick={() => void finish(true)}
           data-testid="onboarding-skip"
         >
-          {ru.onboarding.skip}
+          {strings.onboarding.skip}
         </Button>
 
         <div className="flex gap-2">
@@ -316,26 +317,26 @@ export default function OnboardingPage() {
               onClick={() => setStep((current) => current - 1)}
               data-testid="onboarding-back"
             >
-              {ru.onboarding.back}
+              {strings.onboarding.back}
             </Button>
           ) : null}
 
           {step < STEPS ? (
             <Button onClick={() => setStep((current) => current + 1)} data-testid="onboarding-next">
-              {ru.onboarding.next}
+              {strings.onboarding.next}
             </Button>
           ) : (
             <Button disabled={busy} onClick={() => void finish(false)} data-testid="onboarding-finish">
-              {ru.onboarding.finish}
+              {strings.onboarding.finish}
             </Button>
           )}
         </div>
       </div>
 
       <p className="text-xs text-muted-foreground">
-        {ru.onboarding.privacyNote}{' '}
+        {strings.onboarding.privacyNote}{' '}
         <Link to="/privacy" className="underline underline-offset-2 hover:text-foreground">
-          {ru.site.privacyLink}
+          {strings.site.privacyLink}
         </Link>
       </p>
     </main>

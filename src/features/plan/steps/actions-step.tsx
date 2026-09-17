@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { setPlanActionDone } from '@/db/repositories/financial-plan';
-import { fill } from '@/features/deductions/fill';
+import { fill } from '@/i18n';
 import type { PlanData } from '@/features/plan/plan-data';
 import { actionText, t } from '@/features/plan/plan-format';
 import { Muted, PlanCard } from '@/features/plan/plan-parts';

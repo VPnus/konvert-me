@@ -12,7 +12,7 @@ import {
 import { formatCompactMinor, formatMinor } from '@/core/money';
 import type { ProjectionPoint } from '@/core/goals';
 import { shortMonthLabel } from '@/features/budget/month-label';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 
 interface GoalChartProps {
   readonly points: readonly ProjectionPoint[];
@@ -73,7 +73,7 @@ export default function GoalChart({ points }: GoalChartProps) {
           <Area
             type="monotone"
             dataKey="saved"
-            name={ru.goals.chartSaved}
+            name={strings.goals.chartSaved}
             stroke="var(--color-foreground)"
             strokeWidth={2}
             fill="url(#goal-saved)"
@@ -81,7 +81,7 @@ export default function GoalChart({ points }: GoalChartProps) {
           <Line
             type="monotone"
             dataKey="target"
-            name={ru.goals.chartTarget}
+            name={strings.goals.chartTarget}
             stroke="var(--color-muted-foreground)"
             strokeDasharray="5 4"
             strokeWidth={1.5}

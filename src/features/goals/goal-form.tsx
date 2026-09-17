@@ -10,7 +10,7 @@ import { NumberInput } from '@/components/ui/number-input';
 import { Select } from '@/components/ui/select';
 import type { AppSettings, Goal } from '@/db/models';
 import { createGoal, updateGoal } from '@/db/repositories/goals';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 import { parseNumericInput } from '@/lib/numeric-input';
 
 /** Every kind but the reserve: the reserve is created once by the app itself. */
@@ -94,7 +94,7 @@ export function GoalForm({ goal, settings, open, onOpenChange }: GoalFormProps) 
       else await createGoal(payload);
       onOpenChange(false);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : ru.common.error);
+      setError(cause instanceof Error ? cause.message : strings.common.error);
     } finally {
       setBusy(false);
     }
@@ -106,21 +106,21 @@ export function GoalForm({ goal, settings, open, onOpenChange }: GoalFormProps) 
         <Dialog.Overlay className="fixed inset-0 z-40 bg-black/60" />
         <Dialog.Content className="fixed top-1/2 left-1/2 z-50 max-h-[90dvh] w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl border border-border bg-card p-5 shadow-xl">
           <Dialog.Title className="text-base font-semibold">
-            {goal ? ru.goals.editTitle : ru.goals.addTitle}
+            {goal ? strings.goals.editTitle : strings.goals.addTitle}
           </Dialog.Title>
           <Dialog.Description className="mt-1 text-sm text-muted-foreground">
-            {isReserve ? ru.goals.reserveHint : ru.goals.costHint}
+            {isReserve ? strings.goals.reserveHint : strings.goals.costHint}
           </Dialog.Description>
 
           <form className="mt-4 flex flex-col gap-4" onSubmit={(event) => void submit(event)}>
-            <Field label={ru.goals.name}>
+            <Field label={strings.goals.name}>
               {(id) => (
                 <Input
                   id={id}
                   required
                   value={state.name}
                   maxLength={60}
-                  placeholder={ru.goals.namePlaceholder}
+                  placeholder={strings.goals.namePlaceholder}
                   data-testid="goal-name"
                   onChange={(event) => patch({ name: event.target.value })}
                 />
@@ -128,7 +128,7 @@ export function GoalForm({ goal, settings, open, onOpenChange }: GoalFormProps) 
             </Field>
 
             {isReserve ? null : (
-              <Field label={ru.goals.kind}>
+              <Field label={strings.goals.kind}>
                 {(id) => (
                   <Select
                     id={id}
@@ -138,7 +138,7 @@ export function GoalForm({ goal, settings, open, onOpenChange }: GoalFormProps) 
                   >
                     {KINDS.map((kind) => (
                       <option key={kind} value={kind}>
-                        {ru.goals.kinds[kind]}
+                        {strings.goals.kinds[kind]}
                       </option>
                     ))}
                   </Select>
@@ -147,7 +147,7 @@ export function GoalForm({ goal, settings, open, onOpenChange }: GoalFormProps) 
             )}
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label={ru.goals.cost}>
+              <Field label={strings.goals.cost}>
                 {(id) => (
                   <NumberInput
                     id={id}
@@ -161,7 +161,7 @@ export function GoalForm({ goal, settings, open, onOpenChange }: GoalFormProps) 
               </Field>
 
               {isReserve ? null : (
-                <Field label={ru.goals.targetMonth}>
+                <Field label={strings.goals.targetMonth}>
                   {(id) => (
                     <Input
                       id={id}
@@ -177,7 +177,7 @@ export function GoalForm({ goal, settings, open, onOpenChange }: GoalFormProps) 
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label={ru.goals.returnRate}>
+              <Field label={strings.goals.returnRate}>
                 {(id) => (
                   <NumberInput
                     id={id}
@@ -189,7 +189,7 @@ export function GoalForm({ goal, settings, open, onOpenChange }: GoalFormProps) 
                 )}
               </Field>
 
-              <Field label={ru.goals.inflationRate}>
+              <Field label={strings.goals.inflationRate}>
                 {(id) => (
                   <NumberInput
                     id={id}
@@ -222,15 +222,15 @@ export function GoalForm({ goal, settings, open, onOpenChange }: GoalFormProps) 
                       })
                     }
                   />
-                  {ru.goals.exactSum}
+                  {strings.goals.exactSum}
                 </label>
                 {state.exact ? (
-                  <p className="pl-6 text-xs text-muted-foreground">{ru.goals.exactSumHint}</p>
+                  <p className="pl-6 text-xs text-muted-foreground">{strings.goals.exactSumHint}</p>
                 ) : null}
               </div>
             )}
 
-            <Field label={`${ru.goals.note} (${ru.common.optional})`}>
+            <Field label={`${strings.goals.note} (${strings.common.optional})`}>
               {(id) => (
                 <Input
                   id={id}
@@ -251,11 +251,11 @@ export function GoalForm({ goal, settings, open, onOpenChange }: GoalFormProps) 
             <div className="flex justify-end gap-2">
               <Dialog.Close asChild>
                 <Button variant="outline" size="sm">
-                  {ru.common.cancel}
+                  {strings.common.cancel}
                 </Button>
               </Dialog.Close>
               <Button type="submit" size="sm" disabled={busy} data-testid="goal-save">
-                {ru.common.save}
+                {strings.common.save}
               </Button>
             </div>
           </form>

@@ -10,11 +10,10 @@ import { NumberInput } from '@/components/ui/number-input';
 import { Select } from '@/components/ui/select';
 import type { AppSettings, PensionPlan } from '@/db/models';
 import { savePensionAsGoal, savePensionPlan } from '@/db/repositories/financial-plan';
-import { fill } from '@/features/deductions/fill';
 import { pensionView, type PensionView } from '@/features/plan/calculations';
 import { monthInText, rateText, rubles, t } from '@/features/plan/plan-format';
 import { Muted, Row } from '@/features/plan/plan-parts';
-import { ru } from '@/i18n/ru';
+import { fill, strings } from '@/i18n';
 import { parseNumericInput } from '@/lib/numeric-input';
 
 const p = t.pension;
@@ -216,7 +215,7 @@ export function PensionCard({
     try {
       setMessage(await action());
     } catch (cause) {
-      setMessage(cause instanceof Error ? cause.message : ru.common.error);
+      setMessage(cause instanceof Error ? cause.message : strings.common.error);
     } finally {
       setBusy(false);
     }

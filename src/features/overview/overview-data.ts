@@ -48,7 +48,7 @@ import {
   loadDeductions,
   type DeductionsAtGlance,
 } from '@/features/deductions/deductions-data';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 
 export interface GoalView {
   readonly goal: Goal;
@@ -241,7 +241,7 @@ export async function loadOverview(now: Date = new Date()): Promise<OverviewData
     deductions: deductionsAtGlance(deductions),
   };
 
-  return { ...data, warnings: collectWarnings(data, ru.widgets.warnings) };
+  return { ...data, warnings: collectWarnings(data, strings.widgets.warnings) };
 }
 
 export interface Warning {

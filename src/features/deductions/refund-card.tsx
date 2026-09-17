@@ -5,10 +5,9 @@ import { todayIso, type IsoDate } from '@/core/time';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { dateOfYear } from '@/features/deductions/dates';
 import type { DeductionYearView } from '@/features/deductions/deductions-data';
-import { fill } from '@/features/deductions/fill';
-import { ru } from '@/i18n/ru';
+import { fill, strings } from '@/i18n';
 
-const t = ru.deductions;
+const t = strings.deductions;
 
 const rubles = (minor: number) => formatMinor(minor, { fractionDigits: 0 });
 

@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Field } from '@/components/ui/field';
 import { NumberInput } from '@/components/ui/number-input';
 import { updateSettings } from '@/db/repositories/settings';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 import { useSettings } from '@/hooks/use-settings';
 import { publishAppEvent } from '@/lib/broadcast';
 
@@ -26,18 +26,18 @@ export function CalculationCard() {
       publishAppEvent({ type: 'settings-changed' });
       setError(null);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : ru.common.error);
+      setError(cause instanceof Error ? cause.message : strings.common.error);
     }
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{ru.settings.calculationTitle}</CardTitle>
-        <CardDescription>{ru.settings.calculationText}</CardDescription>
+        <CardTitle>{strings.settings.calculationTitle}</CardTitle>
+        <CardDescription>{strings.settings.calculationText}</CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4 sm:grid-cols-3">
-        <Field label={ru.settings.inflation}>
+        <Field label={strings.settings.inflation}>
           {(id) => (
             <NumberInput
               id={id}
@@ -49,7 +49,7 @@ export function CalculationCard() {
           )}
         </Field>
 
-        <Field label={ru.settings.defaultReturn}>
+        <Field label={strings.settings.defaultReturn}>
           {(id) => (
             <NumberInput
               id={id}
@@ -63,7 +63,7 @@ export function CalculationCard() {
           )}
         </Field>
 
-        <Field label={ru.settings.reserveMonths}>
+        <Field label={strings.settings.reserveMonths}>
           {(id) => (
             <NumberInput
               id={id}

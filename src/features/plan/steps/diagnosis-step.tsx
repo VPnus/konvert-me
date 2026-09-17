@@ -1,10 +1,9 @@
 import type { Account } from '@/db/models';
-import { fill } from '@/features/deductions/fill';
 import { monthsLabel } from '@/features/goals/months-label';
 import type { PlanData } from '@/features/plan/plan-data';
 import { percentOf, rubles, t } from '@/features/plan/plan-format';
 import { Muted, PlanCard, Row } from '@/features/plan/plan-parts';
-import { ru } from '@/i18n/ru';
+import { fill, strings } from '@/i18n';
 
 const d = t.diagnosis;
 
@@ -16,7 +15,9 @@ function productsOf(accounts: readonly Account[]): string {
     counts.set(account.type, (counts.get(account.type) ?? 0) + 1);
   }
   return [...counts.entries()]
-    .map(([type, count]) => (count > 1 ? `${ru.accounts.types[type]} ×${count}` : ru.accounts.types[type]))
+    .map(([type, count]) =>
+      count > 1 ? `${strings.accounts.types[type]} ×${count}` : strings.accounts.types[type],
+    )
     .join(', ');
 }
 
@@ -28,7 +29,11 @@ export function DiagnosisStep({ data }: { data: PlanData }) {
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
-      <PlanCard title={d.budget} link={{ to: '/budget', label: ru.nav.budget }} testId="diagnosis-budget">
+      <PlanCard
+        title={d.budget}
+        link={{ to: '/budget', label: strings.nav.budget }}
+        testId="diagnosis-budget"
+      >
         <p className="font-medium" data-testid="diagnosis-balance">
           {budget.debtsShort ? d.balance.debtsShort : d.balance[budget.balance]}
         </p>
@@ -47,13 +52,13 @@ export function DiagnosisStep({ data }: { data: PlanData }) {
         </Muted>
       </PlanCard>
 
-      <PlanCard title={d.capital} link={{ to: '/balance', label: ru.nav.balance }}>
+      <PlanCard title={d.capital} link={{ to: '/balance', label: strings.nav.balance }}>
         <Row label={d.assets} value={rubles(overview.assetsMinor)} />
         <Row label={d.liabilities} value={rubles(overview.liabilitiesMinor)} />
         <Row label={d.capital} value={rubles(overview.netWorthMinor)} strong testId="diagnosis-net-worth" />
       </PlanCard>
 
-      <PlanCard title={d.debt} link={{ to: '/balance', label: ru.nav.balance }}>
+      <PlanCard title={d.debt} link={{ to: '/balance', label: strings.nav.balance }}>
         {!overview.hasDebts ? (
           <Muted>{d.debtStatus.none}</Muted>
         ) : (
@@ -68,7 +73,7 @@ export function DiagnosisStep({ data }: { data: PlanData }) {
         )}
       </PlanCard>
 
-      <PlanCard title={d.reserve} link={{ to: '/goals', label: ru.nav.goals }}>
+      <PlanCard title={d.reserve} link={{ to: '/goals', label: strings.nav.goals }}>
         {reserve.months === null ? (
           <Muted>{d.reserveUnknown}</Muted>
         ) : (
@@ -82,14 +87,14 @@ export function DiagnosisStep({ data }: { data: PlanData }) {
         <Muted>{d.reserveNorm}</Muted>
       </PlanCard>
 
-      <PlanCard title={d.protection} link={{ to: '/balance', label: ru.nav.balance }}>
+      <PlanCard title={d.protection} link={{ to: '/balance', label: strings.nav.balance }}>
         <p className="font-medium">
           {policies.length > 0 ? fill(d.policies, { count: policies.length }) : d.noPolicies}
         </p>
         {policies.length > 0 ? <Muted>{policies.map((policy) => policy.name).join(', ')}</Muted> : null}
       </PlanCard>
 
-      <PlanCard title={d.products} link={{ to: '/balance', label: ru.nav.balance }}>
+      <PlanCard title={d.products} link={{ to: '/balance', label: strings.nav.balance }}>
         <Muted>{products || d.noAccounts}</Muted>
       </PlanCard>
     </div>

@@ -13,7 +13,7 @@ import { Select } from '@/components/ui/select';
 import type { Account, Category, Transaction } from '@/db/models';
 import { createTransaction, updateTransaction } from '@/db/repositories/transactions';
 import { cardTransferWarning, loadCardTransfer } from '@/features/budget/card-transfer';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 import { parseNumericInput } from '@/lib/numeric-input';
 
 type Kind = Transaction['kind'];
@@ -178,7 +178,7 @@ export function TransactionForm({
       else await createTransaction(payload);
       onOpenChange(false);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : ru.common.error);
+      setError(cause instanceof Error ? cause.message : strings.common.error);
     } finally {
       setBusy(false);
     }
@@ -190,14 +190,14 @@ export function TransactionForm({
         <Dialog.Overlay className="fixed inset-0 z-40 bg-black/60" />
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[90dvh] w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl border border-border bg-card p-5 shadow-xl">
           <Dialog.Title className="text-base font-semibold">
-            {transaction ? ru.operations.editTitle : ru.operations.addTitle}
+            {transaction ? strings.operations.editTitle : strings.operations.addTitle}
           </Dialog.Title>
           <Dialog.Description className="mt-1 text-sm text-muted-foreground">
-            {ru.operations.kindHints[state.kind]}
+            {strings.operations.kindHints[state.kind]}
           </Dialog.Description>
 
           <form className="mt-4 flex flex-col gap-4" onSubmit={(event) => void submit(event)}>
-            <Field label={ru.operations.kind}>
+            <Field label={strings.operations.kind}>
               {(id) => (
                 <Select
                   id={id}
@@ -207,7 +207,7 @@ export function TransactionForm({
                 >
                   {KINDS.map((kind) => (
                     <option key={kind} value={kind}>
-                      {ru.operations.kinds[kind]}
+                      {strings.operations.kinds[kind]}
                     </option>
                   ))}
                 </Select>
@@ -215,7 +215,7 @@ export function TransactionForm({
             </Field>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label={ru.operations.amount}>
+              <Field label={strings.operations.amount}>
                 {(id) => (
                   <NumberInput
                     id={id}
@@ -227,7 +227,7 @@ export function TransactionForm({
                 )}
               </Field>
 
-              <Field label={ru.operations.date}>
+              <Field label={strings.operations.date}>
                 {(id) => (
                   <Input
                     id={id}
@@ -241,7 +241,11 @@ export function TransactionForm({
               </Field>
             </div>
 
-            <Field label={needsSecondAccount(state.kind) ? ru.operations.accountFrom : ru.operations.account}>
+            <Field
+              label={
+                needsSecondAccount(state.kind) ? strings.operations.accountFrom : strings.operations.account
+              }
+            >
               {(id) => (
                 <Select
                   id={id}
@@ -260,7 +264,7 @@ export function TransactionForm({
             </Field>
 
             {needsSecondAccount(state.kind) ? (
-              <Field label={ru.operations.accountTo}>
+              <Field label={strings.operations.accountTo}>
                 {(id) => (
                   <Select
                     id={id}
@@ -287,7 +291,7 @@ export function TransactionForm({
               >
                 <CreditCard className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden />
                 <div className="flex flex-col gap-1">
-                  <p className="font-medium">{ru.cards.transfer.title}</p>
+                  <p className="font-medium">{strings.cards.transfer.title}</p>
                   {cardWarning.map((line) => (
                     <p key={line}>{line}</p>
                   ))}
@@ -297,8 +301,8 @@ export function TransactionForm({
 
             {needsCategory(state.kind) ? (
               <Field
-                label={ru.operations.category}
-                error={visibleCategories.length === 0 ? ru.operations.noCategories : undefined}
+                label={strings.operations.category}
+                error={visibleCategories.length === 0 ? strings.operations.noCategories : undefined}
               >
                 {(id) => (
                   <Select
@@ -319,7 +323,7 @@ export function TransactionForm({
             ) : null}
 
             {needsDirection(state.kind) ? (
-              <Field label={ru.operations.direction}>
+              <Field label={strings.operations.direction}>
                 {(id) => (
                   <Select
                     id={id}
@@ -327,20 +331,20 @@ export function TransactionForm({
                     data-testid="transaction-direction"
                     onChange={(event) => patch({ direction: event.target.value as FormState['direction'] })}
                   >
-                    <option value="increase">{ru.operations.directionIncrease}</option>
-                    <option value="decrease">{ru.operations.directionDecrease}</option>
+                    <option value="increase">{strings.operations.directionIncrease}</option>
+                    <option value="decrease">{strings.operations.directionDecrease}</option>
                   </Select>
                 )}
               </Field>
             ) : null}
 
-            <Field label={`${ru.operations.note} (${ru.common.optional})`}>
+            <Field label={`${strings.operations.note} (${strings.common.optional})`}>
               {(id) => (
                 <Input
                   id={id}
                   value={state.note}
                   maxLength={200}
-                  placeholder={ru.operations.notePlaceholder}
+                  placeholder={strings.operations.notePlaceholder}
                   data-testid="transaction-note"
                   onChange={(event) => patch({ note: event.target.value })}
                 />
@@ -356,11 +360,11 @@ export function TransactionForm({
             <div className="flex justify-end gap-2">
               <Dialog.Close asChild>
                 <Button variant="outline" size="sm">
-                  {ru.common.cancel}
+                  {strings.common.cancel}
                 </Button>
               </Dialog.Close>
               <Button type="submit" size="sm" disabled={busy} data-testid="transaction-save">
-                {ru.common.save}
+                {strings.common.save}
               </Button>
             </div>
           </form>

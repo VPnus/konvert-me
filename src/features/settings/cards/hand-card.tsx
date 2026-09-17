@@ -1,12 +1,12 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useHand } from '@/hooks/use-hand';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 import { writeHand, type Hand } from '@/lib/hand';
 
 const OPTIONS: readonly { readonly hand: Hand; readonly label: string }[] = [
-  { hand: 'right', label: ru.settings.handRight },
-  { hand: 'left', label: ru.settings.handLeft },
+  { hand: 'right', label: strings.settings.handRight },
+  { hand: 'left', label: strings.settings.handLeft },
 ];
 
 /** The side the tabs of a phone stand on: the choice applies at once and stays on this device. */
@@ -16,11 +16,11 @@ export function HandCard() {
   return (
     <Card data-testid="hand-card">
       <CardHeader>
-        <CardTitle>{ru.settings.handTitle}</CardTitle>
-        <CardDescription>{ru.settings.handText}</CardDescription>
+        <CardTitle>{strings.settings.handTitle}</CardTitle>
+        <CardDescription>{strings.settings.handText}</CardDescription>
       </CardHeader>
       <CardContent>
-        <div role="group" aria-label={ru.settings.handTitle} className="flex flex-col gap-2 sm:flex-row">
+        <div role="group" aria-label={strings.settings.handTitle} className="flex flex-col gap-2 sm:flex-row">
           {OPTIONS.map((option) => (
             <Button
               key={option.hand}

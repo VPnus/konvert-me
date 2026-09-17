@@ -17,10 +17,10 @@ import { Link } from 'react-router-dom';
 import { SITE } from '@/app/site';
 import { buttonVariants } from '@/components/ui/button';
 import { SiteFrame } from '@/features/site/site-frame';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 
-type FeatureKey = (typeof ru.site.landing.features)[number]['key'];
-type InstallKey = (typeof ru.site.landing.install)[number]['key'];
+type FeatureKey = (typeof strings.site.landing.features)[number]['key'];
+type InstallKey = (typeof strings.site.landing.install)[number]['key'];
 
 const FEATURE_ICONS: Record<FeatureKey, LucideIcon> = {
   budget: Wallet,
@@ -45,7 +45,7 @@ const heading = 'text-2xl font-semibold tracking-tight md:text-3xl';
  * how to install it. One way on from every screen of it: into the onboarding.
  */
 export default function LandingPage() {
-  const t = ru.site.landing;
+  const t = strings.site.landing;
 
   return (
     <SiteFrame action={{ to: '/welcome', label: t.start, testId: 'landing-header-start' }}>
@@ -142,7 +142,7 @@ export default function LandingPage() {
               className="text-sm underline underline-offset-2"
               data-testid="landing-privacy"
             >
-              {ru.site.privacyLink}
+              {strings.site.privacyLink}
             </Link>
           </div>
         </section>

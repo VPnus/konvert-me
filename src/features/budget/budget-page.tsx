@@ -20,7 +20,7 @@ import { EMPTY_FILTER, type TransactionFilterState } from '@/features/budget/tra
 import { TransactionsCard } from '@/features/budget/transactions-card';
 import { YearTable } from '@/features/budget/year-table';
 import { useDataVersion } from '@/hooks/use-data-version';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 
 type Tab = 'month' | 'year';
 
@@ -90,7 +90,9 @@ export default function BudgetPage() {
 
   const copyPlan = async () => {
     const copied = await copyPlanFromPreviousMonth(month);
-    setCopyNote(copied === 0 ? ru.budget.copyEmpty : ru.budget.copied.replace('{count}', String(copied)));
+    setCopyNote(
+      copied === 0 ? strings.budget.copyEmpty : strings.budget.copied.replace('{count}', String(copied)),
+    );
   };
 
   const confirmDelete = async () => {
@@ -100,7 +102,7 @@ export default function BudgetPage() {
       setPendingDelete(null);
       setDeleteError(null);
     } catch (cause) {
-      setDeleteError(cause instanceof Error ? cause.message : ru.common.error);
+      setDeleteError(cause instanceof Error ? cause.message : strings.common.error);
     }
   };
 
@@ -117,12 +119,12 @@ export default function BudgetPage() {
   return (
     <section className="mx-auto flex w-full max-w-3xl flex-col gap-4">
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">{ru.budget.title}</h1>
-        <p className="text-sm text-muted-foreground">{ru.budget.subtitle}</p>
+        <h1 className="text-2xl font-semibold tracking-tight">{strings.budget.title}</h1>
+        <p className="text-sm text-muted-foreground">{strings.budget.subtitle}</p>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-1" role="tablist" aria-label={ru.budget.title}>
+        <div className="flex gap-1" role="tablist" aria-label={strings.budget.title}>
           <Button
             role="tab"
             aria-selected={tab === 'month'}
@@ -131,7 +133,7 @@ export default function BudgetPage() {
             data-testid="tab-month"
             onClick={() => setTab('month')}
           >
-            {ru.budget.monthTab}
+            {strings.budget.monthTab}
           </Button>
           <Button
             role="tab"
@@ -141,14 +143,14 @@ export default function BudgetPage() {
             data-testid="tab-year"
             onClick={() => setTab('year')}
           >
-            {ru.budget.yearTab}
+            {strings.budget.yearTab}
           </Button>
         </div>
 
         <PeriodSwitcher
           label={tab === 'year' ? String(year) : monthLabel(month)}
-          prevLabel={tab === 'year' ? ru.budget.prevYear : ru.budget.prevMonth}
-          nextLabel={tab === 'year' ? ru.budget.nextYear : ru.budget.nextMonth}
+          prevLabel={tab === 'year' ? strings.budget.prevYear : strings.budget.prevMonth}
+          nextLabel={tab === 'year' ? strings.budget.nextYear : strings.budget.nextMonth}
           onPrev={() => shift(-1)}
           onNext={() => shift(1)}
         />
@@ -162,12 +164,12 @@ export default function BudgetPage() {
           data-testid="period-today"
           onClick={() => setMonth(currentMonth())}
         >
-          {ru.budget.currentMonth}
+          {strings.budget.currentMonth}
         </Button>
       )}
 
       {monthData === undefined ? (
-        <p className="text-sm text-muted-foreground">{ru.common.loading}</p>
+        <p className="text-sm text-muted-foreground">{strings.common.loading}</p>
       ) : tab === 'year' ? (
         <Card>
           <CardHeader className="pb-0">
@@ -178,10 +180,10 @@ export default function BudgetPage() {
               yearData.hasAnything ? (
                 <YearTable data={yearData} />
               ) : (
-                <p className="text-sm text-muted-foreground">{ru.budget.year.empty}</p>
+                <p className="text-sm text-muted-foreground">{strings.budget.year.empty}</p>
               )
             ) : (
-              <p className="text-sm text-muted-foreground">{ru.common.loading}</p>
+              <p className="text-sm text-muted-foreground">{strings.common.loading}</p>
             )}
           </CardContent>
         </Card>
@@ -189,8 +191,8 @@ export default function BudgetPage() {
         <>
           <Card>
             <CardHeader className="pb-0">
-              <CardTitle className="text-base">{ru.budget.planTitle}</CardTitle>
-              <p className="text-sm text-muted-foreground">{ru.budget.planHint}</p>
+              <CardTitle className="text-base">{strings.budget.planTitle}</CardTitle>
+              <p className="text-sm text-muted-foreground">{strings.budget.planHint}</p>
             </CardHeader>
             <CardContent className="flex flex-col gap-3 pt-3">
               <div className="flex flex-wrap items-center gap-2">
@@ -202,7 +204,7 @@ export default function BudgetPage() {
                   onClick={() => void copyPlan()}
                 >
                   <CopyPlus className="size-4" aria-hidden />
-                  {ru.budget.copyPrev}
+                  {strings.budget.copyPrev}
                 </Button>
                 {copyNote ? (
                   <span role="status" className="text-xs text-muted-foreground" data-testid="copy-note">
@@ -218,9 +220,9 @@ export default function BudgetPage() {
           {monthData.accounts.filter((account) => !account.archived).length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-start gap-3 p-5">
-                <p className="text-sm text-muted-foreground">{ru.budget.needAccounts}</p>
+                <p className="text-sm text-muted-foreground">{strings.budget.needAccounts}</p>
                 <Link to="/balance" className={buttonVariants({ size: 'sm' })}>
-                  {ru.budget.needAccountsAction}
+                  {strings.budget.needAccountsAction}
                 </Link>
               </CardContent>
             </Card>
@@ -259,9 +261,9 @@ export default function BudgetPage() {
 
       <ConfirmDialog
         open={pendingDelete !== null}
-        title={ru.operations.deleteConfirmTitle}
-        description={deleteError ?? ru.operations.deleteConfirmText}
-        confirmLabel={ru.common.delete}
+        title={strings.operations.deleteConfirmTitle}
+        description={deleteError ?? strings.operations.deleteConfirmText}
+        confirmLabel={strings.common.delete}
         destructive
         onConfirm={() => void confirmDelete()}
         onOpenChange={(open) => {

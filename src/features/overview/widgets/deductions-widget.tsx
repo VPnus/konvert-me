@@ -2,12 +2,11 @@ import { Link } from 'react-router-dom';
 
 import { formatMinor } from '@/core/money';
 import { buttonVariants } from '@/components/ui/button';
-import { fill } from '@/features/deductions/fill';
 import { BigNumber, WidgetEmpty, WidgetFrame } from '@/features/overview/widgets/widget-shell';
 import type { WidgetProps } from '@/features/overview/widgets/types';
-import { ru } from '@/i18n/ru';
+import { fill, strings } from '@/i18n';
 
-const t = ru.widgets.deductions;
+const t = strings.widgets.deductions;
 const rubles = (minor: number) => formatMinor(minor, { fractionDigits: 0 });
 
 /** What the open years give back, and where each return stands. */
@@ -42,7 +41,7 @@ export function DeductionsWidget({ data }: WidgetProps) {
               {item.year}
               <span className="text-muted-foreground">
                 {' · '}
-                {item.stage === 'current' ? t.current : ru.deductions.statuses[item.status]}
+                {item.stage === 'current' ? t.current : strings.deductions.statuses[item.status]}
               </span>
             </span>
             <span className={`shrink-0 tabular-nums ${item.balanceMinor < 0 ? 'text-destructive' : ''}`}>

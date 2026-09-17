@@ -11,9 +11,8 @@ import { addMonths, monthOfDate, withDayOfMonth, type IsoDate } from '@/core/tim
 import { db } from '@/db/db';
 import type { Account } from '@/db/models';
 import { dateLabel, rateLabel } from '@/features/balance/card-view';
-import { fill } from '@/features/deductions/fill';
 import { loadGoals } from '@/features/goals/goals-data';
-import { ru } from '@/i18n/ru';
+import { fill, strings } from '@/i18n';
 
 export interface CardTransferContext {
   readonly card: Account;
@@ -62,7 +61,7 @@ export function cardTransferWarning(
   destination: Account | undefined,
   date: IsoDate,
 ): string[] {
-  const t = ru.cards.transfer;
+  const t = strings.cards.transfer;
   const rubles = (minor: number) => formatForecast(minor);
   const { card } = context;
   const lines: string[] = [];

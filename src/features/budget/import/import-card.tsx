@@ -9,7 +9,7 @@ import { ErrorBoundary } from '@/components/common/error-boundary';
 import type { Account, Category } from '@/db/models';
 import { deleteImportBatch, listImportBatches, type ImportBatch } from '@/db/repositories/transactions';
 import { useDataVersion } from '@/hooks/use-data-version';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 
 // PapaParse and ExcelJS live in this chunk: nothing of them is fetched until a
 // statement is actually imported.
@@ -32,8 +32,8 @@ export function ImportCard({ accounts, categories }: ImportCardProps) {
     <Card data-testid="import-card">
       <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
         <div>
-          <CardTitle className="text-base">{ru.import.batchesTitle}</CardTitle>
-          <p className="text-sm text-muted-foreground">{ru.import.batchesHint}</p>
+          <CardTitle className="text-base">{strings.import.batchesTitle}</CardTitle>
+          <p className="text-sm text-muted-foreground">{strings.import.batchesHint}</p>
         </div>
         <Button
           size="sm"
@@ -42,14 +42,14 @@ export function ImportCard({ accounts, categories }: ImportCardProps) {
           onClick={() => setOpen(true)}
         >
           <Upload className="size-4" aria-hidden />
-          {ru.import.open}
+          {strings.import.open}
         </Button>
       </CardHeader>
 
       <CardContent>
         {batches.length === 0 ? (
           <p className="text-sm text-muted-foreground" data-testid="import-batches-empty">
-            {ru.import.batchesEmpty}
+            {strings.import.batchesEmpty}
           </p>
         ) : (
           <ul>
@@ -60,7 +60,7 @@ export function ImportCard({ accounts, categories }: ImportCardProps) {
                 data-testid="import-batch-row"
               >
                 <span className="min-w-0 truncate text-sm">
-                  {ru.import.batchRow
+                  {strings.import.batchRow
                     .replace('{count}', String(batch.count))
                     .replace('{from}', batch.from)
                     .replace('{to}', batch.to)}
@@ -69,7 +69,7 @@ export function ImportCard({ accounts, categories }: ImportCardProps) {
                   size="icon"
                   variant="ghost"
                   className="size-8 shrink-0"
-                  aria-label={ru.import.undo}
+                  aria-label={strings.import.undo}
                   data-testid={`import-undo-${batch.batchId}`}
                   onClick={() => setPendingUndo(batch)}
                 >
@@ -82,7 +82,9 @@ export function ImportCard({ accounts, categories }: ImportCardProps) {
       </CardContent>
 
       {open ? (
-        <ErrorBoundary fallback={() => <p className="p-4 text-sm text-destructive">{ru.common.error}</p>}>
+        <ErrorBoundary
+          fallback={() => <p className="p-4 text-sm text-destructive">{strings.common.error}</p>}
+        >
           <Suspense fallback={null}>
             <ImportWizard accounts={accounts} categories={categories} onOpenChange={setOpen} />
           </Suspense>
@@ -91,9 +93,9 @@ export function ImportCard({ accounts, categories }: ImportCardProps) {
 
       <ConfirmDialog
         open={pendingUndo !== null}
-        title={ru.import.undoConfirmTitle}
-        description={ru.import.undoConfirmText}
-        confirmLabel={ru.import.undo}
+        title={strings.import.undoConfirmTitle}
+        description={strings.import.undoConfirmText}
+        confirmLabel={strings.import.undo}
         destructive
         onConfirm={() => {
           if (pendingUndo) void deleteImportBatch(pendingUndo.batchId);

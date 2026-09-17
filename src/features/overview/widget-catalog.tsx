@@ -2,7 +2,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { Plus, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 import { WIDGET_REGISTRY } from '@/features/overview/widgets/registry';
 import type { WidgetInstance } from '@/db/repositories/dashboard';
 
@@ -23,12 +23,12 @@ export function WidgetCatalog({ open, items, onOpenChange, onAdd }: CatalogProps
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[85dvh] w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl border border-border bg-card p-5 shadow-xl">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <Dialog.Title className="text-base font-semibold">{ru.overview.catalogTitle}</Dialog.Title>
+              <Dialog.Title className="text-base font-semibold">{strings.overview.catalogTitle}</Dialog.Title>
               <Dialog.Description className="text-sm text-muted-foreground">
-                {ru.overview.catalogText}
+                {strings.overview.catalogText}
               </Dialog.Description>
             </div>
-            <Dialog.Close aria-label={ru.nav.close} className="rounded-md p-1 hover:bg-accent">
+            <Dialog.Close aria-label={strings.nav.close} className="rounded-md p-1 hover:bg-accent">
               <X className="size-5" aria-hidden />
             </Dialog.Close>
           </div>
@@ -54,7 +54,7 @@ export function WidgetCatalog({ open, items, onOpenChange, onAdd }: CatalogProps
                     onClick={() => onAdd(widget.type)}
                   >
                     <Plus className="size-4" aria-hidden />
-                    {alreadyUsed ? ru.overview.added : ru.common.add}
+                    {alreadyUsed ? strings.overview.added : strings.common.add}
                   </Button>
                 </li>
               );

@@ -1,7 +1,6 @@
 import type { IsoDate } from '@/core/time';
 import type { PilotCounts } from '@/db/repositories/pilot';
-import { fill } from '@/features/deductions/fill';
-import { ru } from '@/i18n/ru';
+import { fill, strings } from '@/i18n';
 import { dayNumbers, daysSinceFirst, type Usage } from '@/lib/usage';
 
 /** The anchor of the pilot card on the settings page: the reminder above the page leads to it. */
@@ -28,7 +27,7 @@ export interface PilotStats {
   readonly row: string;
 }
 
-const t = ru.settings.pilot.stats;
+const t = strings.settings.pilot.stats;
 
 /**
  * Whether the app was opened that many days after the first one or later. Before the day comes

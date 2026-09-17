@@ -12,7 +12,7 @@ import {
   isFilterEmpty,
   type TransactionFilterState,
 } from '@/features/budget/transaction-filter';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 
 const KINDS: readonly Transaction['kind'][] = [
   'expense',
@@ -65,14 +65,14 @@ export function TransactionsCard({
     <Card>
       <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
         <div>
-          <CardTitle className="text-base">{ru.operations.title}</CardTitle>
+          <CardTitle className="text-base">{strings.operations.title}</CardTitle>
           <p className="text-sm text-muted-foreground" data-testid="operations-count">
-            {ru.operations.count}: {data.totalCount}
+            {strings.operations.count}: {data.totalCount}
           </p>
         </div>
         <Button size="sm" onClick={onAdd} data-testid="add-transaction">
           <Plus className="size-4" aria-hidden />
-          {ru.common.add}
+          {strings.common.add}
         </Button>
       </CardHeader>
 
@@ -80,8 +80,8 @@ export function TransactionsCard({
         <Input
           value={filter.query}
           type="search"
-          aria-label={ru.operations.search}
-          placeholder={ru.operations.search}
+          aria-label={strings.operations.search}
+          placeholder={strings.operations.search}
           data-testid="operations-search"
           onChange={(event) => patch({ query: event.target.value })}
         />
@@ -89,25 +89,25 @@ export function TransactionsCard({
         <div className="grid gap-2 sm:grid-cols-3">
           <Select
             value={filter.kind}
-            aria-label={ru.operations.kind}
+            aria-label={strings.operations.kind}
             data-testid="filter-kind"
             onChange={(event) => patch({ kind: event.target.value as TransactionFilterState['kind'] })}
           >
-            <option value="">{ru.operations.allKinds}</option>
+            <option value="">{strings.operations.allKinds}</option>
             {KINDS.map((kind) => (
               <option key={kind} value={kind}>
-                {ru.operations.kinds[kind]}
+                {strings.operations.kinds[kind]}
               </option>
             ))}
           </Select>
 
           <Select
             value={filter.categoryId}
-            aria-label={ru.operations.category}
+            aria-label={strings.operations.category}
             data-testid="filter-category"
             onChange={(event) => patch({ categoryId: event.target.value })}
           >
-            <option value="">{ru.operations.allCategories}</option>
+            <option value="">{strings.operations.allCategories}</option>
             {data.categories.map((category) => (
               <option key={category.id} value={category.id}>
                 {category.name}
@@ -117,11 +117,11 @@ export function TransactionsCard({
 
           <Select
             value={filter.accountId}
-            aria-label={ru.operations.account}
+            aria-label={strings.operations.account}
             data-testid="filter-account"
             onChange={(event) => patch({ accountId: event.target.value })}
           >
-            <option value="">{ru.operations.allAccounts}</option>
+            <option value="">{strings.operations.allAccounts}</option>
             {data.accounts.map((account) => (
               <option key={account.id} value={account.id}>
                 {account.name}
@@ -138,13 +138,13 @@ export function TransactionsCard({
             data-testid="filter-reset"
             onClick={() => onFilterChange(EMPTY_FILTER)}
           >
-            {ru.operations.reset}
+            {strings.operations.reset}
           </Button>
         )}
 
         {data.transactions.length === 0 ? (
           <p className="py-4 text-sm text-muted-foreground" data-testid="operations-empty">
-            {data.totalCount === 0 ? ru.operations.empty : ru.operations.notFound}
+            {data.totalCount === 0 ? strings.operations.empty : strings.operations.notFound}
           </p>
         ) : (
           <ul>
@@ -157,7 +157,7 @@ export function TransactionsCard({
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{describe(transaction)}</p>
                   <p className="truncate text-xs text-muted-foreground">
-                    {transaction.date} · {ru.operations.kinds[transaction.kind]}
+                    {transaction.date} · {strings.operations.kinds[transaction.kind]}
                     {transaction.note ? ` · ${transaction.note}` : ''}
                   </p>
                 </div>
@@ -171,7 +171,7 @@ export function TransactionsCard({
                     variant="ghost"
                     size="icon"
                     className="size-8"
-                    aria-label={`${ru.common.edit}: ${describe(transaction)}`}
+                    aria-label={`${strings.common.edit}: ${describe(transaction)}`}
                     data-testid={`edit-${transaction.id}`}
                     onClick={() => onEdit(transaction)}
                   >
@@ -181,7 +181,7 @@ export function TransactionsCard({
                     variant="ghost"
                     size="icon"
                     className="size-8"
-                    aria-label={`${ru.common.delete}: ${describe(transaction)}`}
+                    aria-label={`${strings.common.delete}: ${describe(transaction)}`}
                     onClick={() => onDelete(transaction)}
                   >
                     <Trash2 className="size-4" aria-hidden />

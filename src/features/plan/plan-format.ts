@@ -2,12 +2,11 @@ import { formatForecast } from '@/core/money';
 import type { IsoDate, IsoMonth } from '@/core/time';
 import { monthLabel } from '@/features/budget/month-label';
 import { dateOfYear } from '@/features/deductions/dates';
-import { fill } from '@/features/deductions/fill';
 import type { PlanAction } from '@/features/plan/actions';
 import type { Benchmark, DebtInQueue } from '@/features/plan/debts';
-import { ru } from '@/i18n/ru';
+import { fill, strings } from '@/i18n';
 
-export const t = ru.plan;
+export const t = strings.plan;
 
 /** A forecast in whole rubles: every number of the plan is an estimate. */
 export const rubles = (minor: number): string => formatForecast(minor);

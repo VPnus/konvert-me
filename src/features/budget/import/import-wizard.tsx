@@ -11,7 +11,7 @@ import { Select } from '@/components/ui/select';
 import type { Account, Category } from '@/db/models';
 import { importTransactions, listTransactions, type ImportedRow } from '@/db/repositories/transactions';
 import { useDataVersion } from '@/hooks/use-data-version';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 import { decodeStatement } from '@/lib/statement/decode';
 import { guessMapping, isMappingReady, type ColumnMapping } from '@/lib/statement/mapping';
 import {
@@ -93,7 +93,7 @@ export default function ImportWizard({ accounts, categories, onOpenChange }: Imp
 
       if (parsed.rows.length === 0) {
         setTable(null);
-        setError(ru.import.emptyFile);
+        setError(strings.import.emptyFile);
         return;
       }
 
@@ -101,7 +101,7 @@ export default function ImportWizard({ accounts, categories, onOpenChange }: Imp
       setMapping(guessMapping(parsed));
     } catch (cause) {
       setTable(null);
-      setError(`${ru.import.readFailed}: ${cause instanceof Error ? cause.message : ''}`);
+      setError(`${strings.import.readFailed}: ${cause instanceof Error ? cause.message : ''}`);
     } finally {
       setBusy(false);
     }
@@ -161,7 +161,7 @@ export default function ImportWizard({ accounts, categories, onOpenChange }: Imp
       const result = await importTransactions(payload);
       setImported(result.imported);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : ru.common.error);
+      setError(cause instanceof Error ? cause.message : strings.common.error);
     } finally {
       setBusy(false);
     }
@@ -186,7 +186,7 @@ export default function ImportWizard({ accounts, categories, onOpenChange }: Imp
           data-testid={testId}
           onChange={(event) => onPick(event.target.value === '' ? null : Number(event.target.value))}
         >
-          {optional ? <option value="">{ru.import.columnNone}</option> : null}
+          {optional ? <option value="">{strings.import.columnNone}</option> : null}
           {options.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
@@ -204,13 +204,13 @@ export default function ImportWizard({ accounts, categories, onOpenChange }: Imp
         <Dialog.Content className="fixed top-1/2 left-1/2 z-50 flex max-h-[92dvh] w-[calc(100vw-2rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-y-auto rounded-xl border border-border bg-card p-5 shadow-xl">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <Dialog.Title className="text-base font-semibold">{ru.import.title}</Dialog.Title>
+              <Dialog.Title className="text-base font-semibold">{strings.import.title}</Dialog.Title>
               <Dialog.Description className="text-sm text-muted-foreground">
-                {ru.import.subtitle}
+                {strings.import.subtitle}
               </Dialog.Description>
             </div>
             <Dialog.Close
-              aria-label={ru.nav.close}
+              aria-label={strings.nav.close}
               data-testid="import-dismiss"
               className="rounded-md p-1 hover:bg-accent"
             >
@@ -228,10 +228,10 @@ export default function ImportWizard({ accounts, categories, onOpenChange }: Imp
                 >
                   {index + 1}.{' '}
                   {name === 'file'
-                    ? ru.import.stepFile
+                    ? strings.import.stepFile
                     : name === 'columns'
-                      ? ru.import.stepColumns
-                      : ru.import.stepPreview}
+                      ? strings.import.stepColumns
+                      : strings.import.stepPreview}
                 </li>
               ))}
             </ol>
@@ -240,17 +240,17 @@ export default function ImportWizard({ accounts, categories, onOpenChange }: Imp
           {imported !== null ? (
             <div className="mt-6 flex flex-col items-start gap-3">
               <p className="text-sm" data-testid="import-done">
-                {ru.import.done.replace('{count}', String(imported))}
+                {strings.import.done.replace('{count}', String(imported))}
               </p>
               <Button size="sm" data-testid="import-close" onClick={() => onOpenChange(false)}>
-                {ru.import.close}
+                {strings.import.close}
               </Button>
             </div>
           ) : (
             <div className="mt-4 flex flex-col gap-4">
               {step === 'file' ? (
                 <>
-                  <Field label={ru.import.file} hint={ru.import.fileHint}>
+                  <Field label={strings.import.file} hint={strings.import.fileHint}>
                     {(id) => (
                       <input
                         id={id}
@@ -266,7 +266,7 @@ export default function ImportWizard({ accounts, categories, onOpenChange }: Imp
                     )}
                   </Field>
 
-                  <Field label={ru.import.account} hint={ru.import.accountHint}>
+                  <Field label={strings.import.account} hint={strings.import.accountHint}>
                     {(id) => (
                       <Select
                         id={id}
@@ -283,10 +283,10 @@ export default function ImportWizard({ accounts, categories, onOpenChange }: Imp
                     )}
                   </Field>
 
-                  {busy ? <p className="text-sm text-muted-foreground">{ru.import.reading}</p> : null}
+                  {busy ? <p className="text-sm text-muted-foreground">{strings.import.reading}</p> : null}
                   {table ? (
                     <p className="text-sm text-muted-foreground" data-testid="import-found">
-                      {ru.import.foundRows.replace('{count}', String(table.rows.length))}
+                      {strings.import.foundRows.replace('{count}', String(table.rows.length))}
                     </p>
                   ) : null}
                 </>
@@ -294,35 +294,35 @@ export default function ImportWizard({ accounts, categories, onOpenChange }: Imp
 
               {step === 'columns' && mapping ? (
                 <>
-                  <p className="text-xs text-muted-foreground">{ru.import.columnsHint}</p>
+                  <p className="text-xs text-muted-foreground">{strings.import.columnsHint}</p>
                   <div className="grid gap-3 sm:grid-cols-2">
                     {columnSelect(
-                      ru.import.columnDate,
+                      strings.import.columnDate,
                       mapping.date,
                       (index) => patchMapping({ date: index ?? -1 }),
                       'import-column-date',
                       false,
                     )}
                     {columnSelect(
-                      ru.import.columnAmount,
+                      strings.import.columnAmount,
                       mapping.amount,
                       (index) => patchMapping({ amount: index, income: null, expense: null }),
                       'import-column-amount',
                     )}
                     {columnSelect(
-                      ru.import.columnIncome,
+                      strings.import.columnIncome,
                       mapping.income,
                       (index) => patchMapping({ income: index, amount: null }),
                       'import-column-income',
                     )}
                     {columnSelect(
-                      ru.import.columnExpense,
+                      strings.import.columnExpense,
                       mapping.expense,
                       (index) => patchMapping({ expense: index, amount: null }),
                       'import-column-expense',
                     )}
                     {columnSelect(
-                      ru.import.columnNote,
+                      strings.import.columnNote,
                       mapping.note,
                       (index) => patchMapping({ note: index }),
                       'import-column-note',
@@ -330,21 +330,21 @@ export default function ImportWizard({ accounts, categories, onOpenChange }: Imp
                   </div>
 
                   {isMappingReady(mapping) ? null : (
-                    <p className="text-sm text-destructive">{ru.import.columnsIncomplete}</p>
+                    <p className="text-sm text-destructive">{strings.import.columnsIncomplete}</p>
                   )}
                 </>
               ) : null}
 
               {step === 'preview' && !ready ? (
-                <p className="text-sm text-muted-foreground">{ru.common.loading}</p>
+                <p className="text-sm text-muted-foreground">{strings.common.loading}</p>
               ) : null}
 
               {step === 'preview' && ready ? (
                 <>
                   <section className="flex flex-col gap-2">
                     <div>
-                      <h3 className="text-sm font-semibold">{ru.import.rulesTitle}</h3>
-                      <p className="text-xs text-muted-foreground">{ru.import.rulesHint}</p>
+                      <h3 className="text-sm font-semibold">{strings.import.rulesTitle}</h3>
+                      <p className="text-xs text-muted-foreground">{strings.import.rulesHint}</p>
                     </div>
 
                     {rules.length > 0 ? (
@@ -359,14 +359,14 @@ export default function ImportWizard({ accounts, categories, onOpenChange }: Imp
                               «{rule.keyword}» →{' '}
                               {categories.find((category) => category.id === rule.categoryId)?.name ?? '—'}
                               <span className="ml-2 text-xs text-muted-foreground">
-                                {ru.import.ruleMatches.replace('{count}', String(matchesOf(rule)))}
+                                {strings.import.ruleMatches.replace('{count}', String(matchesOf(rule)))}
                               </span>
                             </span>
                             <Button
                               size="icon"
                               variant="ghost"
                               className="size-7 shrink-0"
-                              aria-label={`${ru.import.ruleRemove}: ${rule.keyword}`}
+                              aria-label={`${strings.import.ruleRemove}: ${rule.keyword}`}
                               onClick={() => setRules((current) => current.filter((_, at) => at !== index))}
                             >
                               <X className="size-4" aria-hidden />
@@ -379,14 +379,14 @@ export default function ImportWizard({ accounts, categories, onOpenChange }: Imp
                     <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
                       <Input
                         value={keyword}
-                        aria-label={ru.import.ruleKeyword}
-                        placeholder={ru.import.ruleKeyword}
+                        aria-label={strings.import.ruleKeyword}
+                        placeholder={strings.import.ruleKeyword}
                         data-testid="import-rule-keyword"
                         onChange={(event) => setKeyword(event.target.value)}
                       />
                       <Select
                         value={ruleCategory}
-                        aria-label={ru.import.ruleCategory}
+                        aria-label={strings.import.ruleCategory}
                         data-testid="import-rule-category"
                         onChange={(event) => setRuleCategory(event.target.value)}
                       >
@@ -398,12 +398,12 @@ export default function ImportWizard({ accounts, categories, onOpenChange }: Imp
                       </Select>
                       <Button size="sm" variant="outline" data-testid="import-rule-add" onClick={addRule}>
                         <Plus className="size-4" aria-hidden />
-                        {ru.import.ruleAdd}
+                        {strings.import.ruleAdd}
                       </Button>
                     </div>
 
                     <div className="grid gap-3 sm:grid-cols-2">
-                      <Field label={ru.import.defaultExpense}>
+                      <Field label={strings.import.defaultExpense}>
                         {(id) => (
                           <Select
                             id={id}
@@ -420,7 +420,7 @@ export default function ImportWizard({ accounts, categories, onOpenChange }: Imp
                         )}
                       </Field>
 
-                      <Field label={ru.import.defaultIncome}>
+                      <Field label={strings.import.defaultIncome}>
                         {(id) => (
                           <Select
                             id={id}
@@ -441,8 +441,8 @@ export default function ImportWizard({ accounts, categories, onOpenChange }: Imp
 
                   <section className="flex flex-col gap-2 border-t border-border pt-3">
                     <div>
-                      <h3 className="text-sm font-semibold">{ru.import.previewTitle}</h3>
-                      <p className="text-xs text-muted-foreground">{ru.import.previewHint}</p>
+                      <h3 className="text-sm font-semibold">{strings.import.previewTitle}</h3>
+                      <p className="text-xs text-muted-foreground">{strings.import.previewHint}</p>
                     </div>
 
                     <ul className="max-h-64 overflow-y-auto">
@@ -473,12 +473,12 @@ export default function ImportWizard({ accounts, categories, onOpenChange }: Imp
                               <span className="ml-2 text-xs text-muted-foreground">{category?.name}</span>
                               {state === 'exact' ? (
                                 <span className="ml-2 text-xs text-muted-foreground">
-                                  {ru.import.duplicateExact}
+                                  {strings.import.duplicateExact}
                                 </span>
                               ) : null}
                               {state === 'possible' ? (
                                 <span className="ml-2 text-xs text-warning" data-testid="import-possible">
-                                  {ru.import.duplicatePossible}
+                                  {strings.import.duplicatePossible}
                                 </span>
                               ) : null}
                             </span>
@@ -493,15 +493,15 @@ export default function ImportWizard({ accounts, categories, onOpenChange }: Imp
                       })}
                     </ul>
 
-                    <p className="text-xs text-muted-foreground">{ru.import.duplicateHint}</p>
+                    <p className="text-xs text-muted-foreground">{strings.import.duplicateHint}</p>
                     {built && built.skipped > 0 ? (
                       <p className="text-xs text-muted-foreground">
-                        {ru.import.skipped.replace('{count}', String(built.skipped))}
+                        {strings.import.skipped.replace('{count}', String(built.skipped))}
                       </p>
                     ) : null}
 
                     <p className="text-sm font-medium" data-testid="import-summary">
-                      {ru.import.summary
+                      {strings.import.summary
                         .replace('{count}', String(taken.length))
                         .replace('{income}', formatForecast(incomeMinor))
                         .replace('{expense}', formatForecast(expenseMinor))}
@@ -509,7 +509,7 @@ export default function ImportWizard({ accounts, categories, onOpenChange }: Imp
 
                     {rows.length > 0 && taken.length === 0 ? (
                       <p className="text-sm text-muted-foreground" data-testid="import-nothing">
-                        {ru.import.nothingToImport}
+                        {strings.import.nothingToImport}
                       </p>
                     ) : null}
                   </section>
@@ -530,7 +530,7 @@ export default function ImportWizard({ accounts, categories, onOpenChange }: Imp
                     data-testid="import-back"
                     onClick={() => setStep(step === 'preview' ? 'columns' : 'file')}
                   >
-                    {ru.import.back}
+                    {strings.import.back}
                   </Button>
                 ) : null}
 
@@ -541,7 +541,7 @@ export default function ImportWizard({ accounts, categories, onOpenChange }: Imp
                     data-testid="import-confirm"
                     onClick={() => void confirm()}
                   >
-                    {busy ? ru.import.importing : ru.import.confirm}
+                    {busy ? strings.import.importing : strings.import.confirm}
                   </Button>
                 ) : (
                   <Button
@@ -554,7 +554,7 @@ export default function ImportWizard({ accounts, categories, onOpenChange }: Imp
                     data-testid="import-next"
                     onClick={() => setStep(step === 'file' ? 'columns' : 'preview')}
                   >
-                    {ru.import.next}
+                    {strings.import.next}
                   </Button>
                 )}
               </div>

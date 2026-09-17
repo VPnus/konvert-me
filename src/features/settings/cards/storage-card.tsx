@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { updateSettings } from '@/db/repositories/settings';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 import { formatBytes, getStorageStatus, requestPersistentStorage, type StorageStatus } from '@/lib/persist';
 
 export function StorageCard() {
@@ -29,16 +29,16 @@ export function StorageCard() {
   };
 
   const label = !status?.supported
-    ? ru.settings.storageUnsupported
+    ? strings.settings.storageUnsupported
     : status.persisted
-      ? ru.settings.storagePersisted
-      : ru.settings.storageNotPersisted;
+      ? strings.settings.storagePersisted
+      : strings.settings.storageNotPersisted;
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{ru.settings.storageTitle}</CardTitle>
-        <CardDescription>{ru.settings.storageText}</CardDescription>
+        <CardTitle>{strings.settings.storageTitle}</CardTitle>
+        <CardDescription>{strings.settings.storageText}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <p className="text-sm" data-testid="storage-status">
@@ -51,7 +51,7 @@ export function StorageCard() {
 
         {status?.usageBytes !== undefined ? (
           <p className="text-sm text-muted-foreground">
-            {ru.settings.storageUsage}: {formatBytes(status.usageBytes)}
+            {strings.settings.storageUsage}: {formatBytes(status.usageBytes)}
             {status.quotaBytes ? ` из ${formatBytes(status.quotaBytes)}` : ''}
           </p>
         ) : null}
@@ -59,9 +59,11 @@ export function StorageCard() {
         {status?.supported && !status.persisted ? (
           <div className="flex flex-col items-start gap-2">
             <Button size="sm" variant="outline" onClick={() => void request()}>
-              {ru.settings.storageRequest}
+              {strings.settings.storageRequest}
             </Button>
-            {denied ? <p className="text-xs text-muted-foreground">{ru.settings.storageDenied}</p> : null}
+            {denied ? (
+              <p className="text-xs text-muted-foreground">{strings.settings.storageDenied}</p>
+            ) : null}
           </div>
         ) : null}
       </CardContent>

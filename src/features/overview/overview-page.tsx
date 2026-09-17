@@ -21,7 +21,7 @@ import {
   widgetWidth,
   type WidgetInstance,
 } from '@/db/repositories/dashboard';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 
 export default function OverviewPage() {
   const dataVersion = useDataVersion();
@@ -43,9 +43,9 @@ export default function OverviewPage() {
   const layout = storedLayout ?? (storedLayout === null ? fallbackLayout : undefined);
 
   // Never redirect on the very first render: the settings are not read yet then.
-  if (settingsLoading) return <p className="text-sm text-muted-foreground">{ru.common.loading}</p>;
+  if (settingsLoading) return <p className="text-sm text-muted-foreground">{strings.common.loading}</p>;
   if (!settings.onboardingDone) return <Navigate to="/welcome" replace />;
-  if (!data || !layout) return <p className="text-sm text-muted-foreground">{ru.common.loading}</p>;
+  if (!data || !layout) return <p className="text-sm text-muted-foreground">{strings.common.loading}</p>;
 
   const items = [...layout.items].sort((a, b) => a.order - b.order) as WidgetInstance[];
 
@@ -98,8 +98,8 @@ export default function OverviewPage() {
     <section className="flex w-full flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">{ru.overview.title}</h1>
-          <p className="text-sm text-muted-foreground">{ru.pages.overview.subtitle}</p>
+          <h1 className="text-2xl font-semibold tracking-tight">{strings.overview.title}</h1>
+          <p className="text-sm text-muted-foreground">{strings.pages.overview.subtitle}</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -112,7 +112,7 @@ export default function OverviewPage() {
                 data-testid="add-widget"
               >
                 <Plus className="size-4" aria-hidden />
-                {ru.overview.addWidget}
+                {strings.overview.addWidget}
               </Button>
               <Button
                 variant="outline"
@@ -121,7 +121,7 @@ export default function OverviewPage() {
                 data-testid="reset-dashboard"
               >
                 <RotateCcw className="size-4" aria-hidden />
-                {ru.overview.reset}
+                {strings.overview.reset}
               </Button>
             </>
           ) : null}
@@ -133,16 +133,16 @@ export default function OverviewPage() {
             data-testid="customize-dashboard"
           >
             <LayoutGrid className="size-4" aria-hidden />
-            {editing ? ru.overview.done : ru.overview.customize}
+            {editing ? strings.overview.done : strings.overview.customize}
           </Button>
         </div>
       </div>
 
       {items.length === 0 ? (
         <div className="rounded-xl border border-border bg-card p-5">
-          <p className="text-sm text-muted-foreground">{ru.overview.empty}</p>
+          <p className="text-sm text-muted-foreground">{strings.overview.empty}</p>
           <Button size="sm" variant="outline" className="mt-3" onClick={() => void resetDashboardLayout()}>
-            {ru.overview.reset}
+            {strings.overview.reset}
           </Button>
         </div>
       ) : (
@@ -160,9 +160,9 @@ export default function OverviewPage() {
 
       <ConfirmDialog
         open={resetOpen}
-        title={ru.overview.resetConfirmTitle}
-        description={ru.overview.resetConfirmText}
-        confirmLabel={ru.overview.reset}
+        title={strings.overview.resetConfirmTitle}
+        description={strings.overview.resetConfirmText}
+        confirmLabel={strings.overview.reset}
         onConfirm={() => {
           void resetDashboardLayout();
           setResetOpen(false);

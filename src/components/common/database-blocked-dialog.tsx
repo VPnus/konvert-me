@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { db, handleVersionChange } from '@/db/db';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 
 /**
  * An old tab blocks the schema upgrade of a new one. Dexie tells us about it, we close
@@ -23,11 +23,11 @@ export function DatabaseBlockedDialog() {
     >
       <div className="w-full max-w-md rounded-xl border border-border bg-card p-5 shadow-xl">
         <h2 id="db-blocked-title" className="text-base font-semibold">
-          {ru.database.blockedTitle}
+          {strings.database.blockedTitle}
         </h2>
-        <p className="mt-2 text-sm text-muted-foreground">{ru.database.blockedText}</p>
+        <p className="mt-2 text-sm text-muted-foreground">{strings.database.blockedText}</p>
         <Button className="mt-4" onClick={() => window.location.reload()}>
-          {ru.database.blockedAction}
+          {strings.database.blockedAction}
         </Button>
       </div>
     </div>

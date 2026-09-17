@@ -9,7 +9,7 @@ import { listFeedItems, listFeeds, refreshEnabledFeeds } from '@/db/repositories
 import { createLink, deleteLink, listLinks } from '@/db/repositories/links';
 import { useDataVersion } from '@/hooks/use-data-version';
 import { useSettings } from '@/hooks/use-settings';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 import { WidgetEmpty, WidgetFrame } from '@/features/overview/widgets/widget-shell';
 import type { WidgetProps } from '@/features/overview/widgets/types';
 
@@ -40,14 +40,14 @@ export function LinksWidget(_props: WidgetProps) {
       setUrl('');
       setAdding(false);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : ru.common.error);
+      setError(cause instanceof Error ? cause.message : strings.common.error);
     }
   };
 
   return (
-    <WidgetFrame title={ru.widgets.links.title}>
+    <WidgetFrame title={strings.widgets.links.title}>
       {links.length === 0 && !adding ? (
-        <p className="text-sm text-muted-foreground">{ru.widgets.links.empty}</p>
+        <p className="text-sm text-muted-foreground">{strings.widgets.links.empty}</p>
       ) : (
         <ul className="flex flex-col gap-1.5">
           {links.map((link) => (
@@ -66,7 +66,7 @@ export function LinksWidget(_props: WidgetProps) {
                 size="icon"
                 variant="ghost"
                 className="size-7 shrink-0"
-                aria-label={`${ru.widgets.links.remove}: ${link.title}`}
+                aria-label={`${strings.widgets.links.remove}: ${link.title}`}
                 onClick={() => void deleteLink(link.id)}
               >
                 <X className="size-4" aria-hidden />
@@ -81,8 +81,8 @@ export function LinksWidget(_props: WidgetProps) {
           <Input
             value={title}
             required
-            aria-label={ru.widgets.links.name}
-            placeholder={ru.widgets.links.namePlaceholder}
+            aria-label={strings.widgets.links.name}
+            placeholder={strings.widgets.links.namePlaceholder}
             data-testid="link-title"
             onChange={(event) => setTitle(event.target.value)}
           />
@@ -90,8 +90,8 @@ export function LinksWidget(_props: WidgetProps) {
             value={url}
             required
             type="url"
-            aria-label={ru.widgets.links.url}
-            placeholder={ru.widgets.links.urlPlaceholder}
+            aria-label={strings.widgets.links.url}
+            placeholder={strings.widgets.links.urlPlaceholder}
             data-testid="link-url"
             onChange={(event) => setUrl(event.target.value)}
           />
@@ -102,10 +102,10 @@ export function LinksWidget(_props: WidgetProps) {
           ) : null}
           <div className="flex gap-2">
             <Button type="submit" size="sm" data-testid="link-save">
-              {ru.common.save}
+              {strings.common.save}
             </Button>
             <Button type="button" size="sm" variant="outline" onClick={() => setAdding(false)}>
-              {ru.common.cancel}
+              {strings.common.cancel}
             </Button>
           </div>
         </form>
@@ -118,7 +118,7 @@ export function LinksWidget(_props: WidgetProps) {
           data-testid="link-add"
         >
           <Plus className="size-4" aria-hidden />
-          {ru.widgets.links.add}
+          {strings.widgets.links.add}
         </Button>
       )}
     </WidgetFrame>
@@ -135,10 +135,10 @@ export function NewsWidget(_props: WidgetProps) {
 
   if (!settings.externalFeedsEnabled) {
     return (
-      <WidgetFrame title={ru.widgets.news.title}>
+      <WidgetFrame title={strings.widgets.news.title}>
         <WidgetEmpty
-          text={ru.widgets.news.disabled}
-          actionLabel={ru.widgets.news.disabledAction}
+          text={strings.widgets.news.disabled}
+          actionLabel={strings.widgets.news.disabledAction}
           to="/settings"
         />
       </WidgetFrame>
@@ -147,10 +147,10 @@ export function NewsWidget(_props: WidgetProps) {
 
   if (feeds.length === 0) {
     return (
-      <WidgetFrame title={ru.widgets.news.title}>
+      <WidgetFrame title={strings.widgets.news.title}>
         <WidgetEmpty
-          text={ru.widgets.news.noFeeds}
-          actionLabel={ru.widgets.news.noFeedsAction}
+          text={strings.widgets.news.noFeeds}
+          actionLabel={strings.widgets.news.noFeedsAction}
           to="/settings"
         />
       </WidgetFrame>
@@ -175,15 +175,15 @@ export function NewsWidget(_props: WidgetProps) {
 
   return (
     <WidgetFrame
-      title={ru.widgets.news.title}
+      title={strings.widgets.news.title}
       hint={
         lastFetchedAt
-          ? `${ru.widgets.news.updated}: ${new Intl.DateTimeFormat('ru-RU', { dateStyle: 'short', timeStyle: 'short' }).format(lastFetchedAt)}`
-          : ru.widgets.news.never
+          ? `${strings.widgets.news.updated}: ${new Intl.DateTimeFormat('ru-RU', { dateStyle: 'short', timeStyle: 'short' }).format(lastFetchedAt)}`
+          : strings.widgets.news.never
       }
     >
       {items.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{ru.widgets.news.empty}</p>
+        <p className="text-sm text-muted-foreground">{strings.widgets.news.empty}</p>
       ) : (
         <ul className="flex flex-col gap-2" data-testid="news-items">
           {items.map((item) => (
@@ -222,10 +222,10 @@ export function NewsWidget(_props: WidgetProps) {
           data-testid="news-refresh"
         >
           <RefreshCw className="size-4" aria-hidden />
-          {busy ? ru.widgets.news.refreshing : ru.widgets.news.refresh}
+          {busy ? strings.widgets.news.refreshing : strings.widgets.news.refresh}
         </Button>
         <Link to="/settings" className={buttonVariants({ size: 'sm', variant: 'ghost' })}>
-          {ru.widgets.news.openSource}
+          {strings.widgets.news.openSource}
         </Link>
       </div>
     </WidgetFrame>

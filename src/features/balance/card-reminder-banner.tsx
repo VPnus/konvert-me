@@ -13,9 +13,9 @@ import {
 } from '@/features/balance/card-reminder';
 import { useDataVersion } from '@/hooks/use-data-version';
 import { useSettingsState } from '@/hooks/use-settings';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 
-const t = ru.cards.reminder;
+const t = strings.cards.reminder;
 
 /** A week and a day before a statement is due, and after the due day if it was not paid in full. */
 export function CardReminderBanner() {

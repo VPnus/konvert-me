@@ -1,6 +1,6 @@
 import { reserveContributionMinor } from '@/core/balance';
 import type { InsurancePolicy } from '@/db/models';
-import { fill } from '@/features/deductions/fill';
+import { fill } from '@/i18n';
 import { monthsLabel } from '@/features/goals/months-label';
 import type { PlanData } from '@/features/plan/plan-data';
 import { rubles, t } from '@/features/plan/plan-format';

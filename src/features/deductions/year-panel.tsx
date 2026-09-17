@@ -19,13 +19,12 @@ import {
 import { checklistFor, type ChecklistGroup } from '@/features/deductions/checklist';
 import { ChecklistCard } from '@/features/deductions/checklist-card';
 import type { DeductionYearView } from '@/features/deductions/deductions-data';
-import { fill } from '@/features/deductions/fill';
 import { RefundCard } from '@/features/deductions/refund-card';
 import { BackupFirst } from '@/features/settings/backup-first';
-import { ru } from '@/i18n/ru';
+import { fill, strings } from '@/i18n';
 import { parseNumericInput } from '@/lib/numeric-input';
 
-const t = ru.deductions;
+const t = strings.deductions;
 
 type HadKey =
   | 'treatment'
@@ -280,7 +279,7 @@ function MonthSelect({
           data-testid={testId}
           onChange={(event) => onChange(Number(event.target.value))}
         >
-          {ru.budget.months.map((name, index) => (
+          {strings.budget.months.map((name, index) => (
             <option key={name} value={index + 1}>
               {name}
             </option>
@@ -342,7 +341,7 @@ export function YearPanel({ view }: { view: DeductionYearView }) {
       await saveDeductionYear(input);
       setSavedNote(true);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : ru.common.error);
+      setError(cause instanceof Error ? cause.message : strings.common.error);
     }
   };
 
@@ -792,7 +791,7 @@ export function YearPanel({ view }: { view: DeductionYearView }) {
         open={confirmDelete}
         title={fill(t.deleteConfirmTitle, { year: view.year })}
         description={t.deleteConfirmText}
-        confirmLabel={ru.common.delete}
+        confirmLabel={strings.common.delete}
         destructive
         onConfirm={() => {
           setConfirmDelete(false);

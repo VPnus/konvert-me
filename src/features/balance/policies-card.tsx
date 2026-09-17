@@ -14,7 +14,7 @@ import { POLICY_TYPES, type InsurancePolicy } from '@/db/models';
 import { createPolicy, deletePolicy, updatePolicy } from '@/db/repositories/policies';
 import { daysLabel } from '@/features/balance/days-label';
 import { fullDateLabel } from '@/features/balance/card-view';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 import { parseNumericInput } from '@/lib/numeric-input';
 
 interface FormState {
@@ -85,7 +85,7 @@ export function PoliciesCard({ policies }: PoliciesCardProps) {
       else await createPolicy(payload);
       close();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : ru.common.error);
+      setError(cause instanceof Error ? cause.message : strings.common.error);
     }
   };
 
@@ -95,21 +95,21 @@ export function PoliciesCard({ policies }: PoliciesCardProps) {
       onSubmit={(event) => void submit(event)}
     >
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label={ru.policies.name}>
+        <Field label={strings.policies.name}>
           {(id) => (
             <Input
               id={id}
               required
               value={form.name}
               maxLength={60}
-              placeholder={ru.policies.namePlaceholder}
+              placeholder={strings.policies.namePlaceholder}
               data-testid="policy-name"
               onChange={(event) => setForm({ ...form, name: event.target.value })}
             />
           )}
         </Field>
 
-        <Field label={ru.policies.type}>
+        <Field label={strings.policies.type}>
           {(id) => (
             <Select
               id={id}
@@ -119,7 +119,7 @@ export function PoliciesCard({ policies }: PoliciesCardProps) {
             >
               {POLICY_TYPES.map((type) => (
                 <option key={type} value={type}>
-                  {ru.policies.types[type]}
+                  {strings.policies.types[type]}
                 </option>
               ))}
             </Select>
@@ -128,7 +128,7 @@ export function PoliciesCard({ policies }: PoliciesCardProps) {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label={`${ru.policies.insurer} (${ru.common.optional})`}>
+        <Field label={`${strings.policies.insurer} (${strings.common.optional})`}>
           {(id) => (
             <Input
               id={id}
@@ -140,7 +140,7 @@ export function PoliciesCard({ policies }: PoliciesCardProps) {
           )}
         </Field>
 
-        <Field label={ru.policies.endDate}>
+        <Field label={strings.policies.endDate}>
           {(id) => (
             <Input
               id={id}
@@ -155,7 +155,10 @@ export function PoliciesCard({ policies }: PoliciesCardProps) {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label={`${ru.policies.sumInsured} (${ru.common.optional})`} hint={ru.policies.sumInsuredHint}>
+        <Field
+          label={`${strings.policies.sumInsured} (${strings.common.optional})`}
+          hint={strings.policies.sumInsuredHint}
+        >
           {(id) => (
             <NumberInput
               id={id}
@@ -166,7 +169,7 @@ export function PoliciesCard({ policies }: PoliciesCardProps) {
           )}
         </Field>
 
-        <Field label={`${ru.policies.premium} (${ru.common.optional})`}>
+        <Field label={`${strings.policies.premium} (${strings.common.optional})`}>
           {(id) => (
             <NumberInput
               id={id}
@@ -186,10 +189,10 @@ export function PoliciesCard({ policies }: PoliciesCardProps) {
 
       <div className="flex gap-2">
         <Button type="submit" size="sm" data-testid="policy-save">
-          {ru.common.save}
+          {strings.common.save}
         </Button>
         <Button type="button" size="sm" variant="outline" onClick={close}>
-          {ru.common.cancel}
+          {strings.common.cancel}
         </Button>
       </div>
     </form>
@@ -199,8 +202,8 @@ export function PoliciesCard({ policies }: PoliciesCardProps) {
     <Card data-testid="policies-card">
       <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
         <div>
-          <CardTitle className="text-base">{ru.policies.title}</CardTitle>
-          <p className="text-sm text-muted-foreground">{ru.policies.subtitle}</p>
+          <CardTitle className="text-base">{strings.policies.title}</CardTitle>
+          <p className="text-sm text-muted-foreground">{strings.policies.subtitle}</p>
         </div>
         <Button
           size="sm"
@@ -212,14 +215,14 @@ export function PoliciesCard({ policies }: PoliciesCardProps) {
           }}
         >
           <Plus className="size-4" aria-hidden />
-          {ru.common.add}
+          {strings.common.add}
         </Button>
       </CardHeader>
 
       <CardContent className="flex flex-col gap-3">
         {policies.length === 0 && !adding ? (
           <p className="text-sm text-muted-foreground" data-testid="policies-empty">
-            {ru.policies.empty}
+            {strings.policies.empty}
           </p>
         ) : null}
 
@@ -239,7 +242,7 @@ export function PoliciesCard({ policies }: PoliciesCardProps) {
                     <div className="min-w-0 flex-1 basis-40">
                       <p className="truncate text-sm font-medium">{policy.name}</p>
                       <p className="truncate text-xs text-muted-foreground">
-                        {ru.policies.types[policy.type]}
+                        {strings.policies.types[policy.type]}
                         {policy.insurer ? ` · ${policy.insurer}` : ''}
                         {policy.sumInsuredMinor ? ` · ${formatForecast(policy.sumInsuredMinor)}` : ''}
                       </p>
@@ -251,15 +254,15 @@ export function PoliciesCard({ policies }: PoliciesCardProps) {
                         data-testid={`policy-left-${policy.name}`}
                       >
                         {left < 0
-                          ? ru.policies.expired
-                          : `${ru.policies.expires} ${fullDateLabel(policy.endDate)}`}
+                          ? strings.policies.expired
+                          : `${strings.policies.expires} ${fullDateLabel(policy.endDate)}`}
                         {left >= 0 ? ` · ${daysLabel(left)}` : ''}
                       </span>
                       <Button
                         variant="ghost"
                         size="icon"
                         className="size-8"
-                        aria-label={`${ru.common.edit}: ${policy.name}`}
+                        aria-label={`${strings.common.edit}: ${policy.name}`}
                         data-testid={`policy-edit-${policy.name}`}
                         onClick={() => {
                           setAdding(false);
@@ -273,7 +276,7 @@ export function PoliciesCard({ policies }: PoliciesCardProps) {
                         variant="ghost"
                         size="icon"
                         className="size-8"
-                        aria-label={`${ru.policies.archive}: ${policy.name}`}
+                        aria-label={`${strings.policies.archive}: ${policy.name}`}
                         onClick={() => void updatePolicy(policy.id, { archived: !policy.archived })}
                       >
                         <Archive className="size-4" aria-hidden />
@@ -282,7 +285,7 @@ export function PoliciesCard({ policies }: PoliciesCardProps) {
                         variant="ghost"
                         size="icon"
                         className="size-8"
-                        aria-label={`${ru.policies.remove}: ${policy.name}`}
+                        aria-label={`${strings.policies.remove}: ${policy.name}`}
                         onClick={() => setPendingDelete(policy)}
                       >
                         <Trash2 className="size-4" aria-hidden />
@@ -302,9 +305,9 @@ export function PoliciesCard({ policies }: PoliciesCardProps) {
 
       <ConfirmDialog
         open={pendingDelete !== null}
-        title={ru.policies.deleteConfirmTitle}
-        description={ru.policies.deleteConfirmText}
-        confirmLabel={ru.common.delete}
+        title={strings.policies.deleteConfirmTitle}
+        description={strings.policies.deleteConfirmText}
+        confirmLabel={strings.common.delete}
         destructive
         onConfirm={() => {
           if (pendingDelete) void deletePolicy(pendingDelete.id);

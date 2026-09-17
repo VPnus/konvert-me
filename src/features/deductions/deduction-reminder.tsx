@@ -7,13 +7,12 @@ import { Notice } from '@/components/common/notice';
 import { listDeductionYears } from '@/db/repositories/deductions';
 import { updateSettings } from '@/db/repositories/settings';
 import { dateOfYear } from '@/features/deductions/dates';
-import { fill } from '@/features/deductions/fill';
 import { deductionReminder, reminderKey, type DeductionReminder } from '@/features/deductions/reminder';
 import { useDataVersion } from '@/hooks/use-data-version';
 import { useSettingsState } from '@/hooks/use-settings';
-import { ru } from '@/i18n/ru';
+import { fill, strings } from '@/i18n';
 
-const t = ru.deductions.reminder;
+const t = strings.deductions.reminder;
 
 function textOf(reminder: DeductionReminder): string {
   switch (reminder.kind) {

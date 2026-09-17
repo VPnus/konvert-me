@@ -6,7 +6,7 @@ import { NumberInput } from '@/components/ui/number-input';
 import type { Category } from '@/db/models';
 import { setPlan } from '@/db/repositories/budget-plans';
 import type { BudgetMonthData } from '@/features/budget/budget-data';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 import { parseNumericInput } from '@/lib/numeric-input';
 
 /** Money without the currency sign: the sign lives in the column heading. */
@@ -34,8 +34,8 @@ function incomeRemainingMoney(minor: number): string {
 function remainingLook(minor: number, income: boolean): { className: string; title: string | undefined } {
   if (minor >= 0) return { className: 'text-muted-foreground', title: undefined };
   return income
-    ? { className: 'text-muted-foreground', title: ru.budget.overIncome }
-    : { className: 'text-destructive', title: ru.budget.overspent };
+    ? { className: 'text-muted-foreground', title: strings.budget.overIncome }
+    : { className: 'text-destructive', title: strings.budget.overspent };
 }
 
 interface PlanCellProps {
@@ -66,7 +66,7 @@ function PlanCell({ month, categoryId, categoryName, planMinor }: PlanCellProps)
   return (
     <NumberInput
       value={value}
-      aria-label={`${ru.budget.plan}: ${categoryName}`}
+      aria-label={`${strings.budget.plan}: ${categoryName}`}
       data-testid={`plan-${categoryId}`}
       className="h-8 px-2 text-right text-xs tabular-nums sm:text-sm"
       onValueChange={setDraft}
@@ -92,26 +92,26 @@ function groupsOf(categories: readonly Category[]): GroupRow[] {
   return [
     {
       key: 'income',
-      title: ru.budget.incomeGroup,
-      factLabel: ru.budget.factIncome,
+      title: strings.budget.incomeGroup,
+      factLabel: strings.budget.factIncome,
       categories: pick((c) => c.kind === 'income'),
     },
     {
       key: 'mandatory',
-      title: ru.budget.mandatoryGroup,
-      factLabel: ru.budget.fact,
+      title: strings.budget.mandatoryGroup,
+      factLabel: strings.budget.fact,
       categories: pick((c) => c.kind === 'expense' && c.group === 'mandatory'),
     },
     {
       key: 'variable',
-      title: ru.budget.variableGroup,
-      factLabel: ru.budget.fact,
+      title: strings.budget.variableGroup,
+      factLabel: strings.budget.fact,
       categories: pick((c) => c.kind === 'expense' && c.group === 'variable'),
     },
     {
       key: 'other',
-      title: ru.budget.otherGroup,
-      factLabel: ru.budget.fact,
+      title: strings.budget.otherGroup,
+      factLabel: strings.budget.fact,
       categories: pick((c) => c.kind === 'expense' && !c.group),
     },
   ];
@@ -149,10 +149,10 @@ export function PlanFactTable({ data }: PlanFactTableProps) {
             differently for income and for expenses; this one is for screen readers. */}
         <thead className="sr-only">
           <tr>
-            <th>{ru.budget.category}</th>
-            <th>{ru.budget.plan}</th>
-            <th>{ru.budget.fact}</th>
-            <th>{ru.budget.remaining}</th>
+            <th>{strings.budget.category}</th>
+            <th>{strings.budget.plan}</th>
+            <th>{strings.budget.fact}</th>
+            <th>{strings.budget.remaining}</th>
           </tr>
         </thead>
 
@@ -160,9 +160,9 @@ export function PlanFactTable({ data }: PlanFactTableProps) {
           <tbody key={group.key} data-testid={`group-${group.key}`}>
             <tr className="border-b border-border/60 text-[11px] text-muted-foreground">
               <th className="pt-5 pb-1 text-left font-semibold uppercase tracking-wide">{group.title}</th>
-              <th className="pt-5 pr-1 pb-1 text-right font-medium">{ru.budget.plan}, ₽</th>
+              <th className="pt-5 pr-1 pb-1 text-right font-medium">{strings.budget.plan}, ₽</th>
               <th className="pt-5 pr-1 pb-1 text-right font-medium">{group.factLabel}, ₽</th>
-              <th className="pt-5 pb-1 text-right font-medium">{ru.budget.remaining}, ₽</th>
+              <th className="pt-5 pb-1 text-right font-medium">{strings.budget.remaining}, ₽</th>
             </tr>
 
             {group.categories.map((category) => {
@@ -201,7 +201,7 @@ export function PlanFactTable({ data }: PlanFactTableProps) {
             })}
 
             <tr className="border-b border-border font-medium">
-              <td className="py-1.5 pr-2">{ru.budget.total}</td>
+              <td className="py-1.5 pr-2">{strings.budget.total}</td>
               <td className="py-1.5 pr-1 text-right tabular-nums">
                 {money(sumOf(group.categories, 'planMinor'))}
               </td>
@@ -222,7 +222,7 @@ export function PlanFactTable({ data }: PlanFactTableProps) {
 
         <tfoot>
           <tr className="border-b border-border">
-            <td className="py-2 pr-2 font-medium">{ru.budget.totalIncome}</td>
+            <td className="py-2 pr-2 font-medium">{strings.budget.totalIncome}</td>
             <td className="py-2 pr-1 text-right tabular-nums">{money(data.plan.incomeMinor)}</td>
             <td className="py-2 pr-1 text-right tabular-nums" data-testid="total-income">
               {money(data.fact.incomeMinor)}
@@ -235,7 +235,7 @@ export function PlanFactTable({ data }: PlanFactTableProps) {
             </td>
           </tr>
           <tr className="border-b border-border">
-            <td className="py-2 pr-2 font-medium">{ru.budget.totalExpense}</td>
+            <td className="py-2 pr-2 font-medium">{strings.budget.totalExpense}</td>
             <td className="py-2 pr-1 text-right tabular-nums">{money(data.plan.expenseMinor)}</td>
             <td className="py-2 pr-1 text-right tabular-nums" data-testid="total-expense">
               {money(data.fact.expenseMinor)}
@@ -248,7 +248,7 @@ export function PlanFactTable({ data }: PlanFactTableProps) {
             </td>
           </tr>
           <tr>
-            <td className="py-2 pr-2 text-sm font-semibold">{ru.budget.freeCash}</td>
+            <td className="py-2 pr-2 text-sm font-semibold">{strings.budget.freeCash}</td>
             <td className="py-2 pr-1 text-right font-semibold tabular-nums">{money(freePlanMinor)}</td>
             <td
               className={`py-2 pr-1 text-right font-semibold tabular-nums ${freeFactMinor < 0 ? 'text-destructive' : ''}`}
@@ -261,8 +261,8 @@ export function PlanFactTable({ data }: PlanFactTableProps) {
         </tfoot>
       </table>
 
-      <p className="pt-3 text-xs text-muted-foreground">{ru.budget.legend}</p>
-      <p className="pt-1 text-xs text-muted-foreground">{ru.budget.freeCashHint}</p>
+      <p className="pt-3 text-xs text-muted-foreground">{strings.budget.legend}</p>
+      <p className="pt-1 text-xs text-muted-foreground">{strings.budget.freeCashHint}</p>
     </div>
   );
 }

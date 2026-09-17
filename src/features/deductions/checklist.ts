@@ -7,9 +7,9 @@ import { childDeductionMinor, homeSaleIncomeMinor } from '@/core/deductions';
 import type { YearRules } from '@/core/rules';
 import type { DocumentCategory } from '@/db/models';
 import type { DeductionYearInput } from '@/db/repositories/deductions';
-import type { ru } from '@/i18n/ru';
+import type { Dictionary } from '@/i18n';
 
-type Texts = (typeof ru)['deductions']['checklist'];
+type Texts = Dictionary['deductions']['checklist'];
 
 export type ChecklistGroupId = keyof Texts['groups'];
 export type ChecklistItemId = keyof Texts['items'];

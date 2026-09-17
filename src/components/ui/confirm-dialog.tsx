@@ -2,7 +2,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import type { ReactNode } from 'react';
 
 import { Button } from '@/components/ui/button';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 
 interface ConfirmDialogProps {
   readonly open: boolean;
@@ -20,7 +20,7 @@ export function ConfirmDialog({
   open,
   title,
   description,
-  confirmLabel = ru.common.confirm,
+  confirmLabel = strings.common.confirm,
   destructive = false,
   busy = false,
   children,
@@ -42,7 +42,7 @@ export function ConfirmDialog({
           <div className="mt-5 flex justify-end gap-2">
             <Dialog.Close asChild>
               <Button variant="outline" size="sm">
-                {ru.common.cancel}
+                {strings.common.cancel}
               </Button>
             </Dialog.Close>
             <Button

@@ -3,9 +3,8 @@ import { useLocation } from 'react-router-dom';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 
 import { Button } from '@/components/ui/button';
-import { fill } from '@/features/deductions/fill';
 import { useHand } from '@/hooks/use-hand';
-import { ru } from '@/i18n/ru';
+import { fill, strings } from '@/i18n';
 import { fetchLatestRelease, startUpdateChecks, type Release } from '@/lib/release';
 import { cn } from '@/lib/utils';
 
@@ -76,7 +75,9 @@ export function UpdatePrompt() {
         <div className="flex flex-col gap-3">
           <div>
             <p className="text-sm font-semibold" data-testid="pwa-update-title">
-              {release ? fill(ru.pwa.updateVersion, { version: release.version }) : ru.pwa.updateTitle}
+              {release
+                ? fill(strings.pwa.updateVersion, { version: release.version })
+                : strings.pwa.updateTitle}
             </p>
             {release && release.notes.length > 0 ? (
               <ul
@@ -88,22 +89,22 @@ export function UpdatePrompt() {
                 ))}
               </ul>
             ) : null}
-            <p className="mt-1 text-sm text-muted-foreground">{ru.pwa.updateText}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{strings.pwa.updateText}</p>
           </div>
           <div className="flex gap-2">
             <Button size="sm" data-testid="pwa-update" onClick={() => void updateServiceWorker(true)}>
-              {ru.pwa.updateAction}
+              {strings.pwa.updateAction}
             </Button>
             <Button size="sm" variant="outline" onClick={close}>
-              {ru.pwa.updateLater}
+              {strings.pwa.updateLater}
             </Button>
           </div>
         </div>
       ) : (
         <div className="flex items-center justify-between gap-3">
-          <p className="text-sm">{ru.pwa.offlineReady}</p>
+          <p className="text-sm">{strings.pwa.offlineReady}</p>
           <Button size="sm" variant="outline" onClick={close}>
-            {ru.pwa.dismiss}
+            {strings.pwa.dismiss}
           </Button>
         </div>
       )}

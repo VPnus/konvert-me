@@ -7,12 +7,11 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { todayIso } from '@/core/time';
 import { countForPilot, type PilotCounts } from '@/db/repositories/pilot';
-import { fill } from '@/features/deductions/fill';
 import { buildPilotStats, PILOT_CARD_ID } from '@/features/settings/pilot-stats';
 import { useDataVersion } from '@/hooks/use-data-version';
 import { useSettings } from '@/hooks/use-settings';
 import { useUsage } from '@/hooks/use-usage';
-import { ru } from '@/i18n/ru';
+import { fill, strings } from '@/i18n';
 import { copyText } from '@/lib/clipboard';
 import { recordShared } from '@/lib/usage';
 
@@ -73,21 +72,21 @@ export function PilotCard() {
   return (
     <Card id={PILOT_CARD_ID} className="scroll-mt-32" data-testid="pilot-card">
       <CardHeader>
-        <CardTitle>{ru.settings.pilot.title}</CardTitle>
-        <CardDescription>{ru.settings.pilot.text}</CardDescription>
+        <CardTitle>{strings.settings.pilot.title}</CardTitle>
+        <CardDescription>{strings.settings.pilot.text}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <pre
           data-testid="pilot-stats"
           className="rounded-lg border border-border bg-muted/40 p-3 font-sans text-xs leading-relaxed break-words whitespace-pre-wrap sm:text-sm"
         >
-          {stats ? stats.text : ru.settings.pilot.counting}
+          {stats ? stats.text : strings.settings.pilot.counting}
         </pre>
 
         <div className="flex flex-wrap gap-2">
           <Button disabled={!stats} onClick={() => void copy()} data-testid="pilot-copy">
             <Copy className="size-4" aria-hidden />
-            {ru.settings.pilot.copy}
+            {strings.settings.pilot.copy}
           </Button>
           {SITE.feedbackFormUrl ? (
             <a
@@ -97,35 +96,35 @@ export function PilotCard() {
               className={buttonVariants({ variant: 'outline' })}
               data-testid="pilot-form"
             >
-              {ru.settings.pilot.form}
+              {strings.settings.pilot.form}
               <ExternalLink className="size-4" aria-hidden />
             </a>
           ) : SITE.contactEmail ? (
             // Only the subject goes into the link: the stats are pasted by the user, not carried in an address.
             <a
-              href={`mailto:${SITE.contactEmail}?subject=${encodeURIComponent(ru.settings.pilot.mailSubject)}`}
+              href={`mailto:${SITE.contactEmail}?subject=${encodeURIComponent(strings.settings.pilot.mailSubject)}`}
               className={buttonVariants({ variant: 'outline' })}
               data-testid="pilot-mail"
             >
               <Mail className="size-4" aria-hidden />
-              {ru.settings.pilot.mail}
+              {strings.settings.pilot.mail}
             </a>
           ) : null}
         </div>
 
         <p role="status" data-testid="pilot-copy-status" className="text-sm empty:hidden">
           {copied === 'done'
-            ? ru.settings.pilot.copied
+            ? strings.settings.pilot.copied
             : copied === 'failed'
-              ? ru.settings.pilot.copyFailed
+              ? strings.settings.pilot.copyFailed
               : ''}
         </p>
         <p className="text-sm text-muted-foreground">
           {SITE.feedbackFormUrl
-            ? ru.settings.pilot.sendToForm
+            ? strings.settings.pilot.sendToForm
             : SITE.contactEmail
-              ? fill(ru.settings.pilot.sendToEmail, { email: SITE.contactEmail })
-              : ru.settings.pilot.sendToInviter}
+              ? fill(strings.settings.pilot.sendToEmail, { email: SITE.contactEmail })
+              : strings.settings.pilot.sendToInviter}
         </p>
       </CardContent>
     </Card>

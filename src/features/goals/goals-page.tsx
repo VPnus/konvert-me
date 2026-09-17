@@ -26,22 +26,21 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import type { Goal } from '@/db/models';
 import type { Allocation } from '@/core/goals';
 import { deleteGoal, reorderGoals, updateGoal } from '@/db/repositories/goals';
-import { fill } from '@/features/deductions/fill';
 import { monthLabel } from '@/features/budget/month-label';
 import { GoalDetails } from '@/features/goals/goal-details';
 import { GoalForm } from '@/features/goals/goal-form';
 import { loadGoals, type GoalsData, type GoalView } from '@/features/goals/goals-data';
 import { monthsLabel } from '@/features/goals/months-label';
 import { useDataVersion } from '@/hooks/use-data-version';
-import { ru } from '@/i18n/ru';
+import { fill, strings } from '@/i18n';
 import { cn } from '@/lib/utils';
 
 function statusOf(view: GoalView): string {
-  if (view.goal.status === 'done') return ru.goals.statusDone;
-  if (view.goal.status === 'paused') return ru.goals.statusPaused;
-  if (view.plan?.status === 'overdue') return ru.goals.statusOverdue;
-  if (view.plan?.status === 'funded') return ru.goals.statusFunded;
-  return ru.goals.statusActive;
+  if (view.goal.status === 'done') return strings.goals.statusDone;
+  if (view.goal.status === 'paused') return strings.goals.statusPaused;
+  if (view.plan?.status === 'overdue') return strings.goals.statusOverdue;
+  if (view.plan?.status === 'funded') return strings.goals.statusFunded;
+  return strings.goals.statusActive;
 }
 
 interface GoalRowProps {
@@ -80,7 +79,7 @@ function GoalRow({ view, allocation, onOpen, onEdit, onDelete }: GoalRowProps) {
           ) : (
             <button
               type="button"
-              aria-label={`${ru.goals.drag}: ${goal.name}`}
+              aria-label={`${strings.goals.drag}: ${goal.name}`}
               className="mt-0.5 cursor-grab rounded p-1 text-muted-foreground hover:bg-accent"
               {...attributes}
               {...listeners}
@@ -115,7 +114,7 @@ function GoalRow({ view, allocation, onOpen, onEdit, onDelete }: GoalRowProps) {
                   ? formatForecast(allocation.requiredMinor)
                   : '—'}
             </p>
-            <p className="text-[11px] text-muted-foreground">{ru.goals.contribution}</p>
+            <p className="text-[11px] text-muted-foreground">{strings.goals.contribution}</p>
           </div>
 
           {isReserve ? null : (
@@ -124,7 +123,7 @@ function GoalRow({ view, allocation, onOpen, onEdit, onDelete }: GoalRowProps) {
                 variant="ghost"
                 size="icon"
                 className="size-8"
-                aria-label={goal.status === 'paused' ? ru.goals.resume : ru.goals.pause}
+                aria-label={goal.status === 'paused' ? strings.goals.resume : strings.goals.pause}
                 data-testid={`goal-pause-${goal.name}`}
                 onClick={() =>
                   void updateGoal(goal.id, { status: goal.status === 'paused' ? 'active' : 'paused' })
@@ -140,7 +139,7 @@ function GoalRow({ view, allocation, onOpen, onEdit, onDelete }: GoalRowProps) {
                 variant="ghost"
                 size="icon"
                 className="size-8"
-                aria-label={goal.status === 'done' ? ru.goals.markActive : ru.goals.markDone}
+                aria-label={goal.status === 'done' ? strings.goals.markActive : strings.goals.markDone}
                 data-testid={`goal-done-${goal.name}`}
                 onClick={() =>
                   void updateGoal(goal.id, { status: goal.status === 'done' ? 'active' : 'done' })
@@ -152,7 +151,7 @@ function GoalRow({ view, allocation, onOpen, onEdit, onDelete }: GoalRowProps) {
                 variant="ghost"
                 size="icon"
                 className="size-8"
-                aria-label={`${ru.common.edit}: ${goal.name}`}
+                aria-label={`${strings.common.edit}: ${goal.name}`}
                 data-testid={`goal-edit-${goal.name}`}
                 onClick={() => onEdit(goal)}
               >
@@ -162,7 +161,7 @@ function GoalRow({ view, allocation, onOpen, onEdit, onDelete }: GoalRowProps) {
                 variant="ghost"
                 size="icon"
                 className="size-8"
-                aria-label={`${ru.goals.remove}: ${goal.name}`}
+                aria-label={`${strings.goals.remove}: ${goal.name}`}
                 onClick={() => onDelete(goal)}
               >
                 <Trash2 className="size-4" aria-hidden />
@@ -186,9 +185,9 @@ function GoalRow({ view, allocation, onOpen, onEdit, onDelete }: GoalRowProps) {
 
       {allocation === null ? null : (
         <p className="pl-7 text-xs text-muted-foreground" data-testid={`goal-allocated-${goal.name}`}>
-          {ru.goals.allocationGets}: {formatForecast(allocation.allocatedMinor)}
+          {strings.goals.allocationGets}: {formatForecast(allocation.allocatedMinor)}
           {allocation.deficitMinor > 0.5
-            ? ` · ${ru.goals.allocationDeficit} ${formatForecast(allocation.deficitMinor)}`
+            ? ` · ${strings.goals.allocationDeficit} ${formatForecast(allocation.deficitMinor)}`
             : ''}
         </p>
       )}
@@ -200,22 +199,22 @@ function AllocationCard({ data }: { data: GoalsData }) {
   const needed = data.allocations.reduce((total, item) => total + item.requiredMinor, 0);
   const basis =
     data.basis.source === 'fact'
-      ? fill(ru.goals.allocationBasisFact, { months: monthsLabel(data.basis.months.length) })
+      ? fill(strings.goals.allocationBasisFact, { months: monthsLabel(data.basis.months.length) })
       : data.basis.source === 'plan'
-        ? ru.goals.allocationBasisPlan
-        : ru.goals.allocationBasisMonth;
+        ? strings.goals.allocationBasisPlan
+        : strings.goals.allocationBasisMonth;
 
   return (
     <Card data-testid="allocation-card">
       <CardHeader className="pb-0">
-        <CardTitle className="text-base">{ru.goals.allocationTitle}</CardTitle>
-        <p className="text-sm text-muted-foreground">{ru.goals.allocationHint}</p>
+        <CardTitle className="text-base">{strings.goals.allocationTitle}</CardTitle>
+        <p className="text-sm text-muted-foreground">{strings.goals.allocationHint}</p>
       </CardHeader>
       <CardContent className="flex flex-col gap-2 pt-3">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <div>
             <p className="text-xs text-muted-foreground">
-              {ru.goals.allocationFree} ({basis})
+              {strings.goals.allocationFree} ({basis})
             </p>
             <p
               className={cn(
@@ -228,15 +227,15 @@ function AllocationCard({ data }: { data: GoalsData }) {
             </p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground" title={ru.goals.allocationPrincipalHint}>
-              {ru.goals.allocationPrincipal}
+            <p className="text-xs text-muted-foreground" title={strings.goals.allocationPrincipalHint}>
+              {strings.goals.allocationPrincipal}
             </p>
             <p className="text-sm font-semibold tabular-nums" data-testid="allocation-principal">
               {formatForecast(data.principalDueMinor)}
             </p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">{ru.goals.allocationAvailable}</p>
+            <p className="text-xs text-muted-foreground">{strings.goals.allocationAvailable}</p>
             <p
               className={cn(
                 'text-sm font-semibold tabular-nums',
@@ -248,19 +247,19 @@ function AllocationCard({ data }: { data: GoalsData }) {
             </p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">{ru.goals.allocationNeeded}</p>
+            <p className="text-xs text-muted-foreground">{strings.goals.allocationNeeded}</p>
             <p className="text-sm font-semibold tabular-nums" data-testid="allocation-needed">
               {formatForecast(needed)}
             </p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">{ru.goals.allocationLeftover}</p>
+            <p className="text-xs text-muted-foreground">{strings.goals.allocationLeftover}</p>
             <p className="text-sm font-semibold tabular-nums" data-testid="allocation-leftover">
               {formatForecast(data.leftoverMinor)}
             </p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">{ru.goals.allocationDeficit}</p>
+            <p className="text-xs text-muted-foreground">{strings.goals.allocationDeficit}</p>
             <p
               className={cn(
                 'text-sm font-semibold tabular-nums',
@@ -274,16 +273,16 @@ function AllocationCard({ data }: { data: GoalsData }) {
         </div>
 
         {data.allocations.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{ru.goals.allocationNone}</p>
+          <p className="text-sm text-muted-foreground">{strings.goals.allocationNone}</p>
         ) : null}
 
         {data.principalDueMinor > 0 ? (
-          <p className="text-xs text-muted-foreground">{ru.goals.allocationPrincipalHint}</p>
+          <p className="text-xs text-muted-foreground">{strings.goals.allocationPrincipalHint}</p>
         ) : null}
 
         {data.totalDeficitMinor > 0 ? (
           <p className="text-xs text-warning" data-testid="allocation-deficit-hint">
-            {ru.goals.allocationDeficitHint}
+            {strings.goals.allocationDeficitHint}
           </p>
         ) : null}
       </CardContent>
@@ -307,7 +306,7 @@ export default function GoalsPage() {
   );
 
   if (!data) {
-    return <p className="text-sm text-muted-foreground">{ru.common.loading}</p>;
+    return <p className="text-sm text-muted-foreground">{strings.common.loading}</p>;
   }
 
   const visible = data.goals.filter((view) => showDone || view.goal.status !== 'done');
@@ -337,12 +336,12 @@ export default function GoalsPage() {
     <section className="mx-auto flex w-full max-w-3xl flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">{ru.goals.title}</h1>
-          <p className="text-sm text-muted-foreground">{ru.goals.subtitle}</p>
+          <h1 className="text-2xl font-semibold tracking-tight">{strings.goals.title}</h1>
+          <p className="text-sm text-muted-foreground">{strings.goals.subtitle}</p>
         </div>
         <Button onClick={openCreate} data-testid="add-goal">
           <Plus className="size-4" aria-hidden />
-          {ru.goals.add}
+          {strings.goals.add}
         </Button>
       </div>
 
@@ -350,13 +349,13 @@ export default function GoalsPage() {
 
       <Card>
         <CardHeader className="pb-0">
-          <CardTitle className="text-base">{ru.goals.title}</CardTitle>
-          <p className="text-sm text-muted-foreground">{ru.goals.priorityHint}</p>
+          <CardTitle className="text-base">{strings.goals.title}</CardTitle>
+          <p className="text-sm text-muted-foreground">{strings.goals.priorityHint}</p>
         </CardHeader>
         <CardContent className="pt-2">
           {visible.length === 0 ? (
             <p className="py-4 text-sm text-muted-foreground" data-testid="goals-empty">
-              {ru.goals.empty}
+              {strings.goals.empty}
             </p>
           ) : (
             <DndContext
@@ -398,7 +397,7 @@ export default function GoalsPage() {
           data-testid="show-done-goals"
           onChange={(event) => setShowDone(event.target.checked)}
         />
-        {ru.goals.showDone}
+        {strings.goals.showDone}
       </label>
 
       {formOpen ? (
@@ -425,9 +424,9 @@ export default function GoalsPage() {
 
       <ConfirmDialog
         open={pendingDelete !== null}
-        title={ru.goals.deleteConfirmTitle}
-        description={ru.goals.deleteConfirmText}
-        confirmLabel={ru.common.delete}
+        title={strings.goals.deleteConfirmTitle}
+        description={strings.goals.deleteConfirmText}
+        confirmLabel={strings.common.delete}
         destructive
         onConfirm={() => {
           if (pendingDelete) void deleteGoal(pendingDelete.id);

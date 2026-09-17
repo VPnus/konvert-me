@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { markPlanReviewed } from '@/db/repositories/financial-plan';
-import { fill } from '@/features/deductions/fill';
+import { fill } from '@/i18n';
 import type { PlanData } from '@/features/plan/plan-data';
 import { dateInText, t } from '@/features/plan/plan-format';
 import { Muted, PlanCard } from '@/features/plan/plan-parts';

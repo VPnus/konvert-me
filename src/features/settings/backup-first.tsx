@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { downloadBackup, lastBackupLabel } from '@/features/settings/backup-actions';
 import { useSettings } from '@/hooks/use-settings';
-import { ru } from '@/i18n/ru';
+import { strings } from '@/i18n';
 
 /**
  * Inside a dialog that is about to delete or replace data: a backup first, one press away.
@@ -22,7 +22,7 @@ export function BackupFirst() {
       setState('done');
     } catch (cause) {
       setState('idle');
-      setError(cause instanceof Error ? cause.message : ru.common.error);
+      setError(cause instanceof Error ? cause.message : strings.common.error);
     }
   };
 
@@ -31,10 +31,10 @@ export function BackupFirst() {
       className="flex flex-col items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm"
       data-testid="backup-first"
     >
-      <p>{ru.settings.backupFirst.replace('{date}', lastBackupLabel(settings.lastBackupAt))}</p>
+      <p>{strings.settings.backupFirst.replace('{date}', lastBackupLabel(settings.lastBackupAt))}</p>
       {state === 'done' ? (
         <p role="status" className="text-success" data-testid="backup-first-done">
-          {ru.settings.backupFirstDone}
+          {strings.settings.backupFirstDone}
         </p>
       ) : (
         <Button
@@ -44,7 +44,7 @@ export function BackupFirst() {
           data-testid="backup-first-download"
           onClick={() => void save()}
         >
-          {ru.settings.backupFirstAction}
+          {strings.settings.backupFirstAction}
         </Button>
       )}
       {error ? (

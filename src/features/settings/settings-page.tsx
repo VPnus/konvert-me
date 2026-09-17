@@ -1,5 +1,6 @@
 import { BackupCard } from '@/features/settings/cards/backup-card';
 import { CalculationCard } from '@/features/settings/cards/calculation-card';
+import { HandCard } from '@/features/settings/cards/hand-card';
 import { InstallCard } from '@/features/settings/cards/install-card';
 import { PilotCard } from '@/features/settings/cards/pilot-card';
 import { SourcesCard } from '@/features/settings/cards/sources-card';
@@ -16,6 +17,7 @@ export default function SettingsPage() {
 
       <PilotCard />
       <CalculationCard />
+      <HandCard />
       <BackupCard />
       <StorageCard />
       <InstallCard />

@@ -193,7 +193,13 @@ export default function BudgetPage() {
             </CardHeader>
             <CardContent className="flex flex-col gap-3 pt-3">
               <div className="flex flex-wrap items-center gap-2">
-                <Button size="sm" variant="outline" data-testid="copy-plan" onClick={() => void copyPlan()}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-auto min-h-9 py-1.5 text-left whitespace-normal"
+                  data-testid="copy-plan"
+                  onClick={() => void copyPlan()}
+                >
                   <CopyPlus className="size-4" aria-hidden />
                   {ru.budget.copyPrev}
                 </Button>

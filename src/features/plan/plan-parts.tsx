@@ -47,7 +47,14 @@ export function PlanCard({
       <CardHeader className="flex-row items-start justify-between gap-3 space-y-0 pb-3">
         <CardTitle className="text-base">{title}</CardTitle>
         {link ? (
-          <Link to={link.to} className={cn(buttonVariants({ size: 'sm', variant: 'ghost' }), 'shrink-0')}>
+          <Link
+            to={link.to}
+            className={cn(
+              buttonVariants({ size: 'sm', variant: 'ghost' }),
+              // a long label wraps instead of pushing out of a narrow card
+              'h-auto min-h-9 py-1.5 text-right whitespace-normal',
+            )}
+          >
             {link.label}
           </Link>
         ) : null}

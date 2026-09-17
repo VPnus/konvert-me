@@ -115,7 +115,7 @@ function CapitalCard({ data }: { data: BalanceData }) {
         <p className="text-sm text-muted-foreground">{ru.capital.subtitle}</p>
       </CardHeader>
       <CardContent className="pt-3">
-        <div className="mb-2 flex gap-1">
+        <div className="mb-2 flex flex-wrap gap-1">
           {RANGES.map((range) => (
             <Button
               key={range.label}

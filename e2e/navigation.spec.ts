@@ -39,21 +39,21 @@ test('the theme toggle switches between dark and light and survives a reload', a
   const html = page.locator('html');
   await expect(html).toHaveClass(/dark/);
 
-  // The sidebar toggle is hidden on a narrow screen and the header one on a wide screen.
-  await page.locator('[data-testid="theme-toggle"]:visible').first().click();
+  await page.getByTestId('theme-toggle').click();
   await expect(html).not.toHaveClass(/dark/);
 
   await page.reload();
   await expect(html).not.toHaveClass(/dark/);
 });
 
-test('the tab bar above the page walks through every tab', async ({ page }) => {
+test('the tabs walk through every section, above the page or in the column of a phone', async ({ page }) => {
   await page.goto('/overview');
-  const tabs = page.getByTestId('tab-bar');
+  // From a tablet on the tabs stand in the bar above the page, on a phone in a column at the edge.
+  const tabs = page.locator('[data-testid="tab-bar"]:visible, [data-testid="tab-rail"]:visible');
+  await expect(tabs).toHaveCount(1);
 
   for (const tab of TABS) {
-    // On a narrow screen only the open tab keeps its name, so the tabs are found by
-    // the title their links carry at every width.
+    // Not every tab shows its name, so the tabs are found by the title their links carry at every width.
     await tabs.locator(`a[title="${tab.navLabel ?? tab.heading}"]`).click();
     await expect(page).toHaveURL(new RegExp(`${tab.path}$`));
     await expect(page.getByRole('heading', { name: tab.heading, level: 1 })).toBeVisible();
@@ -63,20 +63,52 @@ test('the tab bar above the page walks through every tab', async ({ page }) => {
 test.describe('narrow screen, 375 px', () => {
   test.skip(({ viewport }) => (viewport?.width ?? 0) >= 768, 'this is about the phone layout');
 
-  test('the tab bar fits the width and nothing is pinned to the bottom', async ({ page }) => {
+  test('the tabs stand in a column at the right edge, and at the left one for the left hand', async ({
+    page,
+  }) => {
     await page.goto('/overview');
+    const rail = page.getByTestId('tab-rail');
+    await expect(rail.getByRole('link')).toHaveCount(TABS.length);
+    await expect(page.getByTestId('tab-bar')).toBeHidden();
 
-    await expect(page.getByTestId('tab-bar').getByRole('link')).toHaveCount(TABS.length);
-    await expect(page.locator('nav.fixed')).toHaveCount(0);
+    const width = page.viewportSize()?.width ?? 375;
+    const sides = async () => {
+      const railBox = await rail.boundingBox();
+      const pageBox = await page.getByRole('heading', { level: 1 }).boundingBox();
+      if (!railBox || !pageBox) throw new Error('the tabs or the page are not on the screen');
+      return { railBox, pageBox };
+    };
+
+    // a right hand by default: the column stands at the right edge, the page keeps clear of it
+    let { railBox, pageBox } = await sides();
+    expect(railBox.x + railBox.width).toBeCloseTo(width, 0);
+    expect(pageBox.x + pageBox.width).toBeLessThanOrEqual(railBox.x);
+
+    await page.goto('/settings');
+    await page.getByTestId('hand-left').check();
+    await expect(rail).toHaveAttribute('data-hand', 'left');
+
+    await page.goto('/overview');
+    ({ railBox, pageBox } = await sides());
+    expect(railBox.x).toBeCloseTo(0, 0);
+    expect(pageBox.x).toBeGreaterThanOrEqual(railBox.x + railBox.width);
+
+    // the choice stays on the device
+    await page.reload();
+    await expect(rail).toHaveAttribute('data-hand', 'left');
   });
 
-  test('no horizontal scrolling at 375 px', async ({ page }) => {
-    for (const tab of TABS) {
-      await page.goto(tab.path);
-      const overflow = await page.evaluate(
-        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-      );
-      expect(overflow, `горизонтальная прокрутка на ${tab.path}`).toBeLessThanOrEqual(0);
+  test('no horizontal scrolling at 375 px, whichever hand', async ({ page }) => {
+    for (const hand of ['right', 'left']) {
+      await page.goto('/settings');
+      await page.getByTestId(`hand-${hand}`).check();
+      for (const tab of TABS) {
+        await page.goto(tab.path);
+        const overflow = await page.evaluate(
+          () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        );
+        expect(overflow, `горизонтальная прокрутка на ${tab.path}, рука: ${hand}`).toBeLessThanOrEqual(0);
+      }
     }
   });
 });

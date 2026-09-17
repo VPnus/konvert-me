@@ -75,8 +75,11 @@ async function publish(commit) {
     git(['symbolic-ref', 'HEAD', `refs/heads/${site.branch}`], WORKTREE);
   }
 
+  // The files of earlier versions stay in assets/: their names carry a hash, so nothing is
+  // overwritten, and a page the host or a browser still keeps from before finds its scripts.
   for (const entry of await readdir(WORKTREE)) {
-    if (entry !== '.git') await rm(join(WORKTREE, entry), { recursive: true, force: true });
+    if (entry !== '.git' && entry !== 'assets')
+      await rm(join(WORKTREE, entry), { recursive: true, force: true });
   }
   await cp(DIST, WORKTREE, { recursive: true });
 

@@ -10,7 +10,7 @@ import { useSettingsState } from '@/hooks/use-settings';
 import { DashboardGrid, type SizeUpdate } from '@/features/overview/dashboard-grid';
 import { WidgetCatalog } from '@/features/overview/widget-catalog';
 import { loadOverview } from '@/features/overview/overview-data';
-import { findWidget } from '@/features/overview/widgets/registry';
+import { findWidget, widgetShown } from '@/features/overview/widgets/registry';
 import {
   buildDefaultLayout,
   getDashboardLayout,
@@ -47,7 +47,10 @@ export default function OverviewPage() {
   if (!settings.onboardingDone) return <Navigate to="/welcome" replace />;
   if (!data || !layout) return <p className="text-sm text-muted-foreground">{strings.common.loading}</p>;
 
-  const items = [...layout.items].sort((a, b) => a.order - b.order) as WidgetInstance[];
+  const sorted = [...layout.items].sort((a, b) => a.order - b.order) as WidgetInstance[];
+  const items = sorted.filter((item) => widgetShown(item.widgetType));
+  // A widget of another country waits at the end of the layout until the country is back.
+  const waiting = sorted.filter((item) => !widgetShown(item.widgetType));
 
   /**
    * Every change to the layout goes through one queue. Two arrow presses in a row are
@@ -59,7 +62,8 @@ export default function OverviewPage() {
   };
 
   const persist = (next: WidgetInstance[]) => {
-    enqueue(() => saveDashboardLayout({ ...layout, items: next }));
+    const kept = waiting.map((item, index) => ({ ...item, order: next.length + index }));
+    enqueue(() => saveDashboardLayout({ ...layout, items: [...next, ...kept] }));
   };
 
   /** Resizing reads the layout back first, so a change builds on the saved size. */

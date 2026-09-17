@@ -18,6 +18,7 @@ import type { CardGrace } from '@/core/credit-card';
 import type { Account } from '@/db/models';
 import { deleteAccount, setAccountArchived } from '@/db/repositories/accounts';
 import { strings } from '@/i18n';
+import { currentCountry } from '@/i18n/country';
 import { cn } from '@/lib/utils';
 
 // Recharts is a chunk of its own: the balance screen is useful long before it draws.
@@ -207,7 +208,7 @@ function InsuranceCard({ data }: { data: BalanceData }) {
         ) : null}
 
         <p className="text-[11px] text-muted-foreground">
-          {strings.insurance.limitNote} {strings.insurance.source}:{' '}
+          {strings.insurance.limitNote[currentCountry()]} {strings.insurance.source}:{' '}
           <a href={limit.source} target="_blank" rel="noreferrer noopener" className="underline">
             {new URL(limit.source).hostname}
           </a>

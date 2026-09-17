@@ -21,6 +21,7 @@ import {
 } from '@/db/repositories/income-sources';
 import { useDataVersion } from '@/hooks/use-data-version';
 import { currentLocale, strings } from '@/i18n';
+import { inCurrency } from '@/i18n/format';
 import { parseNumericInput } from '@/lib/numeric-input';
 
 const DATE_FORMAT = new Intl.DateTimeFormat(currentLocale(), { day: 'numeric', month: 'long' });
@@ -142,7 +143,7 @@ export function PaydayCard() {
           )}
         </Field>
 
-        <Field label={strings.income.amount} hint={strings.income.amountHint}>
+        <Field label={inCurrency(strings.income.amount)} hint={strings.income.amountHint}>
           {(id) => (
             <NumberInput
               id={id}

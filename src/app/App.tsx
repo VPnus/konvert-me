@@ -2,10 +2,12 @@ import { Route, Routes } from 'react-router-dom';
 
 import { AppSession } from '@/app/app-session';
 import { AppShell } from '@/app/app-shell';
+import { CountryRoute } from '@/app/country-route';
 import { DatabaseBlockedDialog } from '@/components/common/database-blocked-dialog';
 import { UpdatePrompt } from '@/components/pwa/update-prompt';
 import BalancePage from '@/features/balance/balance-page';
 import BudgetPage from '@/features/budget/budget-page';
+import { DEDUCTION_COUNTRIES } from '@/features/deductions/country';
 import DeductionsPage from '@/features/deductions/deductions-page';
 import GoalsPage from '@/features/goals/goals-page';
 import NotFoundPage from '@/features/not-found-page';
@@ -31,7 +33,14 @@ export default function App() {
             <Route path="/budget" element={<BudgetPage />} />
             <Route path="/goals" element={<GoalsPage />} />
             <Route path="/balance" element={<BalancePage />} />
-            <Route path="/deductions" element={<DeductionsPage />} />
+            <Route
+              path="/deductions"
+              element={
+                <CountryRoute countries={DEDUCTION_COUNTRIES}>
+                  <DeductionsPage />
+                </CountryRoute>
+              }
+            />
             <Route path="/plan" element={<PlanPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="*" element={<NotFoundPage />} />

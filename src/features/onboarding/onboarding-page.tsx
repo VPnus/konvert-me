@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 
+import { COUNTRIES, type Country } from '@/core/country';
 import { formatMinor, rublesToMinor } from '@/core/money';
 import { parseNumericInput } from '@/lib/numeric-input';
 import { addMonths, currentMonth } from '@/core/time';
@@ -15,10 +16,14 @@ import {
   skipOnboarding,
   type OnboardingAnswers,
 } from '@/features/onboarding/complete-onboarding';
+import { changeCountry } from '@/db/repositories/settings';
 import { useSettingsState } from '@/hooks/use-settings';
 import { strings } from '@/i18n';
+import { inCurrency } from '@/i18n/format';
+import { countryChoiceShown } from '@/lib/preview';
 
-const STEPS = 5;
+const QUESTIONS = ['income', 'mandatory', 'variable', 'accounts', 'goal'] as const;
+type Question = 'country' | (typeof QUESTIONS)[number];
 
 type NumericKey =
   | 'incomeRub'
@@ -40,6 +45,12 @@ export default function OnboardingPage() {
   }));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The country comes first: every sum asked after it is in its currency. Hidden until stage 9.5.
+  const [questions] = useState<readonly Question[]>(() =>
+    countryChoiceShown() ? ['country', ...QUESTIONS] : QUESTIONS,
+  );
+  const steps = questions.length;
+  const question = questions[step - 1];
 
   // The fields keep their own text so a half-typed "12," is not thrown away.
   const [debtRate, setDebtRate] = useState('');
@@ -62,6 +73,20 @@ export default function OnboardingPage() {
     rublesToMinor(answers.incomeRub) -
     rublesToMinor(answers.mandatoryRub) -
     rublesToMinor(answers.variableRub);
+
+  /** Another country is written at once: the session draws the page anew, and its sums in its currency. */
+  const chooseCountry = async (country: Country) => {
+    if (country === settings.country) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await changeCountry(country);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : strings.common.error);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const finish = async (skip: boolean) => {
     setBusy(true);
@@ -87,7 +112,9 @@ export default function OnboardingPage() {
         <CatLogo className="size-12 shrink-0" />
         <div>
           <p className="text-lg font-semibold">{strings.app.name}</p>
-          <p className="text-sm text-muted-foreground">{strings.onboarding.intro}</p>
+          <p className="text-sm text-muted-foreground">
+            {questions[0] === 'country' ? strings.onboarding.introWithCountry : strings.onboarding.intro}
+          </p>
         </div>
       </header>
 
@@ -95,20 +122,46 @@ export default function OnboardingPage() {
         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
           <div
             className="h-full rounded-full bg-primary transition-all"
-            style={{ width: `${(step / STEPS) * 100}%` }}
+            style={{ width: `${(step / steps) * 100}%` }}
           />
         </div>
         <span className="text-xs text-muted-foreground">
-          {strings.onboarding.step} {step} {strings.onboarding.of} {STEPS}
+          {strings.onboarding.step} {step} {strings.onboarding.of} {steps}
         </span>
       </div>
 
       <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-5">
-        {step === 1 ? (
+        {question === 'country' ? (
+          <>
+            <h1 className="text-xl font-semibold">{strings.onboarding.countryTitle}</h1>
+            <p className="text-sm text-muted-foreground">{strings.onboarding.countryText}</p>
+            <div
+              role="group"
+              aria-label={strings.onboarding.countryTitle}
+              className="flex flex-col gap-2 sm:flex-row"
+            >
+              {COUNTRIES.map((country) => (
+                <Button
+                  key={country}
+                  variant={country === settings.country ? 'default' : 'outline'}
+                  aria-pressed={country === settings.country}
+                  disabled={busy}
+                  className="h-auto min-h-10 flex-1 py-2 whitespace-normal"
+                  data-testid={`onboarding-country-${country}`}
+                  onClick={() => void chooseCountry(country)}
+                >
+                  {strings.countries[country]}
+                </Button>
+              ))}
+            </div>
+          </>
+        ) : null}
+
+        {question === 'income' ? (
           <>
             <h1 className="text-xl font-semibold">{strings.onboarding.incomeTitle}</h1>
             <p className="text-sm text-muted-foreground">{strings.onboarding.incomeText}</p>
-            <Field label={strings.onboarding.incomeLabel}>
+            <Field label={inCurrency(strings.onboarding.incomeLabel)}>
               {(id) => (
                 <NumberInput
                   id={id}
@@ -122,11 +175,11 @@ export default function OnboardingPage() {
           </>
         ) : null}
 
-        {step === 2 ? (
+        {question === 'mandatory' ? (
           <>
             <h1 className="text-xl font-semibold">{strings.onboarding.mandatoryTitle}</h1>
             <p className="text-sm text-muted-foreground">{strings.onboarding.mandatoryText}</p>
-            <Field label={strings.onboarding.mandatoryLabel}>
+            <Field label={inCurrency(strings.onboarding.mandatoryLabel)}>
               {(id) => (
                 <NumberInput
                   id={id}
@@ -140,11 +193,11 @@ export default function OnboardingPage() {
           </>
         ) : null}
 
-        {step === 3 ? (
+        {question === 'variable' ? (
           <>
             <h1 className="text-xl font-semibold">{strings.onboarding.variableTitle}</h1>
             <p className="text-sm text-muted-foreground">{strings.onboarding.variableText}</p>
-            <Field label={strings.onboarding.variableLabel}>
+            <Field label={inCurrency(strings.onboarding.variableLabel)}>
               {(id) => (
                 <NumberInput
                   id={id}
@@ -165,11 +218,11 @@ export default function OnboardingPage() {
           </>
         ) : null}
 
-        {step === 4 ? (
+        {question === 'accounts' ? (
           <>
             <h1 className="text-xl font-semibold">{strings.onboarding.accountsTitle}</h1>
             <p className="text-sm text-muted-foreground">{strings.onboarding.accountsText}</p>
-            <Field label={strings.onboarding.savingsLabel}>
+            <Field label={inCurrency(strings.onboarding.savingsLabel)}>
               {(id) => (
                 <NumberInput
                   id={id}
@@ -181,7 +234,7 @@ export default function OnboardingPage() {
               )}
             </Field>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label={strings.onboarding.debtBalanceLabel}>
+              <Field label={inCurrency(strings.onboarding.debtBalanceLabel)}>
                 {(id) => (
                   <NumberInput
                     id={id}
@@ -192,7 +245,7 @@ export default function OnboardingPage() {
                   />
                 )}
               </Field>
-              <Field label={strings.onboarding.debtPaymentLabel}>
+              <Field label={inCurrency(strings.onboarding.debtPaymentLabel)}>
                 {(id) => (
                   <NumberInput
                     id={id}
@@ -223,7 +276,7 @@ export default function OnboardingPage() {
           </>
         ) : null}
 
-        {step === 5 ? (
+        {question === 'goal' ? (
           <>
             <h1 className="text-xl font-semibold">{strings.onboarding.goalTitle}</h1>
             <p className="text-sm text-muted-foreground">{strings.onboarding.goalText}</p>
@@ -242,7 +295,7 @@ export default function OnboardingPage() {
               )}
             </Field>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label={strings.onboarding.goalCostLabel}>
+              <Field label={inCurrency(strings.onboarding.goalCostLabel)}>
                 {(id) => (
                   <NumberInput
                     id={id}
@@ -321,7 +374,7 @@ export default function OnboardingPage() {
             </Button>
           ) : null}
 
-          {step < STEPS ? (
+          {step < steps ? (
             <Button onClick={() => setStep((current) => current + 1)} data-testid="onboarding-next">
               {strings.onboarding.next}
             </Button>

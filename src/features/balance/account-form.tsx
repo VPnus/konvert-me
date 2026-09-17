@@ -12,6 +12,8 @@ import { Select } from '@/components/ui/select';
 import { ASSET_TYPES, LIABILITY_TYPES, type Account, type AccountType } from '@/db/models';
 import { createAccount, isLiquidByDefault, updateAccount } from '@/db/repositories/accounts';
 import { strings } from '@/i18n';
+import { currentCountry } from '@/i18n/country';
+import { inCurrency } from '@/i18n/format';
 
 interface AccountFormProps {
   readonly account?: Account;
@@ -221,9 +223,9 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <Field
-                label={
-                  state.side === 'asset' ? strings.accounts.openingBalance : strings.accounts.debtBalance
-                }
+                label={inCurrency(
+                  state.side === 'asset' ? strings.accounts.openingBalance : strings.accounts.debtBalance,
+                )}
               >
                 {(id) => (
                   <NumberInput
@@ -277,7 +279,7 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
                     )}
                   </Field>
 
-                  <Field label={strings.accounts.creditLimit}>
+                  <Field label={inCurrency(strings.accounts.creditLimit)}>
                     {(id) => (
                       <NumberInput
                         id={id}
@@ -316,7 +318,10 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
                     )}
                   </Field>
 
-                  <Field label={strings.accounts.minPaymentRate} hint={strings.accounts.minPaymentHint}>
+                  <Field
+                    label={strings.accounts.minPaymentRate}
+                    hint={strings.accounts.minPaymentHint[currentCountry()]}
+                  >
                     {(id) => (
                       <NumberInput
                         id={id}
@@ -327,7 +332,7 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
                     )}
                   </Field>
 
-                  <Field label={strings.accounts.minPaymentFloor}>
+                  <Field label={inCurrency(strings.accounts.minPaymentFloor)}>
                     {(id) => (
                       <NumberInput
                         id={id}
@@ -338,7 +343,10 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
                     )}
                   </Field>
 
-                  <Field label={strings.accounts.freeTransfers} hint={strings.accounts.freeTransfersHint}>
+                  <Field
+                    label={inCurrency(strings.accounts.freeTransfers)}
+                    hint={strings.accounts.freeTransfersHint}
+                  >
                     {(id) => (
                       <NumberInput
                         id={id}
@@ -380,7 +388,7 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
                   )}
                 </Field>
 
-                <Field label={`${strings.accounts.monthlyPayment} (${strings.common.optional})`}>
+                <Field label={`${inCurrency(strings.accounts.monthlyPayment)} (${strings.common.optional})`}>
                   {(id) => (
                     <NumberInput
                       id={id}

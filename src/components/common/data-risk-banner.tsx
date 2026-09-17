@@ -6,6 +6,7 @@ import { updateSettings } from '@/db/repositories/settings';
 import { useDataVersion } from '@/hooks/use-data-version';
 import { useSettingsState } from '@/hooks/use-settings';
 import { strings } from '@/i18n';
+import { currentCountry } from '@/i18n/country';
 import { dataRisk, type DataRisk } from '@/lib/data-risk';
 import { formatBytes, getStorageStatus, type StorageStatus } from '@/lib/persist';
 import { detectPlatform, looksPrivate } from '@/lib/platform';
@@ -17,7 +18,7 @@ function textOf(risk: DataRisk): string {
     case 'private':
       return t.private;
     case 'space':
-      return t.space
+      return t.space[currentCountry()]
         .replace('{usage}', formatBytes(risk.usageBytes))
         .replace('{quota}', formatBytes(risk.quotaBytes));
     case 'safari':

@@ -11,6 +11,7 @@ import { Select } from '@/components/ui/select';
 import type { AppSettings, Goal } from '@/db/models';
 import { createGoal, updateGoal } from '@/db/repositories/goals';
 import { strings } from '@/i18n';
+import { inCurrency } from '@/i18n/format';
 import { parseNumericInput } from '@/lib/numeric-input';
 
 /** Every kind but the reserve: the reserve is created once by the app itself. */
@@ -147,7 +148,7 @@ export function GoalForm({ goal, settings, open, onOpenChange }: GoalFormProps) 
             )}
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label={strings.goals.cost}>
+              <Field label={inCurrency(strings.goals.cost)}>
                 {(id) => (
                   <NumberInput
                     id={id}

@@ -7,14 +7,16 @@ import { ErrorBoundary } from '@/components/common/error-boundary';
 import { UpdatedNotice } from '@/components/pwa/updated-notice';
 import { CatLogo } from '@/components/brand/cat-logo';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
-import { NAV_ITEMS } from '@/app/navigation';
+import { navItemsFor, type NavItem } from '@/app/navigation';
 import { CardReminderBanner } from '@/features/balance/card-reminder-banner';
+import { deductionsAvailable } from '@/features/deductions/country';
 import { DeductionReminderBanner } from '@/features/deductions/deduction-reminder';
 import { ReportProblemButton } from '@/features/feedback/report-problem';
 import { PlanReviewReminderBanner } from '@/features/plan/review-reminder';
 import { PilotReminderBanner } from '@/features/settings/pilot-reminder';
 import { useHand } from '@/hooks/use-hand';
 import { strings } from '@/i18n';
+import { currentCountry } from '@/i18n/country';
 import type { Hand } from '@/lib/hand';
 import { listenForErrors } from '@/lib/last-error';
 import { cn } from '@/lib/utils';
@@ -27,10 +29,10 @@ const tabActive = 'bg-primary/15 text-primary hover:bg-primary/20 hover:text-pri
  * From a tablet on, the tabs live in one bar above the page; on a laptop every tab keeps its name,
  * below that only the open one does.
  */
-function TabBar() {
+function TabBar({ items }: { items: readonly NavItem[] }) {
   return (
     <nav aria-label={strings.nav.mainMenu} className="flex items-center gap-1" data-testid="tab-bar">
-      {NAV_ITEMS.map((item) => (
+      {items.map((item) => (
         <NavLink
           key={item.to}
           to={item.to}
@@ -59,7 +61,7 @@ const RAIL_SIDE: Record<Hand, { readonly rail: string; readonly page: string }> 
  * On a phone the tabs stand in a column along the edge of the hand that holds it, at the bottom of
  * the screen where the thumb reaches; the settings move them to the left for the left hand.
  */
-function TabRail({ hand }: { hand: Hand }) {
+function TabRail({ hand, items }: { hand: Hand; items: readonly NavItem[] }) {
   return (
     <nav
       aria-label={strings.nav.mainMenu}
@@ -70,7 +72,7 @@ function TabRail({ hand }: { hand: Hand }) {
         RAIL_SIDE[hand].rail,
       )}
     >
-      {NAV_ITEMS.map((item) => (
+      {items.map((item) => (
         <NavLink
           key={item.to}
           to={item.to}
@@ -92,6 +94,8 @@ function TabRail({ hand }: { hand: Hand }) {
 
 export function AppShell() {
   const hand = useHand();
+  // The session draws the shell anew when the country changes, so it is read as the page is drawn.
+  const items = navItemsFor(currentCountry());
   // A message about a problem may carry the last error, the ones no screen caught included.
   useEffect(() => listenForErrors(), []);
 
@@ -105,7 +109,7 @@ export function AppShell() {
           </NavLink>
 
           <div className="hidden min-w-0 flex-1 md:block">
-            <TabBar />
+            <TabBar items={items} />
           </div>
 
           <div className="flex shrink-0 items-center">
@@ -115,7 +119,7 @@ export function AppShell() {
         </div>
       </header>
 
-      <TabRail hand={hand} />
+      <TabRail hand={hand} items={items} />
 
       <main
         className={cn(
@@ -128,7 +132,7 @@ export function AppShell() {
           <DataRiskBanner />
           <CardReminderBanner />
           <BackupReminder />
-          <DeductionReminderBanner />
+          {deductionsAvailable() ? <DeductionReminderBanner /> : null}
           <PlanReviewReminderBanner />
           <PilotReminderBanner />
           <Outlet />

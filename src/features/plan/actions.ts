@@ -4,13 +4,16 @@
  */
 
 import type { ReserveState } from '@/core/balance';
+import type { Country } from '@/core/country';
 import type { CardGrace } from '@/core/credit-card';
 import type { IsoDate } from '@/core/time';
 import type { Account, AppSettings, InsurancePolicy } from '@/db/models';
 import { holdsMoney } from '@/db/repositories/accounts';
 import { RESERVE_GOAL_ID } from '@/db/repositories/goals';
+import { deductionsAvailable } from '@/features/deductions/country';
 import type { GoalView } from '@/features/goals/goals-data';
 import { debtQueue, savingsBenchmark } from '@/features/plan/debts';
+import { currentCountry } from '@/i18n/country';
 
 export type PlanAction =
   | {
@@ -50,6 +53,8 @@ export interface PlanActionsParams {
   readonly cards?: ReadonlyMap<string, CardGrace>;
   /** Formula 8: the free money of a usual month less the principal due; below zero nothing is left for goals. */
   readonly availableMinor?: number;
+  /** The country of the data: the deductions are a step only where they exist. */
+  readonly country?: Country;
 }
 
 export function planActions({
@@ -61,6 +66,7 @@ export function planActions({
   balances = new Map(),
   cards = new Map(),
   availableMinor = 0,
+  country = currentCountry(),
 }: PlanActionsParams): PlanAction[] {
   const actions: PlanAction[] = [];
   const debts = debtQueue({
@@ -129,6 +135,7 @@ export function planActions({
     }
   }
 
-  actions.push({ key: 'deductions', kind: 'deductions', to: '/deductions' });
+  if (deductionsAvailable(country))
+    actions.push({ key: 'deductions', kind: 'deductions', to: '/deductions' });
   return actions;
 }

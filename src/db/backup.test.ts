@@ -4,6 +4,7 @@ import { db } from '@/db/db';
 import { RepositoryError, ValidationError } from '@/db/errors';
 import {
   BACKUP_FORMAT,
+  backupCountry,
   backupFileName,
   clearAllData,
   collectBackup,
@@ -18,7 +19,7 @@ import { seedDefaultCategories } from '@/db/repositories/categories';
 import { getDeductionYear, saveDeductionYear } from '@/db/repositories/deductions';
 import { getFinancialPlan, saveEducationPlan, setRiskProfile } from '@/db/repositories/financial-plan';
 import { addDocument, listDocuments, readDocumentContent } from '@/db/repositories/documents';
-import { getSettings } from '@/db/repositories/settings';
+import { changeCountry, getSettings } from '@/db/repositories/settings';
 import { CryptoError } from '@/lib/crypto';
 
 const RUB = 100;
@@ -166,6 +167,46 @@ describe('backup: a broken file never reaches the database', () => {
       JSON.stringify({ ...backup, schemaVersion: 7, data: { ...backup.data, categories: [] } }),
     );
     expect(bare.data.categories).toEqual([]);
+  });
+
+  it('puts a file of schema 8 in Russia, and a file without settings too', async () => {
+    await seed();
+    const backup = await collectBackup();
+    const older: Record<string, unknown> = { ...backup.data.settings[0] };
+    delete older.country;
+
+    const parsed = await parseBackup(
+      JSON.stringify({ ...backup, schemaVersion: 8, data: { ...backup.data, settings: [older] } }),
+    );
+    expect(parsed.data.settings[0].country).toBe('ru');
+    expect(backupCountry(parsed)).toBe('ru');
+
+    const bare = await parseBackup(JSON.stringify({ ...backup, data: { ...backup.data, settings: [] } }));
+    expect(backupCountry(bare)).toBe('ru');
+  });
+
+  it('carries the country and the currency through export and import', async () => {
+    await seed();
+    await changeCountry('us');
+    const backup = await parseBackup(await serializeBackup(await collectBackup()));
+    expect(backupCountry(backup)).toBe('us');
+
+    await clearAllData();
+    await restoreBackup(backup);
+    expect((await getSettings()).country).toBe('us');
+    expect((await db.accounts.toArray()).map((account) => account.currency)).toEqual(['USD', 'USD']);
+  });
+
+  it('refuses an account kept in a currency other than the one of the country of the file', async () => {
+    await seed();
+    const backup = await collectBackup();
+    const accounts = backup.data.accounts.map((account) =>
+      account.name === 'Карта' ? { ...account, currency: 'USD' } : account,
+    );
+    const mixed = { ...backup, data: { ...backup.data, accounts } };
+
+    await expect(parseBackup(JSON.stringify(mixed))).rejects.toThrow(/Карта/);
+    expect(await db.accounts.count()).toBe(2);
   });
 
   it('rejects a file from a newer schema', async () => {

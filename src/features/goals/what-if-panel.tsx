@@ -16,6 +16,7 @@ import { updateGoal } from '@/db/repositories/goals';
 import { monthLabel } from '@/features/budget/month-label';
 import { monthsLabel } from '@/features/goals/months-label';
 import { strings } from '@/i18n';
+import { inCurrency } from '@/i18n/format';
 import { percentLabel } from '@/i18n/format';
 
 const MIN_MONTHS = 1;
@@ -116,7 +117,7 @@ export function WhatIfPanel({ goal, savedMinor }: WhatIfPanelProps) {
 
       <label className="flex flex-col gap-1 text-xs">
         <span className="flex justify-between">
-          <span>{strings.goals.cost}</span>
+          <span>{inCurrency(strings.goals.cost)}</span>
           <span className="font-medium tabular-nums">{formatForecast(costMinor)}</span>
         </span>
         <Slider
@@ -125,7 +126,7 @@ export function WhatIfPanel({ goal, savedMinor }: WhatIfPanelProps) {
           step={1000}
           value={costRub}
           data-testid="what-if-cost"
-          aria-label={strings.goals.cost}
+          aria-label={inCurrency(strings.goals.cost)}
           onValueChange={setCostRub}
         />
       </label>

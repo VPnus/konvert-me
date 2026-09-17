@@ -4,6 +4,7 @@
  */
 
 import { accountBalanceMinor, envelopesFitAccount } from '@/core/balance';
+import { COUNTRY_CURRENCY } from '@/core/country';
 import type { CoreAccount, CoreTransaction } from '@/core/types';
 import { todayIso } from '@/core/time';
 import { db } from '@/db/db';
@@ -15,6 +16,7 @@ import {
   type Account,
   type AccountType,
 } from '@/db/models';
+import { getCountry } from '@/db/repositories/settings';
 import { parseOrThrow } from '@/db/validate';
 import { strings } from '@/i18n';
 import { publishAppEvent } from '@/lib/broadcast';
@@ -67,7 +69,7 @@ export async function createAccount(input: AccountInput): Promise<Account> {
     {
       ...input,
       id: newId(),
-      currency: 'RUB',
+      currency: COUNTRY_CURRENCY[await getCountry()],
       openingDate: input.openingDate ?? todayIso(),
       isLiquid: input.isLiquid ?? isLiquidByDefault(input.type),
       archived: false,
@@ -88,7 +90,7 @@ export async function updateAccount(id: string, patch: Partial<AccountInput>): P
 
   const next = parseOrThrow(
     accountSchema,
-    { ...current, ...patch, id: current.id, currency: 'RUB', updatedAt: Date.now() },
+    { ...current, ...patch, id: current.id, currency: current.currency, updatedAt: Date.now() },
     strings.data.subjects.account,
   );
 

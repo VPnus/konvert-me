@@ -1,20 +1,29 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { backupCountry, summarizeBackup, type BackupFile } from '@/db/backup';
 import { fill, strings } from '@/i18n';
+import { currentCountry } from '@/i18n/country';
 import { useSettings } from '@/hooks/use-settings';
 import {
   downloadBackup,
   fileNeedsPassword,
-  importBackupFile,
+  importBackup,
   lastBackupLabel,
+  readBackupFile,
   wipeEverything,
 } from '@/features/settings/backup-actions';
 import { BackupFirst } from '@/features/settings/backup-first';
+
+/**
+ * The report of an import that brought another country. The session draws every screen anew for it,
+ * this card included, and the card that comes back shows the report kept here.
+ */
+let reportAfterRedraw: string | null = null;
 
 export function BackupCard() {
   const settings = useSettings();
@@ -22,12 +31,18 @@ export function BackupCard() {
 
   const [password, setPassword] = useState('');
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+  // The file read before it replaces anything, so its country is known in time for the warning.
+  const [pendingBackup, setPendingBackup] = useState<BackupFile | null>(null);
   const [importPassword, setImportPassword] = useState('');
   const [needsPassword, setNeedsPassword] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(() => reportAfterRedraw);
   const [error, setError] = useState<string | null>(null);
   const [wipeOpen, setWipeOpen] = useState(false);
+
+  useEffect(() => {
+    reportAfterRedraw = null;
+  }, []);
 
   const exportNow = async () => {
     setError(null);
@@ -44,8 +59,11 @@ export function BackupCard() {
     if (!file) return;
     setError(null);
     setMessage(null);
-    setNeedsPassword(await fileNeedsPassword(file));
+    const encrypted = await fileNeedsPassword(file);
+    setNeedsPassword(encrypted);
     setImportPassword('');
+    // A broken file is refused on confirmation, as before; an encrypted one is read with its password.
+    setPendingBackup(encrypted ? null : await readBackupFile(file).catch(() => null));
     setPendingFile(file);
   };
 
@@ -54,13 +72,23 @@ export function BackupCard() {
     setBusy(true);
     setError(null);
     try {
-      const summary = await importBackupFile(pendingFile, importPassword || undefined);
-      setMessage(
-        `${strings.settings.backupImported} ${fill(strings.settings.backupImportedCount, { count: summary.total })}`,
-      );
+      const backup = pendingBackup ?? (await readBackupFile(pendingFile, importPassword || undefined));
+      const otherCountry = backupCountry(backup) !== currentCountry();
+      if (otherCountry && !pendingBackup) {
+        // An encrypted copy names its country only now: the warning is read before the data is replaced.
+        setPendingBackup(backup);
+        return;
+      }
+
+      const report = `${strings.settings.backupImported} ${fill(strings.settings.backupImportedCount, { count: summarizeBackup(backup).total })}`;
+      if (otherCountry) reportAfterRedraw = report;
+      await importBackup(backup);
+      setMessage(report);
       setPendingFile(null);
+      setPendingBackup(null);
       if (fileInput.current) fileInput.current.value = '';
     } catch (cause) {
+      reportAfterRedraw = null;
       setError(cause instanceof Error ? cause.message : strings.common.error);
     } finally {
       setBusy(false);
@@ -159,10 +187,22 @@ export function BackupCard() {
         busy={busy}
         onConfirm={() => void confirmImport()}
         onOpenChange={(open) => {
-          if (!open) setPendingFile(null);
+          if (open) return;
+          setPendingFile(null);
+          setPendingBackup(null);
         }}
       >
         <div className="flex flex-col gap-3">
+          {pendingBackup && backupCountry(pendingBackup) !== currentCountry() ? (
+            <p
+              className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm"
+              data-testid="backup-country-warning"
+            >
+              {fill(strings.settings.backupCountry, {
+                country: strings.countries[backupCountry(pendingBackup)],
+              })}
+            </p>
+          ) : null}
           <BackupFirst />
           {needsPassword ? (
             <Field label={strings.settings.backupImportPassword}>

@@ -17,6 +17,7 @@ import { educationView, type EducationView } from '@/features/plan/calculations'
 import { monthInText, rateText, rubles, t } from '@/features/plan/plan-format';
 import { Muted, Row } from '@/features/plan/plan-parts';
 import { fill, strings } from '@/i18n';
+import { inCurrency } from '@/i18n/format';
 import { parseNumericInput } from '@/lib/numeric-input';
 
 const e = t.education;
@@ -226,7 +227,7 @@ export function EducationCard({ item, savedMinor, goalName, settings, onDone }: 
               />
             )}
           </Field>
-          <Field label={e.yearlyCost} hint={e.yearlyCostHint}>
+          <Field label={inCurrency(e.yearlyCost)} hint={e.yearlyCostHint}>
             {(id) => (
               <NumberInput
                 id={id}

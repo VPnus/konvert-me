@@ -15,6 +15,7 @@ import { createPolicy, deletePolicy, updatePolicy } from '@/db/repositories/poli
 import { daysLabel } from '@/features/balance/days-label';
 import { fullDateLabel } from '@/features/balance/card-view';
 import { strings } from '@/i18n';
+import { inCurrency } from '@/i18n/format';
 import { parseNumericInput } from '@/lib/numeric-input';
 
 interface FormState {
@@ -156,7 +157,7 @@ export function PoliciesCard({ policies }: PoliciesCardProps) {
 
       <div className="grid gap-3 sm:grid-cols-2">
         <Field
-          label={`${strings.policies.sumInsured} (${strings.common.optional})`}
+          label={`${inCurrency(strings.policies.sumInsured)} (${strings.common.optional})`}
           hint={strings.policies.sumInsuredHint}
         >
           {(id) => (
@@ -169,7 +170,7 @@ export function PoliciesCard({ policies }: PoliciesCardProps) {
           )}
         </Field>
 
-        <Field label={`${strings.policies.premium} (${strings.common.optional})`}>
+        <Field label={`${inCurrency(strings.policies.premium)} (${strings.common.optional})`}>
           {(id) => (
             <NumberInput
               id={id}

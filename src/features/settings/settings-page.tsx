@@ -1,11 +1,13 @@
 import { BackupCard } from '@/features/settings/cards/backup-card';
 import { CalculationCard } from '@/features/settings/cards/calculation-card';
+import { CountryCard } from '@/features/settings/cards/country-card';
 import { HandCard } from '@/features/settings/cards/hand-card';
 import { InstallCard } from '@/features/settings/cards/install-card';
 import { PilotCard } from '@/features/settings/cards/pilot-card';
 import { SourcesCard } from '@/features/settings/cards/sources-card';
 import { StorageCard } from '@/features/settings/cards/storage-card';
 import { strings } from '@/i18n';
+import { countryChoiceShown } from '@/lib/preview';
 
 export default function SettingsPage() {
   return (
@@ -16,6 +18,7 @@ export default function SettingsPage() {
       </div>
 
       <PilotCard />
+      {countryChoiceShown() ? <CountryCard /> : null}
       <CalculationCard />
       <HandCard />
       <BackupCard />

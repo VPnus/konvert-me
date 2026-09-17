@@ -5,6 +5,8 @@
 
 import { z } from 'zod';
 
+import type { Country } from '@/core/country';
+import { DEDUCTION_COUNTRIES } from '@/features/deductions/country';
 import {
   DebtBurdenWidget,
   FreeCashWidget,
@@ -18,6 +20,7 @@ import { UpcomingWidget } from '@/features/overview/widgets/upcoming-widget';
 import { LinksWidget, NewsWidget } from '@/features/overview/widgets/source-widgets';
 import type { WidgetDefinition } from '@/features/overview/widgets/types';
 import { strings } from '@/i18n';
+import { currentCountry } from '@/i18n/country';
 
 export const goalWidgetSettingsSchema = z.object({ goalId: z.string().optional() });
 
@@ -70,6 +73,7 @@ export const WIDGET_REGISTRY: readonly WidgetDefinition[] = [
     sizes: ['M', 'L'],
     defaultSize: 'M',
     Component: DeductionsWidget,
+    countries: DEDUCTION_COUNTRIES,
   },
   {
     type: 'net-worth',
@@ -123,4 +127,18 @@ export const WIDGET_REGISTRY: readonly WidgetDefinition[] = [
 
 export function findWidget(type: string): WidgetDefinition | undefined {
   return WIDGET_REGISTRY.find((widget) => widget.type === type);
+}
+
+/**
+ * Whether a widget of the layout is shown in the country of the data. A widget of another country
+ * stays in the layout and is back with its country; a type the registry does not know is shown as
+ * before, by its name.
+ */
+export function widgetShown(type: string, country: Country = currentCountry()): boolean {
+  return findWidget(type)?.countries?.includes(country) ?? true;
+}
+
+/** The catalog of the country of the data. */
+export function widgetsFor(country: Country = currentCountry()): WidgetDefinition[] {
+  return WIDGET_REGISTRY.filter((widget) => widgetShown(widget.type, country));
 }

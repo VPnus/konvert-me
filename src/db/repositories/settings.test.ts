@@ -3,12 +3,21 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '@/db/db';
 import { ValidationError } from '@/db/errors';
 import { DEFAULT_SETTINGS, SCHEMA_VERSION } from '@/db/models';
-import { getSettings, isBackupDue, markBackupDone, updateSettings } from '@/db/repositories/settings';
+import { createAccount } from '@/db/repositories/accounts';
+import {
+  changeCountry,
+  getCountry,
+  getSettings,
+  isBackupDue,
+  markBackupDone,
+  updateSettings,
+} from '@/db/repositories/settings';
 
 const DAY = 24 * 60 * 60 * 1000;
 
 beforeEach(async () => {
   await db.settings.clear();
+  await db.accounts.clear();
 });
 
 describe('settings', () => {
@@ -46,6 +55,51 @@ describe('settings', () => {
   it('remembers the date of the last backup', async () => {
     const settings = await markBackupDone(1_700_000_000_000);
     expect(settings.lastBackupAt).toBe(1_700_000_000_000);
+  });
+});
+
+describe('settings: the country of the data', () => {
+  it('is Russia until another is chosen, and reading it writes nothing', async () => {
+    expect(await getCountry()).toBe('ru');
+    expect(await db.settings.count()).toBe(0);
+    expect((await getSettings()).country).toBe('ru');
+  });
+
+  it('fills the country of a row kept before it was asked', async () => {
+    const older: Record<string, unknown> = { ...DEFAULT_SETTINGS };
+    delete older.country;
+    await db.settings.put(older as typeof DEFAULT_SETTINGS);
+    expect((await getSettings()).country).toBe('ru');
+  });
+
+  it('takes the accounts to the currency of the new country and leaves every sum as it was', async () => {
+    const card = await createAccount({
+      name: 'Карта',
+      side: 'asset',
+      type: 'debit',
+      openingBalanceMinor: 100_000_00,
+    });
+    expect(card.currency).toBe('RUB');
+
+    const settings = await changeCountry('us');
+    expect(settings.country).toBe('us');
+    expect(await getCountry()).toBe('us');
+    expect(await db.accounts.get(card.id)).toMatchObject({
+      currency: 'USD',
+      openingBalanceMinor: 100_000_00,
+    });
+
+    // an account opened there is in dollars from the start
+    const cash = await createAccount({
+      name: 'Cash',
+      side: 'asset',
+      type: 'cash',
+      openingBalanceMinor: 50_00,
+    });
+    expect(cash.currency).toBe('USD');
+
+    await changeCountry('ru');
+    expect((await db.accounts.toArray()).map((account) => account.currency)).toEqual(['RUB', 'RUB']);
   });
 });
 

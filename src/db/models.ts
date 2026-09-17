@@ -7,6 +7,7 @@
 
 import { z } from 'zod';
 
+import { COUNTRIES, CURRENCIES, DEFAULT_COUNTRY } from '@/core/country';
 import { RISK_PROFILES } from '@/core/portfolio';
 import { isIsoDate, isIsoMonth } from '@/core/time';
 import { fill, strings } from '@/i18n';
@@ -14,7 +15,7 @@ import { fill, strings } from '@/i18n';
 /** The refusals of the checks, in the language of the page. */
 const invalid = strings.data.validation;
 
-export const SCHEMA_VERSION = 8;
+export const SCHEMA_VERSION = 9;
 
 const isoDate = z.string().refine(isIsoDate, { message: invalid.date });
 const isoMonth = z.string().refine(isIsoMonth, { message: invalid.month });
@@ -60,7 +61,8 @@ export const accountSchema = z
     name,
     side: z.enum(['asset', 'liability']),
     type: z.enum([...ASSET_TYPES, ...LIABILITY_TYPES]),
-    currency: z.literal('RUB'),
+    /** Schema 9: the currency of the country of the data; one for all the accounts. */
+    currency: z.enum(CURRENCIES),
     openingBalanceMinor: minor,
     openingDate: isoDate,
     isLiquid: z.boolean(),
@@ -552,6 +554,8 @@ export const settingsSchema = z.object({
     .default(null),
   /** Schema 8: the reminders of a credit card hidden, as 'kind:account:date'; the newest are kept. */
   cardRemindersDismissed: z.array(z.string().max(120)).max(50).default([]),
+  /** Schema 9: the country of the data, its currency, norms and tabs; data kept before lived in Russia. */
+  country: z.enum(COUNTRIES).default(DEFAULT_COUNTRY),
   schemaVersion: z.number().int().positive(),
 });
 
@@ -594,6 +598,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   deductionReminderDismissed: null,
   dataRiskDismissed: null,
   cardRemindersDismissed: [],
+  country: DEFAULT_COUNTRY,
   schemaVersion: SCHEMA_VERSION,
 };
 

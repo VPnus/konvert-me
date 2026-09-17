@@ -11,6 +11,7 @@ import {
   restoreBackup,
   serializeBackup,
   clearAllData,
+  type BackupFile,
   type RestoreSummary,
 } from '@/db/backup';
 import { markBackupDone } from '@/db/repositories/settings';
@@ -33,8 +34,12 @@ export async function fileNeedsPassword(file: File): Promise<boolean> {
   return isEncryptedBackup(await file.text());
 }
 
-export async function importBackupFile(file: File, password?: string): Promise<RestoreSummary> {
-  const backup = await parseBackup(await file.text(), password);
+/** Reads and checks a file without touching the data: what it holds is shown before it replaces anything. */
+export async function readBackupFile(file: File, password?: string): Promise<BackupFile> {
+  return parseBackup(await file.text(), password);
+}
+
+export async function importBackup(backup: BackupFile): Promise<RestoreSummary> {
   const summary = await restoreBackup(backup);
   publishAppEvent({ type: 'data-replaced' });
   return summary;

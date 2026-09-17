@@ -4,7 +4,9 @@ import { formatMinor } from '@/core/money';
 import { daysLabel } from '@/features/balance/days-label';
 import { monthsLabel } from '@/features/goals/months-label';
 import { strings } from '@/i18n';
+import { setCurrentCountry } from '@/i18n/country';
 import { en } from '@/i18n/en';
+import { inCurrency } from '@/i18n/format';
 import { LANGUAGE_STORAGE_KEY, readLanguage, setLanguageForTests, writeLanguage } from '@/i18n/locale';
 import { pluralForm } from '@/i18n/plural';
 import { ru } from '@/i18n/ru';
@@ -43,7 +45,10 @@ function wordsOf(node: unknown, path = ''): [string, string][] {
 
 const placeholders = (text: string) => [...text.matchAll(/\{(\w+)\}/g)].map((match) => match[1]).sort();
 
-afterEach(() => setLanguageForTests('ru'));
+afterEach(() => {
+  setLanguageForTests('ru');
+  setCurrentCountry('ru');
+});
 
 describe('the language of the page', () => {
   it('is Russian unless another one is saved on the device', () => {
@@ -100,6 +105,12 @@ describe('the formats', () => {
     expect(formatMinor(150_050, { withCurrency: false })).toMatch(/^1\s500,50$/);
     setLanguageForTests('en');
     expect(formatMinor(150_050, { withCurrency: false })).toBe('1,500.50');
+  });
+
+  it('put the sign of the currency of the country into the label of a sum', () => {
+    expect(inCurrency(strings.operations.amount)).toBe('Сумма, ₽');
+    setCurrentCountry('us');
+    expect(inCurrency(strings.operations.amount)).toBe('Сумма, $');
   });
 });
 

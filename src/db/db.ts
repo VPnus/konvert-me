@@ -4,6 +4,7 @@
 
 import Dexie, { type Table } from 'dexie';
 
+import { DEFAULT_COUNTRY } from '@/core/country';
 import type {
   Account,
   AppSettings,
@@ -116,6 +117,19 @@ export class KonvertDatabase extends Dexie {
         const added = categoriesOfSchema8(await categories.toArray());
         if (added.length > 0) await categories.bulkAdd(added);
       });
+
+    // v9 keeps the country of the data in the settings. Everyone who had data lived in Russia, and every
+    // account of theirs is already in rubles. No table or index changes.
+    this.version(9)
+      .stores({})
+      .upgrade((transaction) =>
+        transaction
+          .table('settings')
+          .toCollection()
+          .modify((record: Record<string, unknown>) => {
+            if (record.country === undefined) record.country = DEFAULT_COUNTRY;
+          }),
+      );
   }
 }
 

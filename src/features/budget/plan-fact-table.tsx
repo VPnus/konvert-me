@@ -7,6 +7,7 @@ import type { Category } from '@/db/models';
 import { setPlan } from '@/db/repositories/budget-plans';
 import type { BudgetMonthData } from '@/features/budget/budget-data';
 import { strings } from '@/i18n';
+import { inCurrency } from '@/i18n/format';
 import { parseNumericInput } from '@/lib/numeric-input';
 
 /** Money without the currency sign: the sign lives in the column heading. */
@@ -160,9 +161,9 @@ export function PlanFactTable({ data }: PlanFactTableProps) {
           <tbody key={group.key} data-testid={`group-${group.key}`}>
             <tr className="border-b border-border/60 text-[11px] text-muted-foreground">
               <th className="pt-5 pb-1 text-left font-semibold uppercase tracking-wide">{group.title}</th>
-              <th className="pt-5 pr-1 pb-1 text-right font-medium">{strings.budget.plan}, ₽</th>
-              <th className="pt-5 pr-1 pb-1 text-right font-medium">{group.factLabel}, ₽</th>
-              <th className="pt-5 pb-1 text-right font-medium">{strings.budget.remaining}, ₽</th>
+              <th className="pt-5 pr-1 pb-1 text-right font-medium">{inCurrency(strings.budget.plan)}</th>
+              <th className="pt-5 pr-1 pb-1 text-right font-medium">{inCurrency(group.factLabel)}</th>
+              <th className="pt-5 pb-1 text-right font-medium">{inCurrency(strings.budget.remaining)}</th>
             </tr>
 
             {group.categories.map((category) => {

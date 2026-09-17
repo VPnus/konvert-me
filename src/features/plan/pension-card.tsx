@@ -14,6 +14,7 @@ import { pensionView, type PensionView } from '@/features/plan/calculations';
 import { monthInText, rateText, rubles, t } from '@/features/plan/plan-format';
 import { Muted, Row } from '@/features/plan/plan-parts';
 import { fill, strings } from '@/i18n';
+import { inCurrency } from '@/i18n/format';
 import { parseNumericInput } from '@/lib/numeric-input';
 
 const p = t.pension;
@@ -287,9 +288,9 @@ export function PensionCard({
           </Field>
           {number('retirementAge', p.retirementAge, 'pension-retirement-age', { integer: true })}
           {number('lifeAge', p.lifeAge, 'pension-life-age', { integer: true, hint: p.lifeAgeHint })}
-          {number('expenses', p.expenses, 'pension-expenses', { hint: p.expensesHint })}
+          {number('expenses', inCurrency(p.expenses), 'pension-expenses', { hint: p.expensesHint })}
           {number('replacement', p.replacement, 'pension-replacement', { hint: p.replacementHint })}
-          {number('statePension', p.statePension, 'pension-state', { hint: p.statePensionHint })}
+          {number('statePension', inCurrency(p.statePension), 'pension-state', { hint: p.statePensionHint })}
           {number('returnRate', p.returnRate, 'pension-return')}
           {number('inflationRate', p.inflationRate, 'pension-inflation')}
           <Field label={p.strategy} className="sm:col-span-2">

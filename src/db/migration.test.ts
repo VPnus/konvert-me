@@ -264,7 +264,7 @@ describe('schema migration', () => {
     const v8 = new KonvertDatabase(withData);
     opened.push(v8);
     await v8.open();
-    expect(v8.verno).toBe(8);
+    expect(v8.verno).toBeGreaterThanOrEqual(8);
     expect(await v8.categories.get('subscriptions')).toEqual({
       id: 'subscriptions',
       name: 'Подписки и комиссии',
@@ -284,6 +284,64 @@ describe('schema migration', () => {
     opened.push(fresh);
     await fresh.open();
     expect(await fresh.categories.count()).toBe(0);
+  });
+
+  it('puts the data of schema 8 in Russia when schema 9 arrives, and changes nothing else', async () => {
+    const schema8 = (database: Dexie) => {
+      database.version(1).stores(V1_STORES);
+      database
+        .version(2)
+        .stores({ links: 'id, sortOrder', feeds: 'id, enabled', feedItems: 'id, feedId, publishedAt' });
+      database.version(3).stores({ incomeSources: 'id, sortOrder, archived' });
+      database.version(4).stores({ policies: 'id, endDate, archived' });
+      database
+        .version(5)
+        .stores({ deductionYears: 'year, status', documents: 'id, year, category', documentFiles: 'id' });
+      database.version(6).stores({ financialPlans: 'id' });
+      database.version(7).stores({});
+      database.version(8).stores({});
+    };
+    const settings = {
+      id: 'app',
+      inflationRate: 0.08,
+      defaultReturnRate: 0.1,
+      reserveTargetMonths: 6,
+      onboardingDone: true,
+      lastBackupAt: null,
+      backupReminderDays: 30,
+      storagePersisted: true,
+      externalFeedsEnabled: false,
+      deductionReminderDismissed: null,
+      dataRiskDismissed: null,
+      cardRemindersDismissed: [],
+      schemaVersion: 8,
+    };
+    const account = {
+      id: 'a1',
+      name: 'Карта',
+      side: 'asset',
+      type: 'debit',
+      currency: 'RUB',
+      openingBalanceMinor: 10_000_000,
+      openingDate: '2026-01-01',
+      isLiquid: true,
+      archived: false,
+      createdAt: 1,
+      updatedAt: 1,
+    };
+
+    const name = `konvert-me-v9-${crypto.randomUUID()}`;
+    const v8 = open(name, schema8);
+    await v8.table('settings').add(settings);
+    await v8.table('accounts').add(account);
+    v8.close();
+
+    const v9 = new KonvertDatabase(name);
+    opened.push(v9);
+    await v9.open();
+    expect(v9.verno).toBeGreaterThanOrEqual(9);
+    expect(await v9.settings.get('app')).toEqual({ ...settings, country: 'ru' });
+    expect(await v9.accounts.get('a1')).toEqual(account);
   });
 
   it('closes the old connection when another tab upgrades the schema', async () => {

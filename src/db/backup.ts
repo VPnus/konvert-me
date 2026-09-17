@@ -6,6 +6,7 @@
 
 import { z } from 'zod';
 
+import { COUNTRY_CURRENCY, DEFAULT_COUNTRY, type Country } from '@/core/country';
 import { db } from '@/db/db';
 import { RepositoryError } from '@/db/errors';
 import { SCHEMA_VERSION, TABLE_NAMES, TABLE_SCHEMAS, type TableName } from '@/db/models';
@@ -60,6 +61,18 @@ const backupDataSchema = z
     feedItems: z.array(TABLE_SCHEMAS.feedItems).default([]),
   })
   .superRefine((data, context) => {
+    // One currency for all the data: the one of the country the copy was made in.
+    const currency = COUNTRY_CURRENCY[data.settings[0]?.country ?? DEFAULT_COUNTRY];
+    data.accounts.forEach((account, index) => {
+      if (account.currency !== currency) {
+        context.addIssue({
+          code: 'custom',
+          path: ['accounts', index, 'currency'],
+          message: fill(strings.data.currencyMismatch, { name: account.name }),
+        });
+      }
+    });
+
     // Every document must bring exactly its own bytes: a lost or truncated scan is refused
     // here, not discovered the day it is needed.
     const lengths = new Map(data.documentFiles.map((file) => [file.id, base64Length(file.content)]));
@@ -225,9 +238,30 @@ export async function parseBackup(text: string, password?: string): Promise<Back
   return file;
 }
 
+/** The country the copy was made in; a copy of the time before countries comes from Russia. */
+export function backupCountry(backup: BackupFile): Country {
+  return backup.data.settings[0]?.country ?? DEFAULT_COUNTRY;
+}
+
 export interface RestoreSummary {
   readonly counts: Record<TableName, number>;
   readonly total: number;
+}
+
+/** What a file holds, counted as the import reports it. */
+export function summarizeBackup(backup: BackupFile): RestoreSummary {
+  const counts = Object.fromEntries(TABLE_NAMES.map((name) => [name, backup.data[name].length])) as Record<
+    TableName,
+    number
+  >;
+
+  // The bytes of a document are not a record of their own: the person brought one paper, not two.
+  const total = TABLE_NAMES.filter((name) => name !== 'documentFiles').reduce(
+    (sum, name) => sum + counts[name],
+    0,
+  );
+
+  return { counts, total };
 }
 
 /** Replace mode: the database is cleared and filled from the file in one transaction. */
@@ -248,18 +282,7 @@ export async function restoreBackup(backup: BackupFile): Promise<RestoreSummary>
     }
   });
 
-  const counts = Object.fromEntries(TABLE_NAMES.map((name) => [name, backup.data[name].length])) as Record<
-    TableName,
-    number
-  >;
-
-  // The bytes of a document are not a record of their own: the person brought one paper, not two.
-  const total = TABLE_NAMES.filter((name) => name !== 'documentFiles').reduce(
-    (sum, name) => sum + counts[name],
-    0,
-  );
-
-  return { counts, total };
+  return summarizeBackup(backup);
 }
 
 export async function clearAllData(): Promise<void> {

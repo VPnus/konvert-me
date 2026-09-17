@@ -7,6 +7,7 @@ import type { Account, Envelope } from '@/db/models';
 import { holdsMoney } from '@/db/repositories/accounts';
 import { deleteEnvelope, setEnvelope } from '@/db/repositories/goals';
 import { strings } from '@/i18n';
+import { inCurrency } from '@/i18n/format';
 import { parseNumericInput } from '@/lib/numeric-input';
 
 interface EnvelopesPanelProps {
@@ -85,7 +86,7 @@ export function EnvelopesPanel({ goalId, envelopes, accounts, balances }: Envelo
 
                 <NumberInput
                   value={value}
-                  aria-label={`${strings.goals.envelopeAmount}: ${account.name}`}
+                  aria-label={`${inCurrency(strings.goals.envelopeAmount)}: ${account.name}`}
                   data-testid={`envelope-${account.name}`}
                   className="h-9 w-32 text-right tabular-nums"
                   onValueChange={(next) => setDrafts((current) => ({ ...current, [account.id]: next }))}
@@ -159,8 +160,8 @@ export function ContributeForm({ accounts: all, onContribute }: ContributeFormPr
         <NumberInput
           required
           value={amount}
-          aria-label={strings.goals.contributeAmount}
-          placeholder={strings.goals.contributeAmount}
+          aria-label={inCurrency(strings.goals.contributeAmount)}
+          placeholder={inCurrency(strings.goals.contributeAmount)}
           data-testid="contribute-amount"
           onValueChange={setAmount}
         />

@@ -14,6 +14,7 @@ import type { Account, Category, Transaction } from '@/db/models';
 import { createTransaction, updateTransaction } from '@/db/repositories/transactions';
 import { cardTransferWarning, loadCardTransfer } from '@/features/budget/card-transfer';
 import { strings } from '@/i18n';
+import { inCurrency } from '@/i18n/format';
 import { parseNumericInput } from '@/lib/numeric-input';
 
 type Kind = Transaction['kind'];
@@ -215,7 +216,7 @@ export function TransactionForm({
             </Field>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label={strings.operations.amount}>
+              <Field label={inCurrency(strings.operations.amount)}>
                 {(id) => (
                   <NumberInput
                     id={id}

@@ -259,6 +259,19 @@ describe('plan: what there is to do', () => {
     });
     expect(actions.map((action) => action.key)).toEqual(['deductions']);
   });
+
+  it('asks to check the deductions only in Russia, where they exist', () => {
+    const params = {
+      goals: [],
+      reserve: { reserveMinor: 0, months: null, targetMinor: null, norm: null, status: 'unknown' as const },
+      accounts: [],
+      policies: [],
+      settings: { defaultReturnRate: 0.1 },
+    };
+    const keys = (country: 'ru' | 'us') => planActions({ ...params, country }).map((action) => action.key);
+    expect(keys('ru')).toEqual(['insurance', 'deductions']);
+    expect(keys('us')).toEqual(['insurance']);
+  });
 });
 
 describe('plan: one queue of the debts', () => {

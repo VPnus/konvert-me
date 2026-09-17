@@ -10,6 +10,7 @@ import { Select } from '@/components/ui/select';
 import { listCategories } from '@/db/repositories/categories';
 import { createTransaction } from '@/db/repositories/transactions';
 import { strings } from '@/i18n';
+import { inCurrency } from '@/i18n/format';
 import { WidgetEmpty, WidgetFrame } from '@/features/overview/widgets/widget-shell';
 import type { WidgetProps } from '@/features/overview/widgets/types';
 
@@ -94,8 +95,8 @@ export function QuickAddWidget({ data }: WidgetProps) {
         <NumberInput
           required
           value={amount}
-          aria-label={strings.widgets.quickAdd.amount}
-          placeholder={strings.widgets.quickAdd.amount}
+          aria-label={inCurrency(strings.widgets.quickAdd.amount)}
+          placeholder={inCurrency(strings.widgets.quickAdd.amount)}
           data-testid="quick-amount"
           onValueChange={setAmount}
         />

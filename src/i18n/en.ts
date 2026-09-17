@@ -275,6 +275,11 @@ export const en: Dictionary = {
   },
   formats: {
     percent: '{value}%',
+    inCurrency: '{label}, {currency}',
+  },
+  countries: {
+    ru: 'Russia',
+    us: 'United States',
   },
   accounts: {
     title: 'Accounts and debts',
@@ -290,14 +295,14 @@ export const en: Dictionary = {
     sideAsset: 'Asset: my money or property',
     sideLiability: 'Debt: I owe a bank or people',
     type: 'Type',
-    openingBalance: 'Opening balance, ₽',
+    openingBalance: 'Opening balance',
     openingBalanceHint: 'How much was on the account on the day you start tracking.',
-    debtBalance: 'Debt remaining, ₽',
+    debtBalance: 'Debt remaining',
     openingDate: 'Count from',
     openingDateHint:
       'The balance is as of the start of this day. Transactions before this date can be added for the history: they do not change the account balance.',
     isLiquid: 'Money is available at once (count it in the emergency fund)',
-    monthlyPayment: 'Monthly payment, ₽',
+    monthlyPayment: 'Monthly payment',
     paymentDay: 'Payment day of the month',
     paymentDayHint: 'We will remind you of it in the Coming up feed.',
     paymentDayNone: 'not set',
@@ -309,7 +314,7 @@ export const en: Dictionary = {
     maturityHint: 'We will remind you in advance in the Coming up feed.',
     endDate: 'Loan ends',
     endDateHint: 'The date of the last scheduled payment.',
-    creditLimit: 'Credit limit, ₽',
+    creditLimit: 'Credit limit',
     gracePeriodEnd: 'Grace period until',
     graceHint:
       'For a card with one long grace period, for example 120 days. We will remind you with a banner a week and a day before the date.',
@@ -324,9 +329,12 @@ export const en: Dictionary = {
     cardPaymentDay: 'Pay the statement by day of the month',
     cardPaymentDayHint: 'The last day to avoid interest. We will remind you a week and a day before.',
     minPaymentRate: 'Minimum payment, % of the debt',
-    minPaymentFloor: 'Minimum payment at least, ₽',
-    minPaymentHint: 'For example, 8% of the debt but no less than 600 ₽. The debt load is based on it.',
-    freeTransfers: 'Fee-free transfers a month, ₽',
+    minPaymentFloor: 'Minimum payment at least',
+    minPaymentHint: {
+      ru: 'For example, 8% of the debt but no less than 600 ₽. The debt load is based on it.',
+      us: 'For example, 2% of the debt but no less than $25. The debt load is based on it.',
+    },
+    freeTransfers: 'Fee-free transfers a month',
     freeTransfersHint: 'Above this amount, transfers from the card usually carry a fee and no grace period.',
     details: {
       rate: 'rate {rate}',
@@ -499,7 +507,7 @@ export const en: Dictionary = {
     allAccounts: 'All accounts',
     reset: 'Reset',
     date: 'Date',
-    amount: 'Amount, ₽',
+    amount: 'Amount',
     account: 'Account',
     accountFrom: 'From',
     accountTo: 'To',
@@ -549,9 +557,9 @@ export const en: Dictionary = {
       other: 'Other',
     },
     insurer: 'Insurance company',
-    sumInsured: 'Sum insured, ₽',
+    sumInsured: 'Sum insured',
     sumInsuredHint: 'The most the insurer will pay.',
-    premium: 'Policy cost, ₽',
+    premium: 'Policy cost',
     startDate: 'Valid from',
     endDate: 'Valid until',
     empty: 'No policies yet. Add them so you do not miss when they end.',
@@ -585,8 +593,10 @@ export const en: Dictionary = {
       'Set the bank of your deposits and accounts, and we will check whether the money is within the limit.',
     source: 'Source',
     checkedAt: 'checked',
-    limitNote:
-      'The base limit per person in one bank. For real estate escrow accounts, capital repair fund accounts and money from special circumstances (an inheritance, the sale of a home, court payments) the limit is higher, 10 million ₽; the app does not recognise such cases.',
+    limitNote: {
+      ru: 'The base limit per person in one bank. For real estate escrow accounts, capital repair fund accounts and money from special circumstances (an inheritance, the sale of a home, court payments) the limit is higher, 10 million ₽; the app does not recognise such cases.',
+      us: 'The FDIC limit per depositor in one bank for each ownership category: single, joint, retirement accounts such as an IRA, trusts and others. The app does not tell the categories apart and counts all the accounts of a bank together.',
+    },
   },
   upcoming: {
     title: 'Coming up',
@@ -684,7 +694,7 @@ export const en: Dictionary = {
       pension: 'Retirement',
       other: 'Other',
     },
-    cost: 'What it costs today, ₽',
+    cost: 'What it costs today',
     costHint: 'At today’s prices. By the date the amount will grow with inflation: we work that out.',
     exactSum: 'I need exactly this amount by the date, without allowing for rising prices',
     exactSumHint: 'For example, the first million: inflation is not part of the calculation.',
@@ -730,12 +740,12 @@ export const en: Dictionary = {
     envelopesHint:
       'An envelope is a part of an account balance set aside for a goal. The envelopes on an account cannot add up to more than its balance.',
     envelopeAccount: 'Account',
-    envelopeAmount: 'In the envelope, ₽',
+    envelopeAmount: 'In the envelope',
     envelopeEmpty: 'No money is set aside for the goal yet.',
     envelopeNotMoney: 'This is property, not money: the envelope does not count as savings. Empty it.',
     contribute: 'Make a contribution',
     contributeTitle: 'Contribution to a goal',
-    contributeAmount: 'Contribution, ₽',
+    contributeAmount: 'Contribution',
     contributeTo: 'Into which account',
     contributeFrom: 'Transfer from',
     contributeFromNone: 'The money is already on this account',
@@ -745,7 +755,7 @@ export const en: Dictionary = {
     whatIf: 'What if',
     whatIfHint: 'Move the sliders, and we recalculate as you go. Only what you press Save for is kept.',
     whatIfMonths: 'Term, months',
-    whatIfPayment: 'Monthly contribution, ₽',
+    whatIfPayment: 'Monthly contribution',
     whatIfReturn: 'Return, % a year',
     whatIfResult: 'With this contribution the goal is reached in {months}',
     whatIfNever: 'With this contribution the goal will not be reached even in a hundred years.',
@@ -782,7 +792,7 @@ export const en: Dictionary = {
     namePlaceholder: 'For example, advance',
     day: 'Day of the month',
     dayHint: 'If a month has no such day, we use the last day of the month.',
-    amount: 'Amount, ₽',
+    amount: 'Amount',
     amountHint: 'Optional: if the amount varies, leave it empty.',
     today: 'today',
     tomorrow: 'tomorrow',
@@ -1153,7 +1163,7 @@ export const en: Dictionary = {
       startMonth: 'When the studies start',
       years: 'Years of study',
       yearsHint: 'A bachelor’s degree is 4 years, with a master’s 6',
-      yearlyCost: 'A year of study costs now, ₽',
+      yearlyCost: 'A year of study costs now',
       yearlyCostHint:
         'Tuition and, if studying in another city, living there. For example, 240,000 for the university and 360,000 for living costs a year',
       returnRate: 'Return on savings, % a year',
@@ -1178,11 +1188,11 @@ export const en: Dictionary = {
       retirementAge: 'Age to stop working',
       lifeAge: 'Age the money has to last until',
       lifeAgeHint: 'For example, 80',
-      expenses: 'Monthly expenses now, ₽',
+      expenses: 'Monthly expenses now',
       expensesHint: 'The average expenses from the budget are filled in, if there are any',
       replacement: 'Share of expenses needed in retirement, %',
       replacementHint: 'The usual guide is 70%',
-      statePension: 'State pension a month now, ₽',
+      statePension: 'State pension a month now',
       statePensionHint:
         'A forecast is on Gosuslugi and in the pension calculator of the Social Fund of Russia',
       returnRate: 'Return on capital, % a year',
@@ -1430,8 +1440,10 @@ export const en: Dictionary = {
     dataRisk: {
       private:
         'It looks like the window is private: everything you record will be lost when the window closes. Open the app in an ordinary window or save a copy before closing.',
-      space:
-        'Storage space is almost used up: {usage} of {quota} taken. Delete unneeded scans in Deductions and save a copy: new data may not be saved.',
+      space: {
+        ru: 'Storage space is almost used up: {usage} of {quota} taken. Delete unneeded scans in Deductions and save a copy: new data may not be saved.',
+        us: 'Storage space is almost used up: {usage} of {quota} taken. Save a copy and delete what you no longer need: new data may not be saved.',
+      },
       safari:
         'Safari erases a site’s data if it is not opened for 7 days. Install the app to the Home Screen or save a copy regularly.',
       notPersisted:
@@ -1455,6 +1467,15 @@ export const en: Dictionary = {
     dangerTitle: 'Deleting data',
     dangerText: 'Clearing deletes all accounts, transactions and goals from this browser.',
     dangerAction: 'Delete all data',
+    countryTitle: 'Country',
+    countryText:
+      'The country sets the currency of all sums, the rules and the sections: Deductions exist only for Russia.',
+    countryConfirmTitle: 'Change the country?',
+    countryConfirmText:
+      'New country: {country}. Sums are not converted: {from} becomes {to}. The currency, the rules and the sections will be those of this country. You can switch back here.',
+    countryConfirm: 'Change the country',
+    backupCountry:
+      'This backup was made for another country: {country}. Its sums are not converted, and the currency, the rules and the sections of the app will be those of the country of the backup.',
     dangerConfirmTitle: 'Delete all data?',
     dangerConfirmText: 'This cannot be undone. Save a backup first.',
     pilot: {
@@ -1516,6 +1537,11 @@ export const en: Dictionary = {
     title: 'Getting started',
     intro:
       'Five short questions, and the app works out how much to set aside and whether the budget holds up.',
+    introWithCountry:
+      'Six short questions, and the app works out how much to set aside and whether the budget holds up.',
+    countryTitle: 'Where do you live?',
+    countryText:
+      'The country sets the currency of all sums, the rules and the sections of the app. You can change it in Settings.',
     step: 'Step',
     of: 'of',
     next: 'Next',
@@ -1524,26 +1550,26 @@ export const en: Dictionary = {
     finish: 'Done',
     incomeTitle: 'How much do you get a month?',
     incomeText: 'Take-home pay, after tax. If your income varies, take an average month.',
-    incomeLabel: 'Monthly income, ₽',
+    incomeLabel: 'Monthly income',
     mandatoryTitle: 'How much goes on essentials?',
     mandatoryText:
       'Housing, food, transport, phone, loan payments: what you cannot get through a month without.',
-    mandatoryLabel: 'Essential expenses a month, ₽',
+    mandatoryLabel: 'Essential expenses a month',
     variableTitle: 'And how much on everything else?',
     variableText: 'Cafes, clothes, entertainment, gifts: what can change.',
-    variableLabel: 'Variable expenses a month, ₽',
+    variableLabel: 'Variable expenses a month',
     accountsTitle: 'What do you have, and what do you owe?',
     accountsText: 'Savings you can reach within a day. Debts, if you have any.',
-    savingsLabel: 'Savings now, ₽',
-    debtBalanceLabel: 'Debt remaining, ₽',
-    debtPaymentLabel: 'Debt payment a month, ₽',
+    savingsLabel: 'Savings now',
+    debtBalanceLabel: 'Debt remaining',
+    debtPaymentLabel: 'Debt payment a month',
     debtRateLabel: 'Debt rate, % a year, if you know it',
     debtPaymentDayLabel: 'Payment day of the month',
     goalTitle: 'What are you saving for?',
     goalText: 'One goal that matters more than the rest. The app creates the emergency fund itself.',
     goalNameLabel: 'Goal name',
     goalNamePlaceholder: 'For example, a flat',
-    goalCostLabel: 'What it costs today, ₽',
+    goalCostLabel: 'What it costs today',
     goalMonthLabel: 'By which month',
     goalExactLabel:
       'I need exactly this amount, without allowing for rising prices. For example, the first million',
@@ -1687,7 +1713,7 @@ export const en: Dictionary = {
     quickAdd: {
       title: 'Quick entry',
       description: 'Record an expense or income in two taps.',
-      amount: 'Amount, ₽',
+      amount: 'Amount',
       category: 'Category',
       account: 'Account',
       expense: 'Expense',
@@ -1841,6 +1867,8 @@ export const en: Dictionary = {
     categoryExists: 'This category already exists. If it is archived, restore it.',
     documentBroken: 'The document file is damaged',
     documentMissing: 'The document file “{name}” is missing or damaged',
+    currencyMismatch:
+      'The account “{name}” is not kept in the currency of the country the backup was made for',
     notBackup: 'This is not a backup file: the JSON could not be read.',
     newerBackup:
       'The file was made by a newer version of the app (schema {schema}). Update the app and import again.',

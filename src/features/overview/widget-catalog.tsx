@@ -3,7 +3,7 @@ import { Plus, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { strings } from '@/i18n';
-import { WIDGET_REGISTRY } from '@/features/overview/widgets/registry';
+import { widgetsFor } from '@/features/overview/widgets/registry';
 import type { WidgetInstance } from '@/db/repositories/dashboard';
 
 interface CatalogProps {
@@ -34,7 +34,7 @@ export function WidgetCatalog({ open, items, onOpenChange, onAdd }: CatalogProps
           </div>
 
           <ul className="mt-4 flex flex-col gap-2">
-            {WIDGET_REGISTRY.map((widget) => {
+            {widgetsFor().map((widget) => {
               const alreadyUsed = used.has(widget.type) && !widget.repeatable;
 
               return (

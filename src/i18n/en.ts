@@ -401,7 +401,7 @@ export const en: Dictionary = {
     overspent: 'overspent',
     overIncome: 'above plan',
     planTitle: 'Plan for the month',
-    planHint: 'Enter amounts in rubles: the plan saves itself. An empty cell and zero mean the same.',
+    planHint: 'Enter the amounts of the plan: it saves itself. An empty cell and zero mean the same.',
     copyPrev: 'Copy the plan from last month',
     copied: 'Rows copied: {count}.',
     copyEmpty: 'There was no plan last month, so there is nothing to copy.',
@@ -632,7 +632,7 @@ export const en: Dictionary = {
   },
   interest: {
     title: 'Interest on the balance for {month}',
-    text: 'The rate of an account earns nothing by itself: record the interest as income when the bank pays it. The amount is worked out from each day’s balance and may differ from the bank’s by a few kopecks.',
+    text: 'The rate of an account earns nothing by itself: record the interest as income when the bank pays it. The amount is worked out from each day’s balance and may differ slightly from the bank’s.',
     row: 'rate {rate}, about {amount}',
     record: 'Record',
     note: 'Interest on the balance, {rate}',
@@ -1878,7 +1878,7 @@ export const en: Dictionary = {
     validation: {
       date: 'The date must be in the YYYY-MM-DD format',
       month: 'The month must be in the YYYY-MM format',
-      wholeKopecks: 'The amount must be in whole kopecks',
+      wholeKopecks: 'The amount must be in whole kopecks or cents',
       positiveSum: 'The amount must be above zero',
       nonNegativeSum: 'The amount cannot be negative',
       nameEmpty: 'The name cannot be empty',

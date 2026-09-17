@@ -85,7 +85,7 @@ test.describe('narrow screen, 375 px', () => {
     expect(pageBox.x + pageBox.width).toBeLessThanOrEqual(railBox.x);
 
     await page.goto('/settings');
-    await page.getByTestId('hand-left').check();
+    await page.getByTestId('hand-left').click();
     await expect(rail).toHaveAttribute('data-hand', 'left');
 
     await page.goto('/overview');
@@ -101,7 +101,7 @@ test.describe('narrow screen, 375 px', () => {
   test('no horizontal scrolling at 375 px, whichever hand', async ({ page }) => {
     for (const hand of ['right', 'left']) {
       await page.goto('/settings');
-      await page.getByTestId(`hand-${hand}`).check();
+      await page.getByTestId(`hand-${hand}`).click();
       for (const tab of TABS) {
         await page.goto(tab.path);
         const overflow = await page.evaluate(

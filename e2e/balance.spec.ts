@@ -146,10 +146,12 @@ test.describe('balance', () => {
     await page.getByTestId('policy-save').click();
     await expect(page.getByTestId('policy-row')).toHaveCount(1);
 
+    // the feed stands on the default overview: the catalog knows it is already there
     await page.goto('/overview');
     await page.getByTestId('customize-dashboard').click();
     await page.getByTestId('add-widget').click();
-    await page.getByTestId('catalog-add-upcoming').click();
+    await expect(page.getByTestId('catalog-add-upcoming')).toBeDisabled();
+    await page.keyboard.press('Escape');
 
     const widget = page.getByTestId('widget-upcoming');
     await expect(widget).toBeVisible();

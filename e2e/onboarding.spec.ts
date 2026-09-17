@@ -159,6 +159,8 @@ test.describe('narrow screen', () => {
     await passOnboarding(page);
 
     const widgets = page.getByTestId('dashboard-grid').locator('[data-testid^="widget-"]');
+    // evaluateAll does not wait: the dashboard reads the database first
+    await expect(widgets.first()).toBeVisible();
     const boxes = await widgets.evaluateAll((nodes) =>
       nodes.map((node) => node.getBoundingClientRect().left),
     );

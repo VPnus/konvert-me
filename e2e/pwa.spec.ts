@@ -74,7 +74,7 @@ test.describe('installable and offline', () => {
     // someone new: nothing to compare with, the version is only remembered
     await skipOnboarding(page);
     await expect(page.getByTestId('updated-notice')).toHaveCount(0);
-    expect(await page.evaluate(() => localStorage.getItem('konvert-me.version'))).toBe(version);
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('konvert-me.version'))).toBe(version);
 
     // the same person a version earlier
     await page.evaluate(() => localStorage.setItem('konvert-me.version', '0.0.1'));

@@ -1,12 +1,15 @@
 import { SOURCES } from './sources';
-import type { YearRules } from './types';
+import type { RuYearRules } from './types';
 
 /** The day every norm below was read from its source. */
 const CHECKED = '2026-09-16';
 
-/** 2025: the five-step tax scale, and larger child deductions for everyone. */
-export const RULES_2025: YearRules = {
-  year: 2025,
+/**
+ * 2023 is kept for the refunds that can still be claimed for it. Several limits were
+ * lower then, and a year counted by later rules would promise money that is not due.
+ */
+export const RU_RULES_2023: RuYearRules = {
+  year: 2023,
   depositInsuranceLimitMinor: {
     value: 1_400_000 * 100,
     source: SOURCES.depositInsuranceHistory,
@@ -17,44 +20,41 @@ export const RULES_2025: YearRules = {
   incomeTaxBands: {
     value: [
       { fromMinor: 0, rate: 0.13 },
-      { fromMinor: 2_400_000 * 100, rate: 0.15 },
-      { fromMinor: 5_000_000 * 100, rate: 0.18 },
-      { fromMinor: 20_000_000 * 100, rate: 0.2 },
-      { fromMinor: 50_000_000 * 100, rate: 0.22 },
+      { fromMinor: 5_000_000 * 100, rate: 0.15 },
     ],
-    source: SOURCES.incomeTaxFiveSteps,
+    source: SOURCES.incomeTaxTwoSteps,
     checkedAt: CHECKED,
-    note: 'Первый год пяти ступеней; повышенная ставка — только с суммы превышения.',
+    note: 'Две ступени действовали с 2021 по 2024 год; 15 % — только с суммы свыше 5 млн ₽.',
   },
 
   socialDeductionLimitMinor: {
-    value: 150_000 * 100,
+    value: 120_000 * 100,
     source: SOURCES.socialDeductions,
     checkedAt: CHECKED,
-    note: 'Обучение детей и дорогостоящее лечение — вне этого лимита.',
+    note: 'До 2024 года общий лимит был 120 000 ₽. Обучение детей и дорогостоящее лечение — вне его.',
   },
 
   childEducationLimitMinor: {
-    value: 110_000 * 100,
+    value: 50_000 * 100,
     source: SOURCES.schooling,
     checkedAt: CHECKED,
-    note: 'На каждого ребёнка, на обоих родителей вместе.',
+    note: 'До 2024 года — 50 000 ₽ на каждого ребёнка, на обоих родителей вместе.',
   },
 
   childDeduction: {
     value: {
       firstMinor: 1_400 * 100,
-      secondMinor: 2_800 * 100,
-      thirdAndOnMinor: 6_000 * 100,
+      secondMinor: 1_400 * 100,
+      thirdAndOnMinor: 3_000 * 100,
       disabledParentMinor: 12_000 * 100,
-      disabledGuardianMinor: 12_000 * 100,
-      incomeCapMinor: 450_000 * 100,
+      disabledGuardianMinor: 6_000 * 100,
+      incomeCapMinor: 350_000 * 100,
     },
-    source: SOURCES.childDeductionsFrom2025,
+    source: SOURCES.childDeductionsBefore2025,
     checkedAt: CHECKED,
     note:
-      'Суммы за месяц. С 2025 года опекун получает за ребёнка-инвалида столько же, сколько ' +
-      'родитель, а работодатель применяет вычет сам, без ежегодного заявления.',
+      'Суммы за месяц. До 2025 года опекун, попечитель и приёмный родитель получали за ' +
+      'ребёнка-инвалида вдвое меньше родителя.',
   },
 
   propertyPurchaseLimitMinor: {
@@ -78,9 +78,11 @@ export const RULES_2025: YearRules = {
 
   longTermSavingsLimitMinor: {
     value: 400_000 * 100,
-    source: SOURCES.longTermSavings,
+    source: SOURCES.investmentAccountTypeA,
     checkedAt: CHECKED,
-    note: 'Один лимит на ИИС-3, программу долгосрочных сбережений и негосударственную пенсию.',
+    note:
+      'В 2023 году общего лимита на долгосрочные сбережения ещё не было: это лимит вычета ' +
+      'на взносы по ИИС типа А.',
   },
 
   lifeInsuranceInLongTermSavings: {
@@ -119,37 +121,29 @@ export const RULES_2025: YearRules = {
   },
 
   homeSaleTaxBands: {
-    value: [
-      { fromMinor: 0, rate: 0.13 },
-      { fromMinor: 2_400_000 * 100, rate: 0.15 },
-    ],
+    value: [{ fromMinor: 0, rate: 0.13 }],
     source: SOURCES.homeSaleRate,
     checkedAt: CHECKED,
-    note:
-      'Порог 2,4 млн ₽ считается по сумме за год доходов от продажи имущества, подарков, процентов ' +
-      'по вкладам, дивидендов и операций с ценными бумагами. Приложение знает только о продаже ' +
-      'жилья: если были и другие такие доходы, налог может оказаться выше.',
+    note: 'До 2025 года доход от продажи облагался по 13 % при любой сумме и не входил в порог 5 млн ₽.',
   },
 
   saleIncomeInMainBase: {
-    value: false,
+    value: true,
     source: SOURCES.taxBases,
     checkedAt: CHECKED,
     note:
-      'С 2025 года продажа — отдельная налоговая база. На неё переходит только та часть вычета ' +
-      'на детей, социальных вычетов и вычета за покупку жилья и проценты, которой не хватило ' +
-      'основного дохода. Вычет на ИИС и долгосрочные сбережения на неё не переходит.',
+      'До 2025 года продажа считалась вместе с зарплатой, и любой вычет, которому не хватило ' +
+      'зарплаты, уменьшал доход от продажи. Текст прежней редакции статьи 210 не сверен: значение ' +
+      'взято из описаний изменений 2025 года.',
   },
 
   socialPaymentCertificates: {
-    value: true,
+    value: false,
     source: SOURCES.paymentCertificates,
     checkedAt: CHECKED,
     note:
-      'С расходов 2024 года за лечение, обучение, спорт и ДМС достаточно одной справки об оплате ' +
-      'от клиники, учебного заведения, спортивной или страховой организации. Её не нужно ' +
-      'прикладывать, если организация сама передала сведения в налоговую. Для лекарств по-прежнему ' +
-      'нужны рецепт и чеки.',
+      'До 2024 года расходы на лечение, обучение, спорт и ДМС подтверждали договором, лицензией ' +
+      'организации и платёжными документами.',
   },
 
   declarationDeadline: {

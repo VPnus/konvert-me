@@ -1,15 +1,12 @@
 import { SOURCES } from './sources';
-import type { YearRules } from './types';
+import type { RuYearRules } from './types';
 
 /** The day every norm below was read from its source. */
 const CHECKED = '2026-09-16';
 
-/**
- * 2023 is kept for the refunds that can still be claimed for it. Several limits were
- * lower then, and a year counted by later rules would promise money that is not due.
- */
-export const RULES_2023: YearRules = {
-  year: 2023,
+/** 2024: the social limits went up, the child deductions and the tax scale did not yet. */
+export const RU_RULES_2024: RuYearRules = {
+  year: 2024,
   depositInsuranceLimitMinor: {
     value: 1_400_000 * 100,
     source: SOURCES.depositInsuranceHistory,
@@ -24,21 +21,21 @@ export const RULES_2023: YearRules = {
     ],
     source: SOURCES.incomeTaxTwoSteps,
     checkedAt: CHECKED,
-    note: 'Две ступени действовали с 2021 по 2024 год; 15 % — только с суммы свыше 5 млн ₽.',
+    note: 'Последний год двух ступеней; 15 % — только с суммы свыше 5 млн ₽.',
   },
 
   socialDeductionLimitMinor: {
-    value: 120_000 * 100,
+    value: 150_000 * 100,
     source: SOURCES.socialDeductions,
     checkedAt: CHECKED,
-    note: 'До 2024 года общий лимит был 120 000 ₽. Обучение детей и дорогостоящее лечение — вне его.',
+    note: 'С расходов 2024 года лимит 150 000 ₽. Обучение детей и дорогостоящее лечение — вне его.',
   },
 
   childEducationLimitMinor: {
-    value: 50_000 * 100,
+    value: 110_000 * 100,
     source: SOURCES.schooling,
     checkedAt: CHECKED,
-    note: 'До 2024 года — 50 000 ₽ на каждого ребёнка, на обоих родителей вместе.',
+    note: 'С 2024 года — 110 000 ₽ на каждого ребёнка, на обоих родителей вместе.',
   },
 
   childDeduction: {
@@ -78,11 +75,12 @@ export const RULES_2023: YearRules = {
 
   longTermSavingsLimitMinor: {
     value: 400_000 * 100,
-    source: SOURCES.investmentAccountTypeA,
+    source: SOURCES.longTermSavings,
     checkedAt: CHECKED,
     note:
-      'В 2023 году общего лимита на долгосрочные сбережения ещё не было: это лимит вычета ' +
-      'на взносы по ИИС типа А.',
+      'С 2024 года один лимит на все долгосрочные сбережения: ИИС-3, программу долгосрочных ' +
+      'сбережений и негосударственную пенсию. Счета ИИС, открытые до 2024 года, получают ' +
+      'вычет по прежней статье 219.1.',
   },
 
   lifeInsuranceInLongTermSavings: {
@@ -138,12 +136,14 @@ export const RULES_2023: YearRules = {
   },
 
   socialPaymentCertificates: {
-    value: false,
+    value: true,
     source: SOURCES.paymentCertificates,
     checkedAt: CHECKED,
     note:
-      'До 2024 года расходы на лечение, обучение, спорт и ДМС подтверждали договором, лицензией ' +
-      'организации и платёжными документами.',
+      'С расходов 2024 года за лечение, обучение, спорт и ДМС достаточно одной справки об оплате ' +
+      'от клиники, учебного заведения, спортивной или страховой организации. Её не нужно ' +
+      'прикладывать, если организация сама передала сведения в налоговую. Для лекарств по-прежнему ' +
+      'нужны рецепт и чеки.',
   },
 
   declarationDeadline: {

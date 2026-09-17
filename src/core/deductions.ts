@@ -8,7 +8,7 @@
  */
 
 import { assertNonNegativeMinor, type Minor } from './money';
-import type { TaxBand, YearRules } from './rules/types';
+import type { RuYearRules, TaxBand } from './rules/ru/types';
 
 /** Rates are kept as basis points inside, so a slice of income times a rate stays whole. */
 const BASIS_POINTS = 10_000;
@@ -68,7 +68,7 @@ export interface SocialSpending {
  */
 export function socialDeductionMinor(
   spending: SocialSpending,
-  rules: Pick<YearRules, 'socialDeductionLimitMinor' | 'childEducationLimitMinor'>,
+  rules: Pick<RuYearRules, 'socialDeductionLimitMinor' | 'childEducationLimitMinor'>,
 ): Minor {
   assertNonNegativeMinor(spending.commonMinor, 'commonMinor');
   assertNonNegativeMinor(spending.expensiveTreatmentMinor, 'expensiveTreatmentMinor');
@@ -105,7 +105,7 @@ export interface PropertyClaim {
   readonly loanBefore2014: boolean;
 }
 
-type PropertyLimits = Pick<YearRules, 'propertyPurchaseLimitMinor' | 'mortgageInterestLimitMinor'>;
+type PropertyLimits = Pick<RuYearRules, 'propertyPurchaseLimitMinor' | 'mortgageInterestLimitMinor'>;
 
 /** A home's deduction in the two parts a return keeps apart: the home itself and the interest. */
 export interface PropertyParts {
@@ -253,7 +253,7 @@ export interface ChildrenClaim {
 export function childDeductionMinor(
   claim: ChildrenClaim,
   incomeMinor: number,
-  rules: Pick<YearRules, 'childDeduction'>,
+  rules: Pick<RuYearRules, 'childDeduction'>,
 ): Minor {
   assertNonNegativeMinor(incomeMinor, 'incomeMinor');
   const norm = rules.childDeduction.value;
@@ -301,7 +301,7 @@ export interface HomeSale {
  * The income a sale is taxed on. Tax code, art. 214.10: the price, but not less than the
  * cadastral value times its share — a home sold on paper for next to nothing is still taxed.
  */
-export function homeSaleIncomeMinor(sale: HomeSale, rules: Pick<YearRules, 'homeSale'>): Minor {
+export function homeSaleIncomeMinor(sale: HomeSale, rules: Pick<RuYearRules, 'homeSale'>): Minor {
   assertNonNegativeMinor(sale.priceMinor, 'priceMinor');
   assertNonNegativeMinor(sale.cadastralMinor, 'cadastralMinor');
 
@@ -313,7 +313,7 @@ export function homeSaleIncomeMinor(sale: HomeSale, rules: Pick<YearRules, 'home
  * What a sale's income is reduced by. Tax code, art. 220 p. 2: the fixed amount or the cost of
  * buying, whichever the person chooses — so whichever is more — and never more than the income.
  */
-export function homeSaleDeductionMinor(sale: HomeSale, rules: Pick<YearRules, 'homeSale'>): Minor {
+export function homeSaleDeductionMinor(sale: HomeSale, rules: Pick<RuYearRules, 'homeSale'>): Minor {
   assertNonNegativeMinor(sale.expensesMinor, 'expensesMinor');
 
   const deduction = Math.max(rules.homeSale.value.deductionLimitMinor, sale.expensesMinor);
@@ -323,7 +323,7 @@ export function homeSaleDeductionMinor(sale: HomeSale, rules: Pick<YearRules, 'h
 /** Contributions to an investment account and other long-term savings, up to the yearly limit. */
 export function longTermSavingsDeductionMinor(
   contributionsMinor: number,
-  rules: Pick<YearRules, 'longTermSavingsLimitMinor'>,
+  rules: Pick<RuYearRules, 'longTermSavingsLimitMinor'>,
 ): Minor {
   assertNonNegativeMinor(contributionsMinor, 'longTermSavingsMinor');
   return Math.min(contributionsMinor, rules.longTermSavingsLimitMinor.value);
@@ -406,7 +406,7 @@ export interface DeductionSummary {
  * A part's refund is what it takes off the tax — the income's and the sale's — after the
  * parts before it. So the parts, less the tax on the sale, add up to the balance of the year.
  */
-export function summarizeDeductionYear(claim: DeductionClaim, rules: YearRules): DeductionSummary {
+export function summarizeDeductionYear(claim: DeductionClaim, rules: RuYearRules): DeductionSummary {
   const bands = rules.incomeTaxBands.value;
   const saleBands = rules.homeSaleTaxBands.value;
   assertNonNegativeMinor(claim.incomeMinor, 'incomeMinor');

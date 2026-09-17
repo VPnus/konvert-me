@@ -4,7 +4,7 @@
  */
 
 import { childDeductionMinor, homeSaleIncomeMinor } from '@/core/deductions';
-import type { YearRules } from '@/core/rules';
+import type { RuYearRules } from '@/core/rules';
 import type { DocumentCategory } from '@/db/models';
 import type { DeductionYearInput } from '@/db/repositories/deductions';
 import type { Dictionary } from '@/i18n';
@@ -28,7 +28,7 @@ type Answers = Pick<
   'incomeMinor' | 'spending' | 'longTermSavingsMinor' | 'property' | 'children' | 'sale'
 >;
 
-export function checklistFor(answers: Answers, rules: YearRules | undefined): ChecklistGroup[] {
+export function checklistFor(answers: Answers, rules: RuYearRules | undefined): ChecklistGroup[] {
   const { spending, children, property, sale } = answers;
   // Until 2024, and for a year the app has no rules for, the lesson's full set is the safe answer.
   const certificates = rules?.socialPaymentCertificates.value ?? false;

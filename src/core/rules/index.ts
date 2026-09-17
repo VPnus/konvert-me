@@ -1,22 +1,40 @@
 /**
- * Norms by year. They live here and nowhere else: a component must never hard-code a
+ * Norms by country and year. They live here and nowhere else: a component must never hard-code a
  * limit or a rate, or nobody will find it when the law changes.
  */
 
-import { RULES_2023 } from './2023';
-import { RULES_2024 } from './2024';
-import { RULES_2025 } from './2025';
-import { RULES_2026 } from './2026';
-import type { YearRules } from './types';
+import type { Country } from '../country';
+import { RU_RULES_2023 } from './ru/2023';
+import { RU_RULES_2024 } from './ru/2024';
+import { RU_RULES_2025 } from './ru/2025';
+import { RU_RULES_2026 } from './ru/2026';
+import type { RuYearRules } from './ru/types';
+import { US_RULES_2026 } from './us/2026';
+import type { UsYearRules } from './us/types';
 
-export type { ChildDeduction, HomeSaleRules, MonthDay, Norm, TaxBand, YearRules } from './types';
+export type { MonthDay, Norm, YearRules } from './types';
+export type { ChildDeduction, HomeSaleRules, RuYearRules, TaxBand } from './ru/types';
+export type { UsYearRules } from './us/types';
 
-/** Oldest first. A year is added when a refund for it can still be claimed. */
-export const KNOWN_RULES: readonly YearRules[] = [RULES_2023, RULES_2024, RULES_2025, RULES_2026];
+/** The norms of a year in each country. */
+export interface CountryRules {
+  readonly ru: RuYearRules;
+  readonly us: UsYearRules;
+}
 
-/** The most recent rules written. */
-export function latestRules(): YearRules {
-  return KNOWN_RULES[KNOWN_RULES.length - 1];
+/**
+ * Oldest first. A year of Russia is added while a refund for it can still be claimed; a year of the
+ * United States, while its limits still matter.
+ */
+export const KNOWN_RULES: { readonly [C in Country]: readonly CountryRules[C][] } = {
+  ru: [RU_RULES_2023, RU_RULES_2024, RU_RULES_2025, RU_RULES_2026],
+  us: [US_RULES_2026],
+};
+
+/** The most recent rules written for the country. */
+export function latestRules<C extends Country>(country: C): CountryRules[C] {
+  const known: readonly CountryRules[C][] = KNOWN_RULES[country];
+  return known[known.length - 1];
 }
 
 /**
@@ -30,8 +48,9 @@ export function latestRules(): YearRules {
  * — lower limits, another tax scale — and a refund for an old year counted by newer
  * rules would promise money that is not due.
  */
-export function rulesForYear(year: number): YearRules | undefined {
-  if (year < KNOWN_RULES[0].year) return undefined;
+export function rulesForYear<C extends Country>(country: C, year: number): CountryRules[C] | undefined {
+  const known: readonly CountryRules[C][] = KNOWN_RULES[country];
+  if (year < known[0].year) return undefined;
 
-  return KNOWN_RULES.reduce((found, rules) => (rules.year <= year ? rules : found));
+  return known.reduce((found, rules) => (rules.year <= year ? rules : found));
 }

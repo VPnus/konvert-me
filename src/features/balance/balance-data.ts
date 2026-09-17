@@ -25,6 +25,7 @@ import {
   type IsoMonth,
 } from '@/core/time';
 import { db } from '@/db/db';
+import { currentCountry } from '@/i18n/country';
 import type { Account, AccountType, Category, InsurancePolicy, Transaction } from '@/db/models';
 import { getAccountBalancesMinor } from '@/db/repositories/accounts';
 import { listPolicies } from '@/db/repositories/policies';
@@ -132,7 +133,9 @@ export async function loadBalance(
 
   // Deposits are checked as they stand today. A clock set before the first year with
   // rules still gets a limit to compare against, rather than no check at all.
-  const limit = (rulesForYear(Number(month.slice(0, 4))) ?? latestRules()).depositInsuranceLimitMinor;
+  const country = currentCountry();
+  const limit = (rulesForYear(country, Number(month.slice(0, 4))) ?? latestRules(country))
+    .depositInsuranceLimitMinor;
   const series = compareMonths(from, month) <= 0 ? netWorthSeries(live, transactions, from, month) : [];
   const last = series[series.length - 1];
 

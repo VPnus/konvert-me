@@ -1,12 +1,17 @@
 import { describe, expect, it } from 'vitest';
 
 import { isIsoDate } from '../time';
-import { RULES_2023 } from './2023';
-import { RULES_2024 } from './2024';
-import { RULES_2025 } from './2025';
-import { RULES_2026 } from './2026';
-import { KNOWN_RULES, latestRules, rulesForYear } from './index';
+import { COUNTRIES } from '../country';
+import { KNOWN_RULES as BY_COUNTRY, latestRules, rulesForYear } from './index';
+import { RU_RULES_2023 as RULES_2023 } from './ru/2023';
+import { RU_RULES_2024 as RULES_2024 } from './ru/2024';
+import { RU_RULES_2025 as RULES_2025 } from './ru/2025';
+import { RU_RULES_2026 as RULES_2026 } from './ru/2026';
 import type { Norm, YearRules } from './types';
+import { US_RULES_2026 } from './us/2026';
+
+/** Most of the norms are the deductions of Russia. */
+const KNOWN_RULES = BY_COUNTRY.ru;
 
 /** Every field of a year but its number is a norm, and every norm must answer for itself. */
 function normsOf(rules: YearRules): [string, Norm<unknown>][] {
@@ -14,8 +19,8 @@ function normsOf(rules: YearRules): [string, Norm<unknown>][] {
 }
 
 describe('rules', () => {
-  it('gives every norm of every year a source and the date it was checked', () => {
-    for (const rules of KNOWN_RULES) {
+  it('gives every norm of every year in every country a source and the date it was checked', () => {
+    for (const rules of COUNTRIES.flatMap((country) => BY_COUNTRY[country])) {
       const norms = normsOf(rules);
       expect(norms.length).toBeGreaterThan(0);
 
@@ -28,8 +33,9 @@ describe('rules', () => {
     }
   });
 
-  it('keeps the years in order, one file per year', () => {
-    expect(KNOWN_RULES.map((rules) => rules.year)).toEqual([2023, 2024, 2025, 2026]);
+  it('keeps the years of each country in order, one file per year', () => {
+    expect(BY_COUNTRY.ru.map((rules) => rules.year)).toEqual([2023, 2024, 2025, 2026]);
+    expect(BY_COUNTRY.us.map((rules) => rules.year)).toEqual([2026]);
   });
 
   it('moves life insurance to the long-term savings deduction only in 2026, and says what is unclear', () => {
@@ -43,27 +49,35 @@ describe('rules', () => {
     expect(RULES_2026.lifeInsuranceInLongTermSavings.note).toMatch(/418-ФЗ/);
   });
 
-  it('states the deposit insurance limit with its exceptions', () => {
+  it('states the deposit insurance limit of each country with its exceptions', () => {
     expect(RULES_2026.depositInsuranceLimitMinor.value).toBe(1_400_000 * 100);
     expect(RULES_2026.depositInsuranceLimitMinor.note).toBeTruthy();
+    // FDIC: per depositor, per insured bank, for each account ownership category
+    expect(US_RULES_2026.depositInsuranceLimitMinor.value).toBe(250_000 * 100);
+    expect(US_RULES_2026.depositInsuranceLimitMinor.source).toMatch(/^https:\/\/www\.fdic\.gov\//);
+    expect(US_RULES_2026.depositInsuranceLimitMinor.note).toMatch(/ownership category/);
   });
 
   describe('finding the rules of a year', () => {
     it('gives a written year its own rules', () => {
-      for (const year of [2023, 2024, 2025, 2026]) expect(rulesForYear(year)?.year).toBe(year);
+      for (const year of [2023, 2024, 2025, 2026]) expect(rulesForYear('ru', year)?.year).toBe(year);
+      expect(rulesForYear('us', 2026)).toBe(US_RULES_2026);
     });
 
     it('lends the latest rules to a year nobody has written yet, and says so by their year', () => {
-      expect(rulesForYear(2031)?.year).toBe(2026);
+      expect(rulesForYear('ru', 2031)?.year).toBe(2026);
+      expect(rulesForYear('us', 2031)).toBe(US_RULES_2026);
     });
 
     it('gives nothing to a year before the first written one', () => {
       // counting 2022 by the rules of 2023 would promise a refund that is not due
-      expect(rulesForYear(2022)).toBeUndefined();
+      expect(rulesForYear('ru', 2022)).toBeUndefined();
+      expect(rulesForYear('us', 2025)).toBeUndefined();
     });
 
     it('knows the latest rules written', () => {
-      expect(latestRules().year).toBe(2026);
+      expect(latestRules('ru')).toBe(RULES_2026);
+      expect(latestRules('us')).toBe(US_RULES_2026);
     });
   });
 

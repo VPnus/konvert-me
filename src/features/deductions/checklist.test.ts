@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { RULES_2023 } from '@/core/rules/2023';
-import { RULES_2025 } from '@/core/rules/2025';
+import { RU_RULES_2023 } from '@/core/rules/ru/2023';
+import { RU_RULES_2025 } from '@/core/rules/ru/2025';
 import { checklistFor } from '@/features/deductions/checklist';
 
 const RUB = 100;
@@ -23,14 +23,14 @@ const ids = (groups: ReturnType<typeof checklistFor>) => groups.map((group) => g
 
 describe('the checklist of papers', () => {
   it('asks for nothing when nothing is claimed', () => {
-    expect(checklistFor(nothing, RULES_2025)).toEqual([]);
+    expect(checklistFor(nothing, RU_RULES_2025)).toEqual([]);
   });
 
   it('asks for one certificate of payment for treatment from 2024, and says it may not be needed', () => {
     // tax service: from the spending of 2024, only the certificate of payment is attached
     const groups = checklistFor(
       { ...nothing, spending: { ...nothing.spending, treatmentMinor: 50_000 * RUB } },
-      RULES_2025,
+      RU_RULES_2025,
     );
 
     expect(ids(groups)).toEqual(['general', 'treatment', 'medicine', 'relatives']);
@@ -44,7 +44,7 @@ describe('the checklist of papers', () => {
     // lesson 3.7: treatment in a clinic
     const groups = checklistFor(
       { ...nothing, spending: { ...nothing.spending, treatmentMinor: 50_000 * RUB } },
-      RULES_2023,
+      RU_RULES_2023,
     );
 
     expect(groups.find((group) => group.id === 'treatment')).toMatchObject({
@@ -61,9 +61,9 @@ describe('the checklist of papers', () => {
       appliedByEmployer: true,
     };
 
-    expect(checklistFor({ ...nothing, children }, RULES_2025)).toEqual([]);
+    expect(checklistFor({ ...nothing, children }, RU_RULES_2025)).toEqual([]);
     expect(
-      checklistFor({ ...nothing, children: { ...children, appliedByEmployer: false } }, RULES_2025).find(
+      checklistFor({ ...nothing, children: { ...children, appliedByEmployer: false } }, RU_RULES_2025).find(
         (group) => group.id === 'kids',
       )?.items,
     ).toEqual(['kidsBirth', 'kidsDisability', 'kidsStudent', 'kidsDouble']);
@@ -79,8 +79,8 @@ describe('the checklist of papers', () => {
       appliedByEmployer: false,
     };
 
-    expect(checklistFor({ ...nothing, incomeMinor: 5_500_000 * RUB, children }, RULES_2025)).toEqual([]);
-    expect(ids(checklistFor({ ...nothing, incomeMinor: 5_400_000 * RUB, children }, RULES_2025))).toEqual([
+    expect(checklistFor({ ...nothing, incomeMinor: 5_500_000 * RUB, children }, RU_RULES_2025)).toEqual([]);
+    expect(ids(checklistFor({ ...nothing, incomeMinor: 5_400_000 * RUB, children }, RU_RULES_2025))).toEqual([
       'general',
       'kids',
     ]);
@@ -95,10 +95,13 @@ describe('the checklist of papers', () => {
       usedBeforeInterestMinor: 0,
     };
 
-    expect(ids(checklistFor({ ...nothing, property }, RULES_2025))).toEqual(['general', 'property']);
+    expect(ids(checklistFor({ ...nothing, property }, RU_RULES_2025))).toEqual(['general', 'property']);
     expect(
       ids(
-        checklistFor({ ...nothing, property: { ...property, mortgageInterestMinor: 1 * RUB } }, RULES_2025),
+        checklistFor(
+          { ...nothing, property: { ...property, mortgageInterestMinor: 1 * RUB } },
+          RU_RULES_2025,
+        ),
       ),
     ).toEqual(['general', 'property', 'mortgage']);
   });
@@ -112,17 +115,17 @@ describe('the checklist of papers', () => {
     };
 
     expect(
-      checklistFor({ ...nothing, sale }, RULES_2025).find((group) => group.id === 'sale')?.items,
+      checklistFor({ ...nothing, sale }, RU_RULES_2025).find((group) => group.id === 'sale')?.items,
     ).toEqual(['saleContract', 'salePayment', 'saleExpenses']);
-    expect(checklistFor({ ...nothing, sale: { ...sale, ownedLongEnough: true } }, RULES_2025)).toEqual([]);
+    expect(checklistFor({ ...nothing, sale: { ...sale, ownedLongEnough: true } }, RU_RULES_2025)).toEqual([]);
     // tax service: within 1 million there is nothing to declare
-    expect(checklistFor({ ...nothing, sale: { ...sale, priceMinor: 900_000 * RUB } }, RULES_2025)).toEqual(
+    expect(checklistFor({ ...nothing, sale: { ...sale, priceMinor: 900_000 * RUB } }, RU_RULES_2025)).toEqual(
       [],
     );
   });
 
   it('asks for the investment account papers of the lesson', () => {
-    expect(ids(checklistFor({ ...nothing, longTermSavingsMinor: 400_000 * RUB }, RULES_2025))).toEqual([
+    expect(ids(checklistFor({ ...nothing, longTermSavingsMinor: 400_000 * RUB }, RU_RULES_2025))).toEqual([
       'general',
       'savings',
     ]);

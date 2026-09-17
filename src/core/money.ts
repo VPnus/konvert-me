@@ -3,10 +3,13 @@
  * numbers and rounded to kopecks only when they are saved or displayed.
  */
 
+import type { Currency } from '@/core/country';
+import { currentCurrency } from '@/i18n/country';
 import { currentLocale } from '@/i18n/locale';
 
-// Keyed by the language too: a test may format in another one without a reload.
-const RUB_FORMATTERS = new Map<string, Intl.NumberFormat>();
+// Keyed by the language and the currency: a test may format in another one without a reload, and a
+// change of the country draws the screens anew without one.
+const MONEY_FORMATTERS = new Map<string, Intl.NumberFormat>();
 const COMPACT_FORMATTERS = new Map<string, Intl.NumberFormat>();
 
 export class MoneyError extends Error {
@@ -75,26 +78,38 @@ export function sumMinor(values: readonly number[]): Minor {
 export interface FormatMinorOptions {
   readonly withCurrency?: boolean;
   readonly fractionDigits?: 0 | 2;
+  /** Another currency than the one of the data: the sums of a country not chosen yet. */
+  readonly currency?: Currency;
 }
 
 export function formatMinor(minor: Minor, options: FormatMinorOptions = {}): string {
   assertMinor(minor);
-  const { withCurrency = true, fractionDigits = 2 } = options;
+  const { withCurrency = true, fractionDigits = 2, currency = currentCurrency() } = options;
   const locale = currentLocale();
-  const key = `${locale}:${withCurrency ? 'rub' : 'plain'}:${fractionDigits}`;
-  let formatter = RUB_FORMATTERS.get(key);
+  const key = `${locale}:${currency}:${withCurrency ? 'sign' : 'plain'}:${fractionDigits}`;
+  let formatter = MONEY_FORMATTERS.get(key);
   if (!formatter) {
     formatter = new Intl.NumberFormat(locale, {
       style: withCurrency ? 'currency' : 'decimal',
-      currency: 'RUB',
-      // ₽ in every language: English would otherwise write RUB.
+      currency,
+      // ₽ and $ in every language: English would otherwise write RUB, and Russian US$.
       currencyDisplay: 'narrowSymbol',
       minimumFractionDigits: fractionDigits,
       maximumFractionDigits: fractionDigits,
     });
-    RUB_FORMATTERS.set(key, formatter);
+    MONEY_FORMATTERS.set(key, formatter);
   }
   return formatter.format(minor / 100);
+}
+
+/** The sign of the currency of the data, for the label of a field: ₽ or $. */
+export function currencySign(): string {
+  const parts = new Intl.NumberFormat(currentLocale(), {
+    style: 'currency',
+    currency: currentCurrency(),
+    currencyDisplay: 'narrowSymbol',
+  }).formatToParts(0);
+  return parts.find((part) => part.type === 'currency')?.value ?? currentCurrency();
 }
 
 /**

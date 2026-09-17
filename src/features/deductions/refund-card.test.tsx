@@ -7,7 +7,7 @@ import {
   type PropertyClaim,
   type PropertyUsedBefore,
 } from '@/core/deductions';
-import { RULES_2025 } from '@/core/rules/2025';
+import { RU_RULES_2025 } from '@/core/rules/ru/2025';
 import type { IsoDate } from '@/core/time';
 import { RefundCard } from '@/features/deductions/refund-card';
 
@@ -33,12 +33,12 @@ function showSale(sale: HomeSale, today: IsoDate, purchaseMinor = 0) {
         : undefined,
       sale,
     },
-    RULES_2025,
+    RU_RULES_2025,
   );
 
   render(
     <RefundCard
-      view={{ year: 2025, stage: 'open', rules: RULES_2025, saved: undefined, summary, documents: [] }}
+      view={{ year: 2025, stage: 'open', rules: RU_RULES_2025, saved: undefined, summary, documents: [] }}
       summary={summary}
       childrenAtWork={false}
       usedBefore={undefined}
@@ -65,12 +65,12 @@ describe('what is left of a home', () => {
         longTermSavingsMinor: 0,
         property,
       },
-      RULES_2025,
+      RU_RULES_2025,
     );
 
     render(
       <RefundCard
-        view={{ year: 2025, stage: 'open', rules: RULES_2025, saved: undefined, summary, documents: [] }}
+        view={{ year: 2025, stage: 'open', rules: RU_RULES_2025, saved: undefined, summary, documents: [] }}
         summary={summary}
         childrenAtWork={false}
         usedBefore={property}

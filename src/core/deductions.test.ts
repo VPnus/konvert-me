@@ -20,14 +20,14 @@ import {
   type HomeSale,
   type SocialSpending,
 } from './deductions';
-import { RULES_2023 } from './rules/2023';
-import { RULES_2024 } from './rules/2024';
-import { RULES_2025 } from './rules/2025';
-import { RULES_2026 } from './rules/2026';
+import { RU_RULES_2023 } from './rules/ru/2023';
+import { RU_RULES_2024 } from './rules/ru/2024';
+import { RU_RULES_2025 } from './rules/ru/2025';
+import { RU_RULES_2026 } from './rules/ru/2026';
 
 const RUB = 100;
 const r = (rubles: number): number => Math.round(rubles * RUB);
-const bands = RULES_2026.incomeTaxBands.value;
+const bands = RU_RULES_2026.incomeTaxBands.value;
 
 const noSpending: SocialSpending = { commonMinor: 0, childEducationMinor: [], expensiveTreatmentMinor: 0 };
 
@@ -113,11 +113,11 @@ describe('the refund a deduction brings', () => {
 describe('the social deduction of a year', () => {
   it('stops the shared pot at 150 000 however much was spent', () => {
     // tax service, deduction for schooling: 300 000 paid at once gives a deduction of 150 000
-    expect(socialDeductionMinor({ ...noSpending, commonMinor: r(300_000) }, RULES_2026)).toBe(r(150_000));
+    expect(socialDeductionMinor({ ...noSpending, commonMinor: r(300_000) }, RU_RULES_2026)).toBe(r(150_000));
   });
 
   it('gives the tax service example end to end: 300 000 of schooling returns 19 500', () => {
-    const deduction = socialDeductionMinor({ ...noSpending, commonMinor: r(300_000) }, RULES_2026);
+    const deduction = socialDeductionMinor({ ...noSpending, commonMinor: r(300_000) }, RU_RULES_2026);
 
     expect(refundMinor(r(1_200_000), deduction, bands)).toBe(r(19_500));
   });
@@ -130,7 +130,7 @@ describe('the social deduction of a year', () => {
       expensiveTreatmentMinor: 0,
     };
 
-    expect(socialDeductionMinor(spending, RULES_2026)).toBe(r(150_000 + 110_000 + 50_000));
+    expect(socialDeductionMinor(spending, RU_RULES_2026)).toBe(r(150_000 + 110_000 + 50_000));
   });
 
   it('puts no limit on expensive treatment', () => {
@@ -141,31 +141,31 @@ describe('the social deduction of a year', () => {
       expensiveTreatmentMinor: r(1_000_000),
     };
 
-    expect(socialDeductionMinor(spending, RULES_2026)).toBe(r(150_000 + 1_000_000));
+    expect(socialDeductionMinor(spending, RU_RULES_2026)).toBe(r(150_000 + 1_000_000));
   });
 
   it('is nothing when nothing was spent', () => {
-    expect(socialDeductionMinor(noSpending, RULES_2026)).toBe(0);
+    expect(socialDeductionMinor(noSpending, RU_RULES_2026)).toBe(0);
   });
 
   it('refuses a negative amount', () => {
-    expect(() => socialDeductionMinor({ ...noSpending, commonMinor: -1 }, RULES_2026)).toThrow();
-    expect(() => socialDeductionMinor({ ...noSpending, childEducationMinor: [-1] }, RULES_2026)).toThrow();
+    expect(() => socialDeductionMinor({ ...noSpending, commonMinor: -1 }, RU_RULES_2026)).toThrow();
+    expect(() => socialDeductionMinor({ ...noSpending, childEducationMinor: [-1] }, RU_RULES_2026)).toThrow();
   });
 });
 
 describe('the years a deduction can still be claimed', () => {
   it('reaches three years back and stops before the current one', () => {
     // tax service: "in 2025 a return can be filed for 2024, 2023 and 2022"
-    expect(claimableYears(2025, RULES_2025.deductionYearsBack.value)).toEqual([2022, 2023, 2024]);
-    expect(claimableYears(2026, RULES_2026.deductionYearsBack.value)).toEqual([2023, 2024, 2025]);
+    expect(claimableYears(2025, RU_RULES_2025.deductionYearsBack.value)).toEqual([2022, 2023, 2024]);
+    expect(claimableYears(2026, RU_RULES_2026.deductionYearsBack.value)).toEqual([2023, 2024, 2025]);
   });
 });
 
 describe('a year counted by its own rules', () => {
   it('taxed 5 million at 13 % whole in 2024, and only the rest at 15 %', () => {
     // example of the two-step scale: 650 000 plus 15 % of what lies above 5 million
-    const bands2024 = RULES_2024.incomeTaxBands.value;
+    const bands2024 = RU_RULES_2024.incomeTaxBands.value;
 
     expect(incomeTaxMinor(r(5_000_000), bands2024)).toBe(r(650_000));
     expect(incomeTaxMinor(r(6_000_000), bands2024)).toBe(r(650_000 + 150_000));
@@ -173,24 +173,24 @@ describe('a year counted by its own rules', () => {
 
   it('returned 19 500 for 2024 and returns 22 500 for 2025 on the same income of 3 million', () => {
     // example of the scale: the maximal social deduction on 3 million, a year apart
-    expect(refundMinor(r(3_000_000), r(150_000), RULES_2024.incomeTaxBands.value)).toBe(r(19_500));
-    expect(refundMinor(r(3_000_000), r(150_000), RULES_2025.incomeTaxBands.value)).toBe(r(22_500));
+    expect(refundMinor(r(3_000_000), r(150_000), RU_RULES_2024.incomeTaxBands.value)).toBe(r(19_500));
+    expect(refundMinor(r(3_000_000), r(150_000), RU_RULES_2025.incomeTaxBands.value)).toBe(r(22_500));
   });
 
   it('stopped the shared pot at 120 000 in 2023', () => {
     // tax service: the limit was 120 000 for spending before 2024
-    const deduction = socialDeductionMinor({ ...noSpending, commonMinor: r(300_000) }, RULES_2023);
+    const deduction = socialDeductionMinor({ ...noSpending, commonMinor: r(300_000) }, RU_RULES_2023);
 
     expect(deduction).toBe(r(120_000));
-    expect(refundMinor(r(1_200_000), deduction, RULES_2023.incomeTaxBands.value)).toBe(r(15_600));
+    expect(refundMinor(r(1_200_000), deduction, RU_RULES_2023.incomeTaxBands.value)).toBe(r(15_600));
   });
 
   it('limited a child’s schooling to 50 000 in 2023', () => {
     // tax service: 50 000 per child before 2024
     const spending: SocialSpending = { ...noSpending, childEducationMinor: [r(80_000)] };
 
-    expect(socialDeductionMinor(spending, RULES_2023)).toBe(r(50_000));
-    expect(socialDeductionMinor(spending, RULES_2024)).toBe(r(80_000));
+    expect(socialDeductionMinor(spending, RU_RULES_2023)).toBe(r(50_000));
+    expect(socialDeductionMinor(spending, RU_RULES_2024)).toBe(r(80_000));
   });
 });
 
@@ -198,7 +198,7 @@ describe('the property deduction', () => {
   const property = (purchase: number, interest: number, loanBefore2014 = false) =>
     propertyDeductionMinor(
       { purchaseMinor: r(purchase), mortgageInterestMinor: r(interest), loanBefore2014 },
-      RULES_2025,
+      RU_RULES_2025,
     );
 
   it('stops the purchase at 2 million and the mortgage interest at 3 million', () => {
@@ -225,7 +225,7 @@ describe('the property deduction', () => {
         year: 2025,
         incomeMinor: r(3_500_000),
         otherDeductionsMinor: 0,
-        bands: RULES_2025.incomeTaxBands.value,
+        bands: RU_RULES_2025.incomeTaxBands.value,
       },
     ]);
 
@@ -234,16 +234,16 @@ describe('the property deduction', () => {
 
   it('returns 438 000 on 3,5 million for a purchase and 1,2 million of interest in 2025', () => {
     // example of the scale: 477 000 of tax, 39 000 after a deduction of 3,2 million
-    expect(refundMinor(r(3_500_000), property(2_000_000, 1_200_000), RULES_2025.incomeTaxBands.value)).toBe(
-      r(438_000),
-    );
+    expect(
+      refundMinor(r(3_500_000), property(2_000_000, 1_200_000), RU_RULES_2025.incomeTaxBands.value),
+    ).toBe(r(438_000));
   });
 
   it('returns 752 000 on 6 million for both deductions in full in 2025', () => {
     // example of the scale: 882 000 of tax, 130 000 after a deduction of 5 million
-    expect(refundMinor(r(6_000_000), property(5_000_000, 4_000_000), RULES_2025.incomeTaxBands.value)).toBe(
-      r(752_000),
-    );
+    expect(
+      refundMinor(r(6_000_000), property(5_000_000, 4_000_000), RU_RULES_2025.incomeTaxBands.value),
+    ).toBe(r(752_000));
   });
 });
 
@@ -252,7 +252,7 @@ describe('carrying the property deduction over the years', () => {
     year: value,
     incomeMinor: r(income),
     otherDeductionsMinor: r(other),
-    bands: [RULES_2023, RULES_2024, RULES_2025, RULES_2026].find((rules) => rules.year === value)!
+    bands: [RU_RULES_2023, RU_RULES_2024, RU_RULES_2025, RU_RULES_2026].find((rules) => rules.year === value)!
       .incomeTaxBands.value,
   });
 
@@ -293,8 +293,8 @@ describe('carrying the property deduction over the years', () => {
       leftMinor: r(950_000),
     });
     // with the social refund, the year gives back exactly the tax it paid
-    const social = refundMinor(r(1_200_000), r(150_000), RULES_2026.incomeTaxBands.value);
-    expect(social + only.refundMinor).toBe(incomeTaxMinor(r(1_200_000), RULES_2026.incomeTaxBands.value));
+    const social = refundMinor(r(1_200_000), r(150_000), RU_RULES_2026.incomeTaxBands.value);
+    expect(social + only.refundMinor).toBe(incomeTaxMinor(r(1_200_000), RU_RULES_2026.incomeTaxBands.value));
   });
 
   it('refuses years out of order', () => {
@@ -308,12 +308,12 @@ describe('carrying the property deduction over the years', () => {
 
 describe('long-term savings', () => {
   it('stops the contributions of a year at 400 000', () => {
-    expect(longTermSavingsDeductionMinor(r(500_000), RULES_2026)).toBe(r(400_000));
-    expect(longTermSavingsDeductionMinor(r(120_000), RULES_2026)).toBe(r(120_000));
+    expect(longTermSavingsDeductionMinor(r(500_000), RU_RULES_2026)).toBe(r(400_000));
+    expect(longTermSavingsDeductionMinor(r(120_000), RU_RULES_2026)).toBe(r(120_000));
   });
 
   it('refuses a negative contribution', () => {
-    expect(() => longTermSavingsDeductionMinor(-1, RULES_2026)).toThrow();
+    expect(() => longTermSavingsDeductionMinor(-1, RU_RULES_2026)).toThrow();
   });
 });
 
@@ -335,7 +335,7 @@ describe('a year of deductions summed up', () => {
   it('gives the tax service example: 300 000 of schooling on 100 000 a month returns 19 500', () => {
     const summary = summarizeDeductionYear(
       claim({ social: { ...noSpending, commonMinor: r(300_000) } }),
-      RULES_2026,
+      RU_RULES_2026,
     );
 
     expect(summary).toMatchObject({
@@ -350,7 +350,7 @@ describe('a year of deductions summed up', () => {
   it('gives the scale example: a home of 2 million on 3,5 million returns 282 000 in 2025', () => {
     const summary = summarizeDeductionYear(
       claim({ incomeMinor: r(3_500_000), property: home(2_000_000) }),
-      RULES_2025,
+      RU_RULES_2025,
     );
 
     expect(summary.taxPaidMinor).toBe(r(477_000));
@@ -367,7 +367,7 @@ describe('a year of deductions summed up', () => {
 
   it('returns 52 000 for 400 000 put into long-term savings at 13 %', () => {
     // a source on the investment account: 13 % of 400 000 is 52 000 a year
-    const summary = summarizeDeductionYear(claim({ longTermSavingsMinor: r(500_000) }), RULES_2026);
+    const summary = summarizeDeductionYear(claim({ longTermSavingsMinor: r(500_000) }), RU_RULES_2026);
 
     expect(summary.longTermSavingsDeductionMinor).toBe(r(400_000));
     expect(summary.longTermSavingsRefundMinor).toBe(r(52_000));
@@ -381,7 +381,7 @@ describe('a year of deductions summed up', () => {
         longTermSavingsMinor: r(400_000),
         property: home(2_000_000),
       }),
-      RULES_2026,
+      RU_RULES_2026,
     );
 
     expect(summary.socialRefundMinor).toBe(r(19_500));
@@ -401,7 +401,7 @@ describe('a year of deductions summed up', () => {
     // rule of the law: 2 million once in a life; 1,2 million of it was used before
     const summary = summarizeDeductionYear(
       claim({ incomeMinor: r(600_000), property: home(3_000_000, 1_200_000) }),
-      RULES_2026,
+      RU_RULES_2026,
     );
 
     expect(summary.property).toEqual({
@@ -415,7 +415,7 @@ describe('a year of deductions summed up', () => {
   });
 
   it('has nothing left of a home whose deduction was taken in full before', () => {
-    const summary = summarizeDeductionYear(claim({ property: home(2_000_000, 2_500_000) }), RULES_2026);
+    const summary = summarizeDeductionYear(claim({ property: home(2_000_000, 2_500_000) }), RU_RULES_2026);
 
     expect(summary.property).toEqual({
       availableMinor: 0,
@@ -433,7 +433,7 @@ describe('a year of deductions summed up', () => {
     // what is left of the purchase and of the interest move on in lines of their own
     const summary = summarizeDeductionYear(
       claim({ incomeMinor: r(2_300_000), property: home(3_000_000, 0, 500_000) }),
-      RULES_2026,
+      RU_RULES_2026,
     );
 
     expect(summary.property).toEqual({
@@ -450,7 +450,7 @@ describe('a year of deductions summed up', () => {
     // a salary of 50 000 a month against a home of 2 million and 400 000 of interest
     const summary = summarizeDeductionYear(
       claim({ incomeMinor: r(600_000), property: home(2_000_000, 0, 400_000) }),
-      RULES_2026,
+      RU_RULES_2026,
     );
 
     expect(summary.property).toMatchObject({
@@ -465,7 +465,7 @@ describe('a year of deductions summed up', () => {
     // the home itself was used up before; of 400 000 of interest, 100 000 came back before
     const summary = summarizeDeductionYear(
       claim({ property: home(3_000_000, 2_000_000, 400_000, 100_000) }),
-      RULES_2026,
+      RU_RULES_2026,
     );
 
     expect(summary.property).toEqual({
@@ -482,7 +482,7 @@ describe('a year of deductions summed up', () => {
     // tax service: 120 000 for spending before 2024
     const summary = summarizeDeductionYear(
       claim({ social: { ...noSpending, commonMinor: r(300_000) } }),
-      RULES_2023,
+      RU_RULES_2023,
     );
 
     expect(summary.socialDeductionMinor).toBe(r(120_000));
@@ -490,9 +490,9 @@ describe('a year of deductions summed up', () => {
   });
 
   it('refuses a negative amount of what earlier returns took', () => {
-    expect(() => summarizeDeductionYear(claim({ property: home(2_000_000, -1) }), RULES_2026)).toThrow();
+    expect(() => summarizeDeductionYear(claim({ property: home(2_000_000, -1) }), RU_RULES_2026)).toThrow();
     expect(() =>
-      summarizeDeductionYear(claim({ property: home(2_000_000, 0, 100_000, -1) }), RULES_2026),
+      summarizeDeductionYear(claim({ property: home(2_000_000, 0, 100_000, -1) }), RU_RULES_2026),
     ).toThrow();
   });
 });
@@ -509,11 +509,13 @@ describe('one sum of what earlier returns took of a home, split into its parts',
   });
 
   it('gives the home itself the sum up to its deduction, as the returns took it', () => {
-    expect(splitUsedBefore(home(4_500_000, 310_000), r(1_200_000), RULES_2025)).toEqual(split(1_200_000, 0));
-    expect(splitUsedBefore(home(3_000_000, 800_000), r(2_500_000), RULES_2025)).toEqual(
+    expect(splitUsedBefore(home(4_500_000, 310_000), r(1_200_000), RU_RULES_2025)).toEqual(
+      split(1_200_000, 0),
+    );
+    expect(splitUsedBefore(home(3_000_000, 800_000), r(2_500_000), RU_RULES_2025)).toEqual(
       split(2_000_000, 500_000),
     );
-    expect(splitUsedBefore(home(1_500_000, 800_000), r(2_000_000), RULES_2025)).toEqual(
+    expect(splitUsedBefore(home(1_500_000, 800_000), r(2_000_000), RU_RULES_2025)).toEqual(
       split(1_500_000, 500_000),
     );
   });
@@ -523,7 +525,7 @@ describe('one sum of what earlier returns took of a home, split into its parts',
       for (const interest of [0, 250_000, 3_500_000])
         for (const usedBefore of [0, 500_000, 2_000_000, 2_600_000, 7_000_000]) {
           const claimed = home(purchase, interest);
-          const parts = splitUsedBefore(claimed, r(usedBefore), RULES_2026);
+          const parts = splitUsedBefore(claimed, r(usedBefore), RU_RULES_2026);
           const summary = summarizeDeductionYear(
             {
               incomeMinor: 0,
@@ -531,11 +533,11 @@ describe('one sum of what earlier returns took of a home, split into its parts',
               longTermSavingsMinor: 0,
               property: { ...claimed, ...parts },
             },
-            RULES_2026,
+            RU_RULES_2026,
           );
 
           expect(summary.property?.availableMinor).toBe(
-            Math.max(0, propertyDeductionMinor(claimed, RULES_2026) - r(usedBefore)),
+            Math.max(0, propertyDeductionMinor(claimed, RU_RULES_2026) - r(usedBefore)),
           );
         }
   });
@@ -545,7 +547,7 @@ describe('one sum of what earlier returns took of a home, split into its parts',
   });
 
   it('refuses a negative sum', () => {
-    expect(() => splitUsedBefore(home(2_000_000, 0), -1, RULES_2025)).toThrow();
+    expect(() => splitUsedBefore(home(2_000_000, 0), -1, RU_RULES_2025)).toThrow();
   });
 });
 
@@ -571,7 +573,7 @@ describe('the standard deduction for children', () => {
     // since the income of the year passes 450 000 in December
     const claim = children([child(1), child(2), child(3), child(3)]);
 
-    expect(childDeductionMinor(claim, r(480_000), RULES_2025)).toBe(r(16_200 * 11));
+    expect(childDeductionMinor(claim, r(480_000), RU_RULES_2025)).toBe(r(16_200 * 11));
   });
 
   it('stopped at 350 000 of income with 1 400 for each of the first two children before 2025', () => {
@@ -579,57 +581,57 @@ describe('the standard deduction for children', () => {
     // 40 000 a month passes it in September
     const claim = children([child(1), child(2)]);
 
-    expect(childDeductionMinor(claim, r(480_000), RULES_2023)).toBe(r(2_800 * 8));
+    expect(childDeductionMinor(claim, r(480_000), RU_RULES_2023)).toBe(r(2_800 * 8));
   });
 
   it('still gives the month in which the income reaches the border without passing it', () => {
     // tax code, art. 218 p. 1 pp. 4: the deduction stops from the month the income "passed" 450 000
-    expect(childDeductionMinor(children([child(1)]), r(450_000), RULES_2025)).toBe(r(1_400 * 12));
+    expect(childDeductionMinor(children([child(1)]), r(450_000), RU_RULES_2025)).toBe(r(1_400 * 12));
   });
 
   it('lasts only four months on a salary of 100 000', () => {
     // rule of the law: 400 000 by April, 500 000 by May
-    expect(childDeductionMinor(children([child(1)]), r(1_200_000), RULES_2026)).toBe(r(1_400 * 4));
+    expect(childDeductionMinor(children([child(1)]), r(1_200_000), RU_RULES_2026)).toBe(r(1_400 * 4));
   });
 
   it('adds a disabled child’s 12 000 to the amount by order of birth', () => {
     // tax service and a source on 2025: the amount for a disabled child adds to the one by order
     const claim = children([child(1, { disabled: true })]);
 
-    expect(childDeductionMinor(claim, r(300_000), RULES_2025)).toBe(r((1_400 + 12_000) * 12));
+    expect(childDeductionMinor(claim, r(300_000), RU_RULES_2025)).toBe(r((1_400 + 12_000) * 12));
   });
 
   it('gave a guardian of a disabled child 6 000 instead of 12 000 before 2025, and the same from then', () => {
     // a source on the disabled child deduction before 2025; tax code, art. 218 from 2025
     const claim = children([child(1, { disabled: true })], { guardian: true });
 
-    expect(childDeductionMinor(claim, r(300_000), RULES_2024)).toBe(r((1_400 + 6_000) * 12));
-    expect(childDeductionMinor(claim, r(300_000), RULES_2025)).toBe(r((1_400 + 12_000) * 12));
+    expect(childDeductionMinor(claim, r(300_000), RU_RULES_2024)).toBe(r((1_400 + 6_000) * 12));
+    expect(childDeductionMinor(claim, r(300_000), RU_RULES_2025)).toBe(r((1_400 + 12_000) * 12));
   });
 
   it('doubles for the only parent', () => {
     // tax code, art. 218 p. 1 pp. 4: "в двойном размере единственному родителю"
     const claim = children([child(1)], { double: true });
 
-    expect(childDeductionMinor(claim, r(300_000), RULES_2025)).toBe(r(1_400 * 2 * 12));
+    expect(childDeductionMinor(claim, r(300_000), RU_RULES_2025)).toBe(r(1_400 * 2 * 12));
   });
 
   it('counts only the months the right lasted, and none after the income passed the border', () => {
     // tax code, art. 218 p. 1 pp. 4: from the month of birth; 40 000 a month stops it after November
     const claim = children([child(1, { fromMonth: 6 })]);
 
-    expect(childDeductionMinor(claim, r(480_000), RULES_2025)).toBe(r(1_400 * 6));
+    expect(childDeductionMinor(claim, r(480_000), RU_RULES_2025)).toBe(r(1_400 * 6));
   });
 
   it('refuses months outside the year, months out of order and a place by birth below one', () => {
     const at = (patch: Partial<ChildRight>) =>
-      childDeductionMinor(children([child(1, patch)]), r(1), RULES_2025);
+      childDeductionMinor(children([child(1, patch)]), r(1), RU_RULES_2025);
 
     expect(() => at({ fromMonth: 0 })).toThrow();
     expect(() => at({ toMonth: 13 })).toThrow();
     expect(() => at({ fromMonth: 7, toMonth: 6 })).toThrow();
     expect(() => at({ fromMonth: 1.5 })).toThrow();
-    expect(() => childDeductionMinor(children([child(0)]), r(1), RULES_2025)).toThrow();
+    expect(() => childDeductionMinor(children([child(0)]), r(1), RU_RULES_2025)).toThrow();
   });
 
   it('gives back 23 166 of the tax service example when the employer did not give it', () => {
@@ -641,7 +643,7 @@ describe('the standard deduction for children', () => {
         longTermSavingsMinor: 0,
         children: children([child(1), child(2), child(3), child(3)]),
       },
-      RULES_2025,
+      RU_RULES_2025,
     );
 
     expect(summary).toMatchObject({
@@ -661,7 +663,7 @@ describe('the standard deduction for children', () => {
         longTermSavingsMinor: 0,
         children: children([child(1), child(2), child(3), child(3)], { appliedByEmployer: true }),
       },
-      RULES_2025,
+      RU_RULES_2025,
     );
 
     expect(summary).toMatchObject({
@@ -682,7 +684,7 @@ const sale = (price: number, patch: Partial<HomeSale> = {}): HomeSale => ({
 });
 
 /** A year with nothing but a sale in it. */
-const onlySale = (home: HomeSale, rules = RULES_2025, incomeMinor = 0): DeductionSummary =>
+const onlySale = (home: HomeSale, rules = RU_RULES_2025, incomeMinor = 0): DeductionSummary =>
   summarizeDeductionYear({ incomeMinor, social: noSpending, longTermSavingsMinor: 0, sale: home }, rules);
 
 /** The parts of a year add up to what it gives back less the tax on its sale. */
@@ -714,14 +716,14 @@ describe('selling a home', () => {
     // tax service: 70 % of 3 300 000 is 2 310 000, more than the price
     const home = sale(2_100_000, { cadastralMinor: r(3_300_000) });
 
-    expect(homeSaleIncomeMinor(home, RULES_2025)).toBe(r(2_310_000));
+    expect(homeSaleIncomeMinor(home, RU_RULES_2025)).toBe(r(2_310_000));
     expect(onlySale(home).sale?.taxMinor).toBe(r(170_300));
   });
 
   it('gives the lesson examples: 364 000 on a flat sold for 3,8 million, 65 000 on a gain of 500 000', () => {
     // lesson 3.5: the tax of those years, 13 % whatever the size
-    expect(onlySale(sale(3_800_000), RULES_2024).sale?.taxMinor).toBe(r(364_000));
-    expect(onlySale(sale(4_500_000, { expensesMinor: r(4_000_000) }), RULES_2024).sale?.taxMinor).toBe(
+    expect(onlySale(sale(3_800_000), RU_RULES_2024).sale?.taxMinor).toBe(r(364_000));
+    expect(onlySale(sale(4_500_000, { expensesMinor: r(4_000_000) }), RU_RULES_2024).sale?.taxMinor).toBe(
       r(65_000),
     );
   });
@@ -732,10 +734,10 @@ describe('selling a home', () => {
     // a source on audits: 6 million less 1 million — 2,4 million at 13 % and 2,6 million at 15 %
     expect(onlySale(sale(6_000_000)).sale?.taxMinor).toBe(r(702_000));
     // Klerk, 2026: bought for 10 million, sold for 12 and for 20
-    expect(onlySale(sale(12_000_000, { expensesMinor: r(10_000_000) }), RULES_2026).sale?.taxMinor).toBe(
+    expect(onlySale(sale(12_000_000, { expensesMinor: r(10_000_000) }), RU_RULES_2026).sale?.taxMinor).toBe(
       r(260_000),
     );
-    expect(onlySale(sale(20_000_000, { expensesMinor: r(10_000_000) }), RULES_2026).sale?.taxMinor).toBe(
+    expect(onlySale(sale(20_000_000, { expensesMinor: r(10_000_000) }), RU_RULES_2026).sale?.taxMinor).toBe(
       r(1_452_000),
     );
   });
@@ -764,14 +766,14 @@ describe('selling a home', () => {
   it('never takes off more than the income, and still asks for a return when the price passed 1 million', () => {
     const home = sale(2_000_000, { expensesMinor: r(2_200_000) });
 
-    expect(homeSaleDeductionMinor(home, RULES_2025)).toBe(r(2_000_000));
+    expect(homeSaleDeductionMinor(home, RU_RULES_2025)).toBe(r(2_000_000));
     expect(onlySale(home).sale).toMatchObject({ declarationRequired: true, taxMinor: 0 });
   });
 
   it('refuses a negative amount', () => {
-    expect(() => homeSaleIncomeMinor(sale(-1), RULES_2025)).toThrow();
-    expect(() => homeSaleDeductionMinor(sale(1_000, { expensesMinor: -1 }), RULES_2025)).toThrow();
-    expect(() => homeSaleIncomeMinor(sale(1_000, { cadastralMinor: -1 }), RULES_2025)).toThrow();
+    expect(() => homeSaleIncomeMinor(sale(-1), RU_RULES_2025)).toThrow();
+    expect(() => homeSaleDeductionMinor(sale(1_000, { expensesMinor: -1 }), RU_RULES_2025)).toThrow();
+    expect(() => homeSaleIncomeMinor(sale(1_000, { cadastralMinor: -1 }), RU_RULES_2025)).toThrow();
   });
 });
 
@@ -793,7 +795,7 @@ describe('a sale and the deductions of the same year', () => {
         },
         sale: sale(3_000_000),
       },
-      RULES_2025,
+      RU_RULES_2025,
     );
 
     expect(summary.refundMinor).toBe(r(78_000));
@@ -826,7 +828,7 @@ describe('a sale and the deductions of the same year', () => {
         },
         sale: sale(3_000_000, { expensesMinor: r(2_500_000) }),
       },
-      RULES_2025,
+      RU_RULES_2025,
     );
 
     expect(summary.refundMinor).toBe(r(156_000));
@@ -839,7 +841,7 @@ describe('a sale and the deductions of the same year', () => {
   it('keeps long-term savings off a sale from 2025, as they were not before', () => {
     // tax code, art. 210 p. 2.2 names art. 218, 219 and 220, not 219.2; until 2025 the sale
     // was a part of the main base, which every deduction reduced
-    const year = (rules: typeof RULES_2025) =>
+    const year = (rules: typeof RU_RULES_2025) =>
       summarizeDeductionYear(
         {
           incomeMinor: r(300_000),
@@ -850,13 +852,13 @@ describe('a sale and the deductions of the same year', () => {
         rules,
       );
 
-    const newer = year(RULES_2025);
+    const newer = year(RU_RULES_2025);
     expect(newer.longTermSavingsRefundMinor).toBe(r(39_000));
     expect(newer.sale?.taxMinor).toBe(r(260_000));
     expect(newer.balanceMinor).toBe(r(39_000 - 260_000));
     expect(partsOf(newer)).toBe(newer.balanceMinor);
 
-    const older = year(RULES_2024);
+    const older = year(RU_RULES_2024);
     expect(older.longTermSavingsRefundMinor).toBe(r(52_000));
     expect(older.sale?.taxMinor).toBe(r(247_000));
     expect(older.balanceMinor).toBe(r(39_000 - 247_000));
@@ -870,7 +872,7 @@ describe('a sale and the deductions of the same year', () => {
         social: { ...noSpending, commonMinor: r(150_000) },
         longTermSavingsMinor: 0,
       },
-      RULES_2026,
+      RU_RULES_2026,
     );
 
     expect(summary.sale).toBeUndefined();
@@ -882,7 +884,7 @@ describe('a sale and the deductions of the same year', () => {
 describe('the tax service examples under the rules of the current year', () => {
   // Stage 7 is done when the counts match the tax service examples of the current year: the
   // examples above are printed for 2025, and 2026 keeps every norm they rely on.
-  const year = RULES_2026;
+  const year = RU_RULES_2026;
   const empty = { incomeMinor: 0, social: noSpending, longTermSavingsMinor: 0 };
 
   it('returns 19 500 for 300 000 of schooling on 100 000 a month', () => {

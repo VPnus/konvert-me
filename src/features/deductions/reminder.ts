@@ -39,7 +39,7 @@ export function deductionReminder(
 function reminderFor(today: IsoDate, saved: readonly DeductionYear[]): DeductionReminder | null {
   const year = Number(today.slice(0, 4)) - 1;
 
-  const rules = rulesForYear(year) ?? latestRules();
+  const rules = rulesForYear('ru', year) ?? latestRules('ru');
   const fileBy = rules.declarationDeadline.value;
   if (today > `${year + 1}-${fileBy}`) return null;
 
@@ -47,7 +47,7 @@ function reminderFor(today: IsoDate, saved: readonly DeductionYear[]): Deduction
   if (!record) return today.slice(5, 7) === '01' ? { kind: 'start', year } : null;
   if (record.status !== 'draft') return null;
 
-  const own = rulesForYear(year);
+  const own = rulesForYear('ru', year);
   if (!own) return null;
   const summary = summarizeDeductionYear(toDeductionClaim(record), own);
 

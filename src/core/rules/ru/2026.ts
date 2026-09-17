@@ -1,10 +1,10 @@
 import { SOURCES } from './sources';
-import type { YearRules } from './types';
+import type { RuYearRules } from './types';
 
 /** The day every norm below was read from its source and compared with the law. */
 const CHECKED = '2026-09-16';
 
-export const RULES_2026: YearRules = {
+export const RU_RULES_2026: RuYearRules = {
   year: 2026,
   depositInsuranceLimitMinor: {
     value: 1_400_000 * 100,

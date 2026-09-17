@@ -31,7 +31,7 @@ export function upgradeDeductionYear(record: unknown): unknown {
         loanBefore2014: property.loanBefore2014 === true,
       },
       usedBeforeMinor as number,
-      typeof record.year === 'number' ? rulesForYear(record.year) : undefined,
+      typeof record.year === 'number' ? rulesForYear('ru', record.year) : undefined,
     );
     return { ...record, property: { ...property, ...parts } };
   } catch {

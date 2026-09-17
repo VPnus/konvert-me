@@ -4,7 +4,7 @@
  */
 
 import { claimableYears, summarizeDeductionYear, type DeductionSummary } from '@/core/deductions';
-import { latestRules, rulesForYear, type YearRules } from '@/core/rules';
+import { latestRules, rulesForYear, type RuYearRules } from '@/core/rules';
 import { todayIso } from '@/core/time';
 import type { DeductionStatus, DeductionYear, TaxDocument } from '@/db/models';
 import { listDeductionYears, toDeductionClaim } from '@/db/repositories/deductions';
@@ -17,7 +17,7 @@ export interface DeductionYearView {
   readonly year: number;
   readonly stage: YearStage;
   /** The rules the year is counted by. They carry their own year, which may be an earlier one. */
-  readonly rules: YearRules | undefined;
+  readonly rules: RuYearRules | undefined;
   readonly saved: DeductionYear | undefined;
   readonly summary: DeductionSummary | undefined;
   readonly documents: TaxDocument[];
@@ -32,7 +32,7 @@ export interface DeductionsData {
 
 export async function loadDeductions(now: Date = new Date()): Promise<DeductionsData> {
   const currentYear = Number(todayIso(now).slice(0, 4));
-  const yearsBack = (rulesForYear(currentYear) ?? latestRules()).deductionYearsBack.value;
+  const yearsBack = (rulesForYear('ru', currentYear) ?? latestRules('ru')).deductionYearsBack.value;
   const open = new Set(claimableYears(currentYear, yearsBack));
 
   const [saved, documents] = await Promise.all([listDeductionYears(), listDocuments()]);
@@ -42,7 +42,7 @@ export async function loadDeductions(now: Date = new Date()): Promise<Deductions
   const numbers = [...new Set([currentYear, ...open, ...savedByYear.keys()])].sort((a, b) => b - a);
 
   const years = numbers.map((year): DeductionYearView => {
-    const rules = rulesForYear(year);
+    const rules = rulesForYear('ru', year);
     const record = savedByYear.get(year);
 
     return {

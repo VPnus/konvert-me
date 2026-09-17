@@ -1,6 +1,6 @@
 import type { DeductionSummary, PropertyUsedBefore } from '@/core/deductions';
 import { formatMinor } from '@/core/money';
-import type { YearRules } from '@/core/rules';
+import type { RuYearRules } from '@/core/rules';
 import { todayIso, type IsoDate } from '@/core/time';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { dateOfYear } from '@/features/deductions/dates';
@@ -27,7 +27,7 @@ function propertyParts(purchaseMinor: number, interestMinor: number): string {
  */
 function saleDeadlineNote(
   year: number,
-  rules: Pick<YearRules, 'declarationDeadline' | 'taxPaymentDeadline'>,
+  rules: Pick<RuYearRules, 'declarationDeadline' | 'taxPaymentDeadline'>,
   taxMinor: number,
   today: IsoDate,
 ): string {

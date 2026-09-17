@@ -1,10 +1,14 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
+
+import { setCurrentCountry } from '@/i18n/country';
+import { setLanguageForTests } from '@/i18n/locale';
 
 import {
   MoneyError,
   assertMinor,
   assertNonNegativeMinor,
   assertPositiveMinor,
+  currencySign,
   formatCompactMinor,
   formatMinor,
   isMinor,
@@ -89,6 +93,11 @@ describe('money: rounding and conversion', () => {
 });
 
 describe('money: formatting', () => {
+  afterEach(() => {
+    setCurrentCountry('ru');
+    setLanguageForTests('ru');
+  });
+
   it('formats as roubles in the ru-RU locale', () => {
     expect(normalize(formatMinor(123456))).toBe('1 234,56 ₽');
     expect(normalize(formatMinor(0))).toBe('0,00 ₽');
@@ -109,6 +118,21 @@ describe('money: formatting', () => {
 
   it('refuses to format a non-integer amount', () => {
     expect(() => formatMinor(1.5)).toThrow(MoneyError);
+  });
+
+  it('writes the currency of the country in the way of the language', () => {
+    setCurrentCountry('us');
+    expect(normalize(formatMinor(123456))).toBe('1 234,56 $');
+    expect(currencySign()).toBe('$');
+
+    setLanguageForTests('en');
+    expect(formatMinor(123456)).toBe('$1,234.56');
+    expect(formatMinor(-5000, { fractionDigits: 0 })).toBe('-$50');
+    expect(formatMinor(123456, { withCurrency: false })).toBe('1,234.56');
+
+    setCurrentCountry('ru');
+    expect(formatMinor(123456)).toBe('₽1,234.56');
+    expect(currencySign()).toBe('₽');
   });
 });
 

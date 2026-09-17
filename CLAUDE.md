@@ -15,6 +15,7 @@ Vitest, Testing Library, fake-indexeddb, Playwright. ESLint + Prettier.
 - npm run dev — разработка
 - npm run build — сборка
 - npm run lint / npm run typecheck / npm test / npm run e2e
+- npm run deploy — публикация сайта на GitVerse Pages (docs/PILOT.md); только по явной просьбе, как и push
 Перед тем как считать задачу выполненной, прогони lint, typecheck, test (и e2e, если менялся UI-сценарий).
 
 ## Архитектура
@@ -22,6 +23,8 @@ Vitest, Testing Library, fake-indexeddb, Playwright. ESLint + Prettier.
 - src/db — схема Dexie, миграции, репозитории. UI обращается к данным только через репозитории.
 - src/features/<вкладка> — экраны. src/features/overview/widgets — виджеты дашборда и registry.ts.
 - src/components — общие компоненты. src/lib — утилиты.
+- src/features/site — лендинг (/) и политика конфиденциальности (/privacy): вне оболочки приложения.
+- src/app/site.json — адрес сайта, репозиторий публикации, анкета пилота; его читают сборка и scripts/deploy.mjs.
 
 ## Жёсткие правила
 - Деньги — целые копейки (amountMinor, integer). Никаких float для хранимых сумм.
@@ -49,6 +52,11 @@ Vitest, Testing Library, fake-indexeddb, Playwright. ESLint + Prettier.
   только при явно включённой настройке externalFeedsEnabled (по умолчанию выключена).
 - Код, идентификаторы, коммиты — на английском. Весь текст интерфейса — на русском, простым языком,
   без жаргона; строки держать в src/i18n/ru.ts.
+- Лендинг и политика не открывают базу и ничего не пишут на устройство. Дни использования и постоянное хранение —
+  только внутри приложения (src/app/app-session.tsx).
+- Статистика пилота — только количества: никаких сумм, названий, имён и дат. Сама никуда не отправляется,
+  пользователь копирует её вручную.
+- Адрес сайта (origin в src/app/site.json) после начала пилота не менять: данные пользователей привязаны к нему.
 - Каждый виджет дашборда обёрнут в Error Boundary и имеет «пустое состояние».
 - Мобильная ширина 375 px: без горизонтальной прокрутки.
 

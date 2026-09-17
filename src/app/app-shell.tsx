@@ -4,6 +4,7 @@ import { Link, NavLink, Outlet } from 'react-router-dom';
 import { BackupReminder } from '@/components/common/backup-reminder';
 import { DataRiskBanner } from '@/components/common/data-risk-banner';
 import { ErrorBoundary } from '@/components/common/error-boundary';
+import { UpdatedNotice } from '@/components/pwa/updated-notice';
 import { CatLogo } from '@/components/brand/cat-logo';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { NAV_ITEMS } from '@/app/navigation';
@@ -122,6 +123,7 @@ export function AppShell() {
         )}
       >
         <ErrorBoundary>
+          <UpdatedNotice />
           <DataRiskBanner />
           <BackupReminder />
           <DeductionReminderBanner />

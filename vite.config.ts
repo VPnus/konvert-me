@@ -6,6 +6,7 @@ import react from '@vitejs/plugin-react';
 import { defineConfig, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
+import releaseNotes from './src/app/release-notes.json' with { type: 'json' };
 import site from './src/app/site.json' with { type: 'json' };
 
 const { version } = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as {
@@ -23,6 +24,21 @@ function siteAddress(): Plugin {
   };
 }
 
+/**
+ * The version of the build and what it brings, for an open app of an older version: it reads the file
+ * when its service worker finds an update, to say what the update is. Not part of the offline copy.
+ */
+function releaseFile(): Plugin {
+  return {
+    name: 'konverkot-release-file',
+    apply: 'build',
+    generateBundle() {
+      const notes = (releaseNotes as Record<string, string[]>)[version] ?? [];
+      this.emitFile({ type: 'asset', fileName: 'version.json', source: JSON.stringify({ version, notes }) });
+    },
+  };
+}
+
 export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(version),
@@ -31,6 +47,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
     siteAddress(),
+    releaseFile(),
     VitePWA({
       // The user confirms the update: a reload must never interrupt data entry.
       registerType: 'prompt',

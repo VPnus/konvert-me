@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+
 import { expect, test } from '@playwright/test';
 
 import { skipOnboarding } from './helpers';
@@ -55,5 +57,36 @@ test.describe('installable and offline', () => {
     await expect(page.getByRole('heading', { name: 'Цели', level: 1 })).toBeVisible();
 
     await context.setOffline(false);
+  });
+
+  test('the site says which version it has and what that version brings', async ({ request }) => {
+    const { version } = JSON.parse(readFileSync('package.json', 'utf8')) as { version: string };
+    const response = await request.get('/version.json');
+    expect(response.status()).toBe(200);
+    const release = (await response.json()) as { version: string; notes: string[] };
+    expect(release.version).toBe(version);
+    expect(release.notes.length).toBeGreaterThan(0);
+  });
+
+  test('after an update the app says once what is new, and a newcomer is not told', async ({ page }) => {
+    const { version } = JSON.parse(readFileSync('package.json', 'utf8')) as { version: string };
+
+    // someone new: nothing to compare with, the version is only remembered
+    await skipOnboarding(page);
+    await expect(page.getByTestId('updated-notice')).toHaveCount(0);
+    expect(await page.evaluate(() => localStorage.getItem('konvert-me.version'))).toBe(version);
+
+    // the same person a version earlier
+    await page.evaluate(() => localStorage.setItem('konvert-me.version', '0.0.1'));
+    await page.reload();
+    const notice = page.getByTestId('updated-notice');
+    await expect(notice).toContainText(`Конверкот обновлён до версии ${version}`);
+    await expect(notice.getByRole('listitem').first()).toBeVisible();
+
+    await page.getByTestId('updated-notice-dismiss').click();
+    await expect(notice).toHaveCount(0);
+    await page.reload();
+    await expect(page.getByRole('heading', { name: 'Обзор', level: 1 })).toBeVisible();
+    await expect(notice).toHaveCount(0);
   });
 });

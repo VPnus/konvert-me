@@ -1,4 +1,4 @@
-import { Copy, ExternalLink } from 'lucide-react';
+import { Copy, ExternalLink, Mail } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 
@@ -7,6 +7,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { todayIso } from '@/core/time';
 import { countForPilot, type PilotCounts } from '@/db/repositories/pilot';
+import { fill } from '@/features/deductions/fill';
 import { buildPilotStats, PILOT_CARD_ID } from '@/features/settings/pilot-stats';
 import { useDataVersion } from '@/hooks/use-data-version';
 import { useSettings } from '@/hooks/use-settings';
@@ -99,6 +100,16 @@ export function PilotCard() {
               {ru.settings.pilot.form}
               <ExternalLink className="size-4" aria-hidden />
             </a>
+          ) : SITE.contactEmail ? (
+            // Only the subject goes into the link: the stats are pasted by the user, not carried in an address.
+            <a
+              href={`mailto:${SITE.contactEmail}?subject=${encodeURIComponent(ru.settings.pilot.mailSubject)}`}
+              className={buttonVariants({ variant: 'outline' })}
+              data-testid="pilot-mail"
+            >
+              <Mail className="size-4" aria-hidden />
+              {ru.settings.pilot.mail}
+            </a>
           ) : null}
         </div>
 
@@ -110,7 +121,11 @@ export function PilotCard() {
               : ''}
         </p>
         <p className="text-sm text-muted-foreground">
-          {SITE.feedbackFormUrl ? ru.settings.pilot.sendToForm : ru.settings.pilot.sendToInviter}
+          {SITE.feedbackFormUrl
+            ? ru.settings.pilot.sendToForm
+            : SITE.contactEmail
+              ? fill(ru.settings.pilot.sendToEmail, { email: SITE.contactEmail })
+              : ru.settings.pilot.sendToInviter}
         </p>
       </CardContent>
     </Card>

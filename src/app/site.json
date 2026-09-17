@@ -3,7 +3,7 @@
   "repository": "https://gitverse.ru/konverkot/konverkot.git",
   "branch": "main",
   "feedbackFormUrl": null,
-  "contactEmail": null,
+  "contactEmail": "amosmeptines@yandex.ru",
   "pilotActive": true,
   "routes": [
     "/welcome",

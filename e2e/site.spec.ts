@@ -75,6 +75,7 @@ test.describe('the privacy policy', () => {
     await page.getByTestId('site-privacy-link').click();
     await expect(heading).toBeVisible();
     await expect(page.getByRole('heading', { level: 2, name: 'Что уходит в интернет' })).toBeVisible();
+    await expect(page.locator('main a[href^="mailto:"]')).toBeVisible();
 
     await page.goto('/welcome');
     await page.getByRole('link', { name: 'Политика конфиденциальности' }).click();
@@ -114,6 +115,11 @@ test.describe('the pilot', () => {
     await expect(stats).toContainText('Знакомство: пропущено');
     await expect(stats).toContainText('Открывали через 7 дней и позже: ещё рано');
     await expect(stats).not.toContainText('₽');
+    // Without a questionnaire the stats go by mail; the link carries a subject only, never the stats.
+    await expect(page.getByTestId('pilot-mail')).toHaveAttribute(
+      'href',
+      /^mailto:[^?\s]+@[^?\s]+\?subject=[^&]+$/,
+    );
 
     await page.getByTestId('pilot-copy').click();
     await expect(page.getByTestId('pilot-copy-status')).toHaveText(/Скопировано/);

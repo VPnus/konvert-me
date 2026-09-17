@@ -16,6 +16,7 @@ import {
   type AccountType,
 } from '@/db/models';
 import { parseOrThrow } from '@/db/validate';
+import { strings } from '@/i18n';
 import { publishAppEvent } from '@/lib/broadcast';
 
 export interface AccountInput {
@@ -73,7 +74,7 @@ export async function createAccount(input: AccountInput): Promise<Account> {
       createdAt: now,
       updatedAt: now,
     },
-    'Счёт',
+    strings.data.subjects.account,
   );
 
   await db.accounts.add(account);
@@ -83,12 +84,12 @@ export async function createAccount(input: AccountInput): Promise<Account> {
 
 export async function updateAccount(id: string, patch: Partial<AccountInput>): Promise<Account> {
   const current = await db.accounts.get(id);
-  if (!current) throw new RepositoryError('Счёт не найден');
+  if (!current) throw new RepositoryError(strings.data.notFound.account);
 
   const next = parseOrThrow(
     accountSchema,
     { ...current, ...patch, id: current.id, currency: 'RUB', updatedAt: Date.now() },
-    'Счёт',
+    strings.data.subjects.account,
   );
 
   await db.accounts.put(next);
@@ -98,7 +99,7 @@ export async function updateAccount(id: string, patch: Partial<AccountInput>): P
 
 export async function setAccountArchived(id: string, archived: boolean): Promise<Account> {
   const current = await db.accounts.get(id);
-  if (!current) throw new RepositoryError('Счёт не найден');
+  if (!current) throw new RepositoryError(strings.data.notFound.account);
   const next = { ...current, archived, updatedAt: Date.now() };
   await db.accounts.put(next);
   publishAppEvent({ type: 'data-changed' });
@@ -114,10 +115,10 @@ export async function deleteAccount(id: string): Promise<void> {
   ]);
 
   if (asSource + asTarget > 0) {
-    throw new RepositoryError('У счёта есть операции. Его можно убрать в архив, но не удалить.');
+    throw new RepositoryError(strings.data.accountHasTransactions);
   }
   if (envelopes > 0) {
-    throw new RepositoryError('На счёте есть конверты целей. Сначала освободите их.');
+    throw new RepositoryError(strings.data.accountHasEnvelopes);
   }
 
   await db.accounts.delete(id);
@@ -151,7 +152,7 @@ export function toCoreTransaction(row: {
 
 export async function getAccountBalanceMinor(id: string): Promise<number> {
   const account = await db.accounts.get(id);
-  if (!account) throw new RepositoryError('Счёт не найден');
+  if (!account) throw new RepositoryError(strings.data.notFound.account);
 
   const transactions = await db.transactions
     .where('accountId')
@@ -183,9 +184,6 @@ export async function assertEnvelopesFit(accountId: string): Promise<void> {
   if (reserved === 0) return;
 
   if (!envelopesFitAccount(balance, reserved)) {
-    throw new RepositoryError(
-      'Сумма конвертов на счёте больше его остатка. Уменьшите конверты или пополните счёт.',
-      'envelopes',
-    );
+    throw new RepositoryError(strings.data.envelopesOverBalance, 'envelopes');
   }
 }

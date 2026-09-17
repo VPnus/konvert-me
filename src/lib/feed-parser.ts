@@ -3,6 +3,8 @@
  * a XML parser, and one less dependency is one less thing that can phone home.
  */
 
+import { fill, strings } from '@/i18n';
+
 export interface ParsedItem {
   readonly title: string;
   readonly url: string;
@@ -92,7 +94,7 @@ function findItems(raw: unknown, itemsPath?: string): unknown[] {
   if (itemsPath) {
     const explicit = readPath(raw, itemsPath);
     if (!Array.isArray(explicit)) {
-      throw new FeedParseError(`По пути «${itemsPath}» в ответе нет списка записей`);
+      throw new FeedParseError(fill(strings.sources.errors.noListAtPath, { path: itemsPath }));
     }
     return explicit;
   }
@@ -115,9 +117,7 @@ function findItems(raw: unknown, itemsPath?: string): unknown[] {
     }
   }
 
-  throw new FeedParseError(
-    'В ответе не нашёлся список записей. Укажите путь к нему, например «data.articles».',
-  );
+  throw new FeedParseError(strings.sources.errors.noList);
 }
 
 function parseJsonFeed(raw: unknown, itemsPath?: string): ParsedFeed {
@@ -138,7 +138,7 @@ function parseJsonFeed(raw: unknown, itemsPath?: string): ParsedFeed {
     .map((item) => ({ ...item, title: item.title || item.url }));
 
   if (items.length === 0) {
-    throw new FeedParseError('В ответе нет ни одной записи с адресом статьи');
+    throw new FeedParseError(strings.sources.errors.noLinks);
   }
 
   return { title, items };
@@ -147,7 +147,7 @@ function parseJsonFeed(raw: unknown, itemsPath?: string): ParsedFeed {
 function parseXmlFeed(text: string): ParsedFeed {
   const document = new DOMParser().parseFromString(text, 'application/xml');
   if (document.getElementsByTagName('parsererror').length > 0) {
-    throw new FeedParseError('Не удалось разобрать ленту: это не похоже на RSS или Atom');
+    throw new FeedParseError(strings.sources.errors.notRssAtom);
   }
 
   const rssItems = [...document.getElementsByTagName('item')];
@@ -186,7 +186,7 @@ function parseXmlFeed(text: string): ParsedFeed {
     };
   }
 
-  throw new FeedParseError('В ленте нет ни одной записи');
+  throw new FeedParseError(strings.sources.errors.noItems);
 }
 
 export interface ParseFeedOptions {
@@ -199,7 +199,7 @@ export function parseFeed(text: string, options: ParseFeedOptions | string = {})
   const { contentType = '', itemsPath } = typeof options === 'string' ? { contentType: options } : options;
 
   const trimmed = text.trim();
-  if (!trimmed) throw new FeedParseError('Лента пришла пустой');
+  if (!trimmed) throw new FeedParseError(strings.sources.errors.empty);
 
   const looksJson = contentType.includes('json') || trimmed.startsWith('{') || trimmed.startsWith('[');
   if (looksJson) {
@@ -207,7 +207,7 @@ export function parseFeed(text: string, options: ParseFeedOptions | string = {})
     try {
       raw = JSON.parse(trimmed);
     } catch {
-      throw new FeedParseError('Не удалось разобрать JSON-ответ');
+      throw new FeedParseError(strings.sources.errors.badJson);
     }
     return parseJsonFeed(raw, itemsPath);
   }

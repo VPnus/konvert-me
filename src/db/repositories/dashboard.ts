@@ -7,6 +7,7 @@
 import { db } from '@/db/db';
 import { dashboardLayoutSchema, type DashboardLayout } from '@/db/models';
 import { parseOrThrow } from '@/db/validate';
+import { strings } from '@/i18n';
 import { publishAppEvent } from '@/lib/broadcast';
 
 export const DASHBOARD_ID = 'default';
@@ -81,7 +82,7 @@ export const DEFAULT_WIDGETS: readonly Omit<WidgetInstance, 'instanceId' | 'orde
 export function buildDefaultLayout(): DashboardLayout {
   return {
     id: DASHBOARD_ID,
-    name: 'Мой обзор',
+    name: strings.defaults.dashboard,
     items: DEFAULT_WIDGETS.map((widget, index) => ({
       ...widget,
       instanceId: crypto.randomUUID(),
@@ -103,7 +104,7 @@ export async function saveDashboardLayout(layout: DashboardLayout): Promise<Dash
       .map((item, index) => ({ ...item, order: index })),
   };
 
-  const valid = parseOrThrow(dashboardLayoutSchema, normalized, 'Раскладка обзора');
+  const valid = parseOrThrow(dashboardLayoutSchema, normalized, strings.data.subjects.dashboardLayout);
   await db.dashboardLayouts.put(valid);
   publishAppEvent({ type: 'data-changed' });
   return valid;

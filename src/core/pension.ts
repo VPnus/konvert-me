@@ -64,7 +64,7 @@ export interface PensionCapitalParams {
 
 function assertYears(years: number): void {
   if (!Number.isInteger(years) || years < 1) {
-    throw new RangeError(`years: срок — целое число лет от одного, получено ${String(years)}`);
+    throw new RangeError(`years: the term is a whole number of years from one, got ${String(years)}`);
   }
 }
 

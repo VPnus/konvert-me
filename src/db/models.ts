@@ -9,26 +9,26 @@ import { z } from 'zod';
 
 import { RISK_PROFILES } from '@/core/portfolio';
 import { isIsoDate, isIsoMonth } from '@/core/time';
+import { fill, strings } from '@/i18n';
+
+/** The refusals of the checks, in the language of the page. */
+const invalid = strings.data.validation;
 
 export const SCHEMA_VERSION = 8;
 
-const isoDate = z.string().refine(isIsoDate, { message: 'Дата должна быть в формате ГГГГ-ММ-ДД' });
-const isoMonth = z.string().refine(isIsoMonth, { message: 'Месяц должен быть в формате ГГГГ-ММ' });
+const isoDate = z.string().refine(isIsoDate, { message: invalid.date });
+const isoMonth = z.string().refine(isIsoMonth, { message: invalid.month });
 const id = z.string().min(1).max(64);
-const minor = z.number().int('Сумма должна быть в целых копейках').safe();
-const positiveMinor = minor.refine((value) => value > 0, { message: 'Сумма должна быть больше нуля' });
+const minor = z.number().int(invalid.wholeKopecks).safe();
+const positiveMinor = minor.refine((value) => value > 0, { message: invalid.positiveSum });
 const nonNegativeMinor = minor.refine((value) => value >= 0, {
-  message: 'Сумма не может быть отрицательной',
+  message: invalid.nonNegativeSum,
 });
 const rate = z.number().min(-1).max(10);
-const name = z.string().trim().min(1, 'Название не может быть пустым').max(120);
+const name = z.string().trim().min(1, invalid.nameEmpty).max(120);
 const note = z.string().max(500).optional();
 const timestamp = z.number().int().nonnegative();
-const dayOfMonth = z
-  .number()
-  .int('Число месяца — целое число')
-  .min(1, 'Число месяца — от 1 до 31')
-  .max(31, 'Число месяца — от 1 до 31');
+const dayOfMonth = z.number().int(invalid.dayWhole).min(1, invalid.dayRange).max(31, invalid.dayRange);
 
 export const ASSET_TYPES = [
   'cash',
@@ -82,7 +82,7 @@ export const accountSchema = z
     /** Schema 8, a credit card: the day of the month its statement is made. */
     statementDay: dayOfMonth.optional(),
     /** Schema 8, a credit card: the minimum payment as a share of the debt, 0.08 for 8 %. */
-    minPaymentRate: z.number().min(0, 'Процент не может быть отрицательным').max(1).optional(),
+    minPaymentRate: z.number().min(0, invalid.percentNegative).max(1).optional(),
     /** Schema 8, a credit card: transfers free of charge within a calendar month. */
     freeTransfersMinor: nonNegativeMinor.optional(),
     note,
@@ -94,14 +94,14 @@ export const accountSchema = z
       account.side === 'asset'
         ? (ASSET_TYPES as readonly string[]).includes(account.type)
         : (LIABILITY_TYPES as readonly string[]).includes(account.type),
-    { message: 'Тип счёта не совпадает с его стороной (актив или долг)', path: ['type'] },
+    { message: invalid.typeSide, path: ['type'] },
   )
   .refine((account) => account.side === 'asset' || account.openingBalanceMinor >= 0, {
-    message: 'Остаток долга указывается положительным числом',
+    message: invalid.debtPositive,
     path: ['openingBalanceMinor'],
   })
   .refine((account) => account.statementDay === undefined || account.paymentDay !== undefined, {
-    message: 'Укажите, до какого числа нужно внести выписку',
+    message: invalid.statementDue,
     path: ['paymentDay'],
   });
 
@@ -131,15 +131,15 @@ export const transactionSchema = z
     createdAt: timestamp,
   })
   .refine((tx) => tx.kind !== 'transfer' || Boolean(tx.toAccountId), {
-    message: 'У перевода должен быть счёт назначения',
+    message: invalid.transferTarget,
     path: ['toAccountId'],
   })
   .refine((tx) => tx.kind !== 'transfer' || tx.toAccountId !== tx.accountId, {
-    message: 'Перевод на тот же счёт невозможен',
+    message: invalid.transferSame,
     path: ['toAccountId'],
   })
   .refine((tx) => !['income', 'expense', 'refund'].includes(tx.kind) || Boolean(tx.categoryId), {
-    message: 'У дохода, расхода и возврата должна быть категория',
+    message: invalid.categoryNeeded,
     path: ['categoryId'],
   });
 
@@ -150,11 +150,7 @@ export const transactionSchema = z
 export const incomeSourceSchema = z.object({
   id,
   name,
-  dayOfMonth: z
-    .number()
-    .int('Число месяца — целое число')
-    .min(1, 'Число месяца — от 1 до 31')
-    .max(31, 'Число месяца — от 1 до 31'),
+  dayOfMonth: z.number().int(invalid.dayWhole).min(1, invalid.dayRange).max(31, invalid.dayRange),
   /** Optional: not every income is known in advance to the kopeck. */
   amountMinor: nonNegativeMinor.optional(),
   archived: z.boolean(),
@@ -187,11 +183,11 @@ export const goalSchema = z
     updatedAt: timestamp,
   })
   .refine((goal) => goal.kind !== 'reserve' || goal.priority === 0, {
-    message: 'У цели «финансовый резерв» приоритет всегда 0',
+    message: invalid.reservePriority,
     path: ['priority'],
   })
   .refine((goal) => goal.kind === 'reserve' || Boolean(goal.targetMonth), {
-    message: 'У цели должен быть срок',
+    message: invalid.goalDeadline,
     path: ['targetMonth'],
   });
 
@@ -218,31 +214,23 @@ export const insurancePolicySchema = z.object({
   updatedAt: timestamp,
 });
 
-const taxYear = z
-  .number()
-  .int('Год должен быть целым числом')
-  .min(2000, 'Год должен быть четырёхзначным')
-  .max(2100, 'Год должен быть четырёхзначным');
+const taxYear = z.number().int(invalid.yearWhole).min(2000, invalid.yearDigits).max(2100, invalid.yearDigits);
 
 export const DEDUCTION_STATUSES = ['draft', 'filed', 'refunded'] as const;
 
-const monthOfYear = z
-  .number()
-  .int('Месяц должен быть целым числом')
-  .min(1, 'Месяц должен быть от 1 до 12')
-  .max(12, 'Месяц должен быть от 1 до 12');
+const monthOfYear = z.number().int(invalid.monthWhole).min(1, invalid.monthRange).max(12, invalid.monthRange);
 
 /** A child the standard deduction is given for, and the months of the year it lasted. */
 const childRightSchema = z
   .object({
     /** Place by birth among all the children, grown ones included; 3 stands for the third and on. */
-    order: z.number().int().min(1, 'Очерёдность ребёнка — от первого').max(3),
+    order: z.number().int().min(1, invalid.childOrder).max(3),
     disabled: z.boolean(),
     fromMonth: monthOfYear,
     toMonth: monthOfYear,
   })
   .refine((child) => child.fromMonth <= child.toMonth, {
-    message: 'Месяц начала не может быть позже месяца окончания',
+    message: invalid.monthsOrder,
   });
 
 /**
@@ -289,7 +277,7 @@ export const deductionYearSchema = z.object({
   /** The standard deduction for children: who they are, and whether the employer already gave it. */
   children: z
     .object({
-      items: z.array(childRightSchema).min(1, 'Добавьте хотя бы одного ребёнка').max(20),
+      items: z.array(childRightSchema).min(1, invalid.childNeeded).max(20),
       double: z.boolean(),
       guardian: z.boolean(),
       appliedByEmployer: z.boolean(),
@@ -341,13 +329,13 @@ export const documentSchema = z.object({
   id,
   year: taxYear,
   category: z.enum(DOCUMENT_CATEGORIES),
-  fileName: z.string().trim().min(1, 'У файла должно быть имя').max(255),
+  fileName: z.string().trim().min(1, invalid.fileName).max(255),
   mimeType: z.string().trim().min(1).max(127),
   sizeBytes: z
     .number()
     .int()
-    .min(1, 'Файл пустой')
-    .max(MAX_DOCUMENT_BYTES, `Файл больше ${MAX_DOCUMENT_BYTES / 1024 / 1024} МБ`),
+    .min(1, invalid.fileEmpty)
+    .max(MAX_DOCUMENT_BYTES, fill(invalid.fileTooBig, { size: MAX_DOCUMENT_BYTES / 1024 / 1024 })),
   note,
   createdAt: timestamp,
 });
@@ -363,7 +351,7 @@ export const documentFileSchema = z.object({
   content: z.custom<ArrayBuffer>(
     (value) => Object.prototype.toString.call(value) === '[object ArrayBuffer]',
     {
-      message: 'Содержимое файла не прочитано',
+      message: invalid.fileUnread,
     },
   ),
 });
@@ -399,7 +387,7 @@ const url = z
   .trim()
   .min(1)
   .max(2000)
-  .refine((value) => /^https:\/\//i.test(value), { message: 'Адрес должен начинаться с https://' })
+  .refine((value) => /^https:\/\//i.test(value), { message: invalid.https })
   .refine(
     (value) => {
       try {
@@ -409,7 +397,7 @@ const url = z
         return false;
       }
     },
-    { message: 'Это не похоже на адрес страницы' },
+    { message: invalid.url },
   );
 
 /** A useful source the user pins by hand. Nothing is ever requested from it. */
@@ -425,14 +413,14 @@ export const linkSchema = z.object({
 const secret = z.string().min(1).max(512);
 /** A key that travels in a header must be plain ASCII: browsers refuse anything else. */
 const headerSafeSecret = secret.regex(/^[\x20-\x7e]+$/, {
-  message: 'Ключ в заголовке может состоять только из латиницы, цифр и знаков препинания',
+  message: invalid.headerKey,
 });
 const headerName = z
   .string()
   .trim()
   .min(1)
   .max(64)
-  .regex(/^[A-Za-z0-9-]+$/, { message: 'В имени заголовка допустимы латиница, цифры и дефис' });
+  .regex(/^[A-Za-z0-9-]+$/, { message: invalid.headerName });
 
 /**
  * How the source is authorised. The key is typed by the user and stays on the device;
@@ -447,7 +435,7 @@ export const feedAuthSchema = z.discriminatedUnion('kind', [
       .trim()
       .min(1)
       .max(64)
-      .regex(/^[A-Za-z0-9_.-]+$/, { message: 'В имени параметра допустимы латиница, цифры, _ . -' }),
+      .regex(/^[A-Za-z0-9_.-]+$/, { message: invalid.paramName }),
     key: secret,
   }),
   z.object({ kind: z.literal('header'), headerName, key: headerSafeSecret }),
@@ -483,7 +471,7 @@ export const educationPlanSchema = z.object({
   name,
   /** A year of studies — the fee and, away from home, the living — in the prices of costAsOf. */
   yearlyCostMinor: nonNegativeMinor,
-  years: z.number().int('Срок учёбы — целое число лет').min(1, 'Учёба длится хотя бы год').max(10),
+  years: z.number().int(invalid.studyYears).min(1, invalid.studyMin).max(10),
   costAsOf: isoMonth,
   startMonth: isoMonth,
   returnRate: rate,
@@ -497,9 +485,9 @@ export const pensionPlanSchema = z
   .object({
     birthMonth: isoMonth,
     /** When the person wants to stop working — not the legal age, a choice. */
-    retirementAge: z.number().int('Возраст — целое число лет').min(18).max(100),
+    retirementAge: z.number().int(invalid.ageWhole).min(18).max(100),
     /** Until what age the money has to last. */
-    lifeAge: z.number().int('Возраст — целое число лет').min(19).max(120),
+    lifeAge: z.number().int(invalid.ageWhole).min(19).max(120),
     /** What is spent in a month now, in the prices of costAsOf. */
     monthlyExpensesMinor: nonNegativeMinor,
     replacementRate: z.number().min(0).max(2),
@@ -512,7 +500,7 @@ export const pensionPlanSchema = z
     goalId: id.nullable(),
   })
   .refine((pension) => pension.lifeAge > pension.retirementAge, {
-    message: 'Возраст, до которого должно хватить денег, должен быть больше возраста выхода на пенсию',
+    message: invalid.lifeAge,
     path: ['lifeAge'],
   });
 

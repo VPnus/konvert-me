@@ -9,7 +9,7 @@ import { RepositoryError } from '@/db/errors';
 import { feedItemSchema, feedSchema, type Feed, type FeedAuth, type FeedItem } from '@/db/models';
 import { getSettings } from '@/db/repositories/settings';
 import { parseOrThrow } from '@/db/validate';
-import { strings } from '@/i18n';
+import { fill, strings } from '@/i18n';
 import { publishAppEvent } from '@/lib/broadcast';
 import { parseFeed } from '@/lib/feed-parser';
 import { hostOf } from '@/lib/feed-presets';
@@ -21,7 +21,7 @@ const MAX_ITEMS_PER_FEED = 30;
 
 export class ExternalSourcesDisabledError extends RepositoryError {
   constructor() {
-    super('Внешние источники выключены. Включите их в настройках, если хотите получать новости.');
+    super(strings.sources.errors.disabled);
     this.name = 'ExternalSourcesDisabledError';
   }
 }
@@ -62,14 +62,11 @@ export function buildFeedRequest(feed: Feed): { url: string; headers: Record<str
  * "not from a browser on this plan" — the answer never reaches the page anyway.
  */
 function statusHint(status: number): string {
-  if (status === 401 || status === 403) return ' Похоже, ключ не подошёл или у него нет доступа.';
+  if (status === 401 || status === 403) return ` ${strings.sources.errors.keyRejected}`;
   if (status === 426) {
-    return (
-      ' Источник не обслуживает запросы из браузера на этом тарифе.' +
-      ' Ключ тут ни при чём: нужен либо другой источник, либо свой сервер-посредник.'
-    );
+    return ` ${strings.sources.errors.browserRefused}`;
   }
-  if (status === 429) return ' Слишком много запросов — источник просит подождать.';
+  if (status === 429) return ` ${strings.sources.errors.tooManyRequests}`;
   return '';
 }
 
@@ -93,7 +90,7 @@ export async function createFeed(input: FeedInput): Promise<Feed> {
       lastError: null,
       createdAt: Date.now(),
     },
-    'Лента',
+    strings.data.subjects.feed,
   );
 
   await db.feeds.add(feed);
@@ -103,7 +100,7 @@ export async function createFeed(input: FeedInput): Promise<Feed> {
 
 export async function updateFeed(id: string, patch: Partial<FeedInput>): Promise<Feed> {
   const current = await db.feeds.get(id);
-  if (!current) throw new RepositoryError('Лента не найдена');
+  if (!current) throw new RepositoryError(strings.data.notFound.feed);
 
   const next = parseOrThrow(
     feedSchema,
@@ -115,7 +112,7 @@ export async function updateFeed(id: string, patch: Partial<FeedInput>): Promise
       // A new address or key deserves a fresh attempt, so the old error is dropped.
       lastError: null,
     },
-    'Лента',
+    strings.data.subjects.feed,
   );
 
   await db.feeds.put(next);
@@ -125,7 +122,7 @@ export async function updateFeed(id: string, patch: Partial<FeedInput>): Promise
 
 export async function setFeedEnabled(id: string, enabled: boolean): Promise<Feed> {
   const current = await db.feeds.get(id);
-  if (!current) throw new RepositoryError('Лента не найдена');
+  if (!current) throw new RepositoryError(strings.data.notFound.feed);
 
   const next = { ...current, enabled };
   await db.feeds.put(next);
@@ -164,7 +161,9 @@ export async function refreshFeed(feed: Feed, now: number = Date.now()): Promise
     });
 
     if (!response.ok) {
-      throw new Error(`Источник ответил ошибкой ${response.status}.${statusHint(response.status)}`);
+      throw new Error(
+        `${fill(strings.sources.errors.status, { status: response.status })}${statusHint(response.status)}`,
+      );
     }
 
     const parsed = parseFeed(await response.text(), {
@@ -183,7 +182,7 @@ export async function refreshFeed(feed: Feed, now: number = Date.now()): Promise
           publishedAt: item.publishedAt,
           fetchedAt: now,
         },
-        'Новость',
+        strings.data.subjects.newsItem,
       ),
     );
 
@@ -201,7 +200,7 @@ export async function refreshFeed(feed: Feed, now: number = Date.now()): Promise
         ? strings.sources.corsBlocked.replace('{host}', hostOf(feed.url))
         : cause instanceof Error
           ? cause.message
-          : 'Не удалось получить ленту';
+          : strings.sources.errors.fetchFailed;
 
     // A key must never end up in a stored message or on the screen.
     const message = stripSecrets(raw, secretsOf(feed)).slice(0, 500);

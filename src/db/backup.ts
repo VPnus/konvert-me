@@ -11,6 +11,7 @@ import { RepositoryError } from '@/db/errors';
 import { SCHEMA_VERSION, TABLE_NAMES, TABLE_SCHEMAS, type TableName } from '@/db/models';
 import { categoriesOfSchema8, upgradeDeductionYear } from '@/db/upgrades';
 import { parseOrThrow } from '@/db/validate';
+import { fill, strings } from '@/i18n';
 import { decryptText, encryptText, fromBase64, toBase64, type EncryptedPayload } from '@/lib/crypto';
 
 export const BACKUP_FORMAT = 'konvert-me-backup';
@@ -30,7 +31,7 @@ const backupDocumentFileSchema = z.object({
   id: TABLE_SCHEMAS.documentFiles.shape.id,
   content: z
     .string()
-    .refine((value) => base64Length(value) !== null, { message: 'Файл документа повреждён' }),
+    .refine((value) => base64Length(value) !== null, { message: strings.data.documentBroken }),
 });
 
 const backupDataSchema = z
@@ -67,7 +68,7 @@ const backupDataSchema = z
         context.addIssue({
           code: 'custom',
           path: ['documents', index],
-          message: `Файл документа «${document.fileName}» отсутствует или повреждён`,
+          message: fill(strings.data.documentMissing, { name: document.fileName }),
         });
       }
     });
@@ -196,13 +197,13 @@ export async function parseBackup(text: string, password?: string): Promise<Back
   try {
     raw = JSON.parse(text);
   } catch {
-    throw new RepositoryError('Это не файл резервной копии: не удалось прочитать JSON.');
+    throw new RepositoryError(strings.data.notBackup);
   }
 
   const format = (raw as { format?: string }).format;
 
   if (format === BACKUP_FORMAT_ENCRYPTED) {
-    const file = parseOrThrow(encryptedFileSchema, raw, 'Зашифрованная копия');
+    const file = parseOrThrow(encryptedFileSchema, raw, strings.data.subjects.encryptedBackup);
     const payload: EncryptedPayload = {
       salt: file.kdf.salt,
       iv: file.cipher.iv,
@@ -212,12 +213,10 @@ export async function parseBackup(text: string, password?: string): Promise<Back
     return parseBackup(await decryptText(payload, password ?? ''));
   }
 
-  const file = parseOrThrow(backupFileSchema, raw, 'Резервная копия');
+  const file = parseOrThrow(backupFileSchema, raw, strings.data.subjects.backup);
 
   if (file.schemaVersion > SCHEMA_VERSION) {
-    throw new RepositoryError(
-      `Файл создан более новой версией приложения (схема ${file.schemaVersion}). Обновите приложение и повторите импорт.`,
-    );
+    throw new RepositoryError(fill(strings.data.newerBackup, { schema: file.schemaVersion }));
   }
 
   // A file of an older schema gets the categories added since, as the upgrade of a database would.

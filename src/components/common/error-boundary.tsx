@@ -27,7 +27,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   override componentDidCatch(error: Error, info: ErrorInfo): void {
     rememberError(error);
-    console.error('Ошибка на экране:', error, info.componentStack);
+    console.error('Error on screen:', error, info.componentStack);
   }
 
   private readonly reset = () => this.setState({ error: null });

@@ -70,7 +70,7 @@ export async function createGoal(input: GoalInput): Promise<Goal> {
       createdAt: now,
       updatedAt: now,
     },
-    'Цель',
+    strings.data.subjects.goal,
   );
 
   await db.goals.put(goal);
@@ -83,12 +83,12 @@ export async function updateGoal(
   patch: Partial<GoalInput & { status: Goal['status'] }>,
 ): Promise<Goal> {
   const current = await db.goals.get(id);
-  if (!current) throw new RepositoryError('Цель не найдена');
+  if (!current) throw new RepositoryError(strings.data.notFound.goal);
 
   const next = parseOrThrow(
     goalSchema,
     { ...current, ...patch, id: current.id, kind: current.kind, updatedAt: Date.now() },
-    'Цель',
+    strings.data.subjects.goal,
   );
 
   await db.goals.put(next);
@@ -122,7 +122,7 @@ export async function ensureReserveGoal(): Promise<Goal> {
   const existing = await db.goals.get(RESERVE_GOAL_ID);
   if (existing) return existing;
 
-  return createGoal({ name: 'Финансовый резерв', kind: 'reserve', costMinor: 0 });
+  return createGoal({ name: strings.defaults.reserveGoal, kind: 'reserve', costMinor: 0 });
 }
 
 export async function listEnvelopes(): Promise<Envelope[]> {
@@ -158,17 +158,14 @@ export async function getOtherGoalsEnvelopesMinor(excludeGoalId: string = RESERV
 export async function setEnvelope(goalId: string, accountId: string, amountMinor: number): Promise<Envelope> {
   const account = await db.accounts.get(accountId);
   if (account && amountMinor > 0 && !holdsMoney(account)) {
-    throw new RepositoryError(
-      'Конверт кладут только на счёт с деньгами: не на недвижимость, автомобиль или долю в бизнесе.',
-      'envelopes',
-    );
+    throw new RepositoryError(strings.data.envelopeNeedsMoney, 'envelopes');
   }
 
   const existing = await db.envelopes.where('[goalId+accountId]').equals([goalId, accountId]).first();
   const envelope = parseOrThrow(
     envelopeSchema,
     { id: existing?.id ?? crypto.randomUUID(), goalId, accountId, amountMinor },
-    'Конверт',
+    strings.data.subjects.envelope,
   );
 
   const previous = existing ? { ...existing } : null;
@@ -212,11 +209,11 @@ export interface ContributionInput {
  */
 export async function contributeToGoal(input: ContributionInput): Promise<Envelope> {
   if (!(input.amountMinor > 0)) {
-    throw new RepositoryError('Взнос должен быть больше нуля');
+    throw new RepositoryError(strings.data.contributionPositive);
   }
 
   const goal = await db.goals.get(input.goalId);
-  if (!goal) throw new RepositoryError('Цель не найдена');
+  if (!goal) throw new RepositoryError(strings.data.notFound.goal);
 
   const moves = Boolean(input.fromAccountId && input.fromAccountId !== input.accountId);
   const transfer = moves

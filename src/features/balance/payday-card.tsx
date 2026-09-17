@@ -20,10 +20,10 @@ import {
   updateIncomeSource,
 } from '@/db/repositories/income-sources';
 import { useDataVersion } from '@/hooks/use-data-version';
-import { strings } from '@/i18n';
+import { currentLocale, strings } from '@/i18n';
 import { parseNumericInput } from '@/lib/numeric-input';
 
-const DATE_FORMAT = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long' });
+const DATE_FORMAT = new Intl.DateTimeFormat(currentLocale(), { day: 'numeric', month: 'long' });
 
 function humanDate(iso: string): string {
   const [year, month, day] = iso.split('-').map(Number);

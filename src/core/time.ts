@@ -33,13 +33,13 @@ export function isIsoDate(value: unknown): value is IsoDate {
 
 export function assertIsoMonth(value: unknown, label = 'month'): asserts value is IsoMonth {
   if (!isIsoMonth(value)) {
-    throw new TimeError(`${label}: ожидался месяц в формате ГГГГ-ММ, получено ${String(value)}`);
+    throw new TimeError(`${label}: a month as YYYY-MM expected, got ${String(value)}`);
   }
 }
 
 export function assertIsoDate(value: unknown, label = 'date'): asserts value is IsoDate {
   if (!isIsoDate(value)) {
-    throw new TimeError(`${label}: ожидалась дата в формате ГГГГ-ММ-ДД, получено ${String(value)}`);
+    throw new TimeError(`${label}: a date as YYYY-MM-DD expected, got ${String(value)}`);
   }
 }
 
@@ -70,7 +70,7 @@ export function monthOfDate(date: IsoDate): IsoMonth {
 export function addMonths(month: IsoMonth, delta: number): IsoMonth {
   assertIsoMonth(month);
   if (!Number.isInteger(delta)) {
-    throw new TimeError(`delta: ожидалось целое число месяцев, получено ${String(delta)}`);
+    throw new TimeError(`delta: a whole number of months expected, got ${String(delta)}`);
   }
   return fromMonthIndex(monthIndex(month) + delta);
 }
@@ -94,7 +94,7 @@ export function yearOfMonth(month: IsoMonth): number {
 
 export function monthsOfYear(year: number): IsoMonth[] {
   if (!Number.isInteger(year)) {
-    throw new TimeError(`year: ожидался целый год, получено ${String(year)}`);
+    throw new TimeError(`year: a whole year expected, got ${String(year)}`);
   }
   return Array.from(
     { length: 12 },
@@ -132,7 +132,7 @@ export function daysInMonth(month: IsoMonth): number {
 export function withDayOfMonth(month: IsoMonth, day: number): IsoDate {
   assertIsoMonth(month);
   if (!Number.isInteger(day) || day < 1 || day > 31) {
-    throw new TimeError(`day: ожидалось число месяца от 1 до 31, получено ${String(day)}`);
+    throw new TimeError(`day: a day of the month from 1 to 31 expected, got ${String(day)}`);
   }
   const clamped = Math.min(day, daysInMonth(month));
   return `${month}-${String(clamped).padStart(2, '0')}`;

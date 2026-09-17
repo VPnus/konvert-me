@@ -13,7 +13,7 @@ import { RESERVE_GOAL_ID } from '@/db/repositories/goals';
 import type { PlanData } from '@/features/plan/plan-data';
 import { rubles, t } from '@/features/plan/plan-format';
 import { Muted, PlanCard } from '@/features/plan/plan-parts';
-import { fill, strings } from '@/i18n';
+import { currentLocale, fill, strings } from '@/i18n';
 
 const s = t.strategy;
 
@@ -85,7 +85,7 @@ export function StrategyStep({ data }: { data: PlanData }) {
                   {ASSET_CLASSES.filter((asset) => shares[asset] > 0).map((asset) => (
                     <li key={asset} className="flex justify-between gap-3 tabular-nums">
                       <span>
-                        {s.classes[asset]} — {shares[asset].toLocaleString('ru-RU')} %
+                        {s.classes[asset]} — {shares[asset].toLocaleString(currentLocale())} %
                       </span>
                       {contribution > 0 ? (
                         <span className="text-muted-foreground">{rubles(parts[asset])}</span>

@@ -1,10 +1,6 @@
-import { strings } from '@/i18n';
+import { pluralForm, strings } from '@/i18n';
 
-/** "60 месяцев", "1 месяц", "3 месяца" — the Russian plural of a number of months. */
+/** "60 месяцев", "1 месяц", "3 месяца": a number of months with its word in the language of the page. */
 export function monthsLabel(months: number): string {
-  const [many, one, few] = strings.goals.months;
-  const tail = months % 100;
-  const last = months % 10;
-  const word = tail >= 11 && tail <= 14 ? many : last === 1 ? one : last >= 2 && last <= 4 ? few : many;
-  return `${months} ${word}`;
+  return `${months} ${pluralForm(strings.goals.months, months)}`;
 }

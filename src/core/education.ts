@@ -35,7 +35,7 @@ export interface EducationYear {
 
 function assertYears(years: number): void {
   if (!Number.isInteger(years) || years < 1) {
-    throw new RangeError(`years: срок учёбы — целое число лет от одного, получено ${String(years)}`);
+    throw new RangeError(`years: the study lasts a whole number of years from one, got ${String(years)}`);
   }
 }
 

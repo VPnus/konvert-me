@@ -9,6 +9,7 @@ import { RepositoryError } from '@/db/errors';
 import { transactionSchema, type Transaction } from '@/db/models';
 import { assertEnvelopesFit } from '@/db/repositories/accounts';
 import { parseOrThrow } from '@/db/validate';
+import { strings } from '@/i18n';
 import { publishAppEvent } from '@/lib/broadcast';
 
 export interface TransactionInput {
@@ -36,7 +37,7 @@ function accountsOf(...transactions: (Transaction | undefined)[]): string[] {
 async function assertAccountsExist(transaction: Transaction): Promise<void> {
   const accounts = await db.accounts.bulkGet(accountsOf(transaction));
   if (accounts.some((account) => account === undefined)) {
-    throw new RepositoryError('Счёт операции не найден');
+    throw new RepositoryError(strings.data.notFound.transactionAccount);
   }
 }
 
@@ -57,7 +58,7 @@ export async function createTransaction(input: TransactionInput): Promise<Transa
   const transaction = parseOrThrow(
     transactionSchema,
     { ...input, id: crypto.randomUUID(), createdAt: Date.now() },
-    'Операция',
+    strings.data.subjects.transaction,
   );
 
   await assertAccountsExist(transaction);
@@ -75,7 +76,7 @@ export async function getTransaction(id: string): Promise<Transaction | undefine
 
 export async function updateTransaction(id: string, patch: Partial<TransactionInput>): Promise<Transaction> {
   const current = await db.transactions.get(id);
-  if (!current) throw new RepositoryError('Операция не найдена');
+  if (!current) throw new RepositoryError(strings.data.notFound.transaction);
 
   const next = parseOrThrow(
     transactionSchema,
@@ -92,7 +93,7 @@ export async function updateTransaction(id: string, patch: Partial<TransactionIn
       id: current.id,
       createdAt: current.createdAt,
     },
-    'Операция',
+    strings.data.subjects.transaction,
   );
 
   await assertAccountsExist(next);
@@ -201,7 +202,7 @@ export async function importTransactions(rows: readonly ImportedRow[]): Promise<
     parseOrThrow(
       transactionSchema,
       { ...row, id: crypto.randomUUID(), importBatchId: batchId, createdAt: now + index },
-      'Операция',
+      strings.data.subjects.transaction,
     ),
   );
 
@@ -210,7 +211,7 @@ export async function importTransactions(rows: readonly ImportedRow[]): Promise<
   const accountIds = [...new Set(prepared.map((transaction) => transaction.accountId))];
   const accounts = await db.accounts.bulkGet(accountIds);
   if (accounts.some((account) => account === undefined)) {
-    throw new RepositoryError('Счёт операции не найден');
+    throw new RepositoryError(strings.data.notFound.transactionAccount);
   }
 
   await db.transactions.bulkAdd(prepared);

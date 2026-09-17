@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { updateSettings } from '@/db/repositories/settings';
-import { strings } from '@/i18n';
+import { fill, strings } from '@/i18n';
 import { formatBytes, getStorageStatus, requestPersistentStorage, type StorageStatus } from '@/lib/persist';
 
 export function StorageCard() {
@@ -51,8 +51,13 @@ export function StorageCard() {
 
         {status?.usageBytes !== undefined ? (
           <p className="text-sm text-muted-foreground">
-            {strings.settings.storageUsage}: {formatBytes(status.usageBytes)}
-            {status.quotaBytes ? ` из ${formatBytes(status.quotaBytes)}` : ''}
+            {strings.settings.storageUsage}:{' '}
+            {status.quotaBytes
+              ? fill(strings.settings.storageOfQuota, {
+                  used: formatBytes(status.usageBytes),
+                  quota: formatBytes(status.quotaBytes),
+                })
+              : formatBytes(status.usageBytes)}
           </p>
         ) : null}
 

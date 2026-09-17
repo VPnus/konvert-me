@@ -7,6 +7,7 @@ import { db } from '@/db/db';
 import { RepositoryError } from '@/db/errors';
 import { linkSchema, type Link } from '@/db/models';
 import { parseOrThrow } from '@/db/validate';
+import { strings } from '@/i18n';
 import { publishAppEvent } from '@/lib/broadcast';
 
 export interface LinkInput {
@@ -25,7 +26,7 @@ export async function createLink(input: LinkInput): Promise<Link> {
   const link = parseOrThrow(
     linkSchema,
     { ...input, id: crypto.randomUUID(), sortOrder: count, createdAt: Date.now() },
-    'Источник',
+    strings.data.subjects.link,
   );
 
   await db.links.add(link);
@@ -35,9 +36,9 @@ export async function createLink(input: LinkInput): Promise<Link> {
 
 export async function updateLink(id: string, patch: Partial<LinkInput>): Promise<Link> {
   const current = await db.links.get(id);
-  if (!current) throw new RepositoryError('Источник не найден');
+  if (!current) throw new RepositoryError(strings.data.notFound.link);
 
-  const next = parseOrThrow(linkSchema, { ...current, ...patch, id: current.id }, 'Источник');
+  const next = parseOrThrow(linkSchema, { ...current, ...patch, id: current.id }, strings.data.subjects.link);
   await db.links.put(next);
   publishAppEvent({ type: 'data-changed' });
   return next;

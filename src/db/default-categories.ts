@@ -5,6 +5,7 @@
  */
 
 import type { Category } from '@/db/models';
+import { strings } from '@/i18n';
 
 export interface DefaultCategory {
   readonly id: string;
@@ -14,31 +15,56 @@ export interface DefaultCategory {
 }
 
 export const DEFAULT_CATEGORIES: readonly DefaultCategory[] = [
-  { id: 'salary', name: 'Зарплата', kind: 'income' },
-  { id: 'advance', name: 'Аванс', kind: 'income' },
-  { id: 'bonus', name: 'Премия', kind: 'income' },
-  { id: 'side-income', name: 'Подработка', kind: 'income' },
-  { id: 'interest', name: 'Проценты и дивиденды', kind: 'income' },
-  { id: 'other-income', name: 'Прочие доходы', kind: 'income' },
+  { id: 'salary', name: strings.defaults.categories.salary, kind: 'income' },
+  { id: 'advance', name: strings.defaults.categories.advance, kind: 'income' },
+  { id: 'bonus', name: strings.defaults.categories.bonus, kind: 'income' },
+  { id: 'side-income', name: strings.defaults.categories['side-income'], kind: 'income' },
+  { id: 'interest', name: strings.defaults.categories.interest, kind: 'income' },
+  { id: 'other-income', name: strings.defaults.categories['other-income'], kind: 'income' },
 
-  { id: 'housing', name: 'Жильё и ЖКУ', kind: 'expense', group: 'mandatory' },
-  { id: 'groceries', name: 'Продукты', kind: 'expense', group: 'mandatory' },
-  { id: 'transport', name: 'Транспорт', kind: 'expense', group: 'mandatory' },
-  { id: 'communication', name: 'Связь и интернет', kind: 'expense', group: 'mandatory' },
-  { id: 'loan-interest', name: 'Проценты по кредитам', kind: 'expense', group: 'mandatory' },
-  { id: 'health', name: 'Здоровье', kind: 'expense', group: 'mandatory' },
-  { id: 'children', name: 'Дети', kind: 'expense', group: 'mandatory' },
-  { id: 'insurance', name: 'Страхование', kind: 'expense', group: 'mandatory' },
-  { id: 'other-mandatory', name: 'Прочие обязательные', kind: 'expense', group: 'mandatory' },
+  { id: 'housing', name: strings.defaults.categories.housing, kind: 'expense', group: 'mandatory' },
+  { id: 'groceries', name: strings.defaults.categories.groceries, kind: 'expense', group: 'mandatory' },
+  { id: 'transport', name: strings.defaults.categories.transport, kind: 'expense', group: 'mandatory' },
+  {
+    id: 'communication',
+    name: strings.defaults.categories.communication,
+    kind: 'expense',
+    group: 'mandatory',
+  },
+  {
+    id: 'loan-interest',
+    name: strings.defaults.categories['loan-interest'],
+    kind: 'expense',
+    group: 'mandatory',
+  },
+  { id: 'health', name: strings.defaults.categories.health, kind: 'expense', group: 'mandatory' },
+  { id: 'children', name: strings.defaults.categories.children, kind: 'expense', group: 'mandatory' },
+  { id: 'insurance', name: strings.defaults.categories.insurance, kind: 'expense', group: 'mandatory' },
+  {
+    id: 'other-mandatory',
+    name: strings.defaults.categories['other-mandatory'],
+    kind: 'expense',
+    group: 'mandatory',
+  },
 
-  { id: 'cafe', name: 'Кафе и рестораны', kind: 'expense', group: 'variable' },
-  { id: 'clothes', name: 'Одежда', kind: 'expense', group: 'variable' },
-  { id: 'fun', name: 'Развлечения', kind: 'expense', group: 'variable' },
-  { id: 'gifts', name: 'Подарки', kind: 'expense', group: 'variable' },
-  { id: 'travel', name: 'Путешествия', kind: 'expense', group: 'variable' },
-  { id: 'other-variable', name: 'Прочие переменные', kind: 'expense', group: 'variable' },
+  { id: 'cafe', name: strings.defaults.categories.cafe, kind: 'expense', group: 'variable' },
+  { id: 'clothes', name: strings.defaults.categories.clothes, kind: 'expense', group: 'variable' },
+  { id: 'fun', name: strings.defaults.categories.fun, kind: 'expense', group: 'variable' },
+  { id: 'gifts', name: strings.defaults.categories.gifts, kind: 'expense', group: 'variable' },
+  { id: 'travel', name: strings.defaults.categories.travel, kind: 'expense', group: 'variable' },
+  {
+    id: 'other-variable',
+    name: strings.defaults.categories['other-variable'],
+    kind: 'expense',
+    group: 'variable',
+  },
   // Schema 8: a premium subscription of a bank, a fee for a card, a streaming service.
-  { id: 'subscriptions', name: 'Подписки и комиссии', kind: 'expense', group: 'variable' },
+  {
+    id: 'subscriptions',
+    name: strings.defaults.categories.subscriptions,
+    kind: 'expense',
+    group: 'variable',
+  },
 ];
 
 /** The starter categories added after the first version: someone who began earlier gets them on upgrade. */

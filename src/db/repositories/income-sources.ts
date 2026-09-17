@@ -10,6 +10,7 @@ import { db } from '@/db/db';
 import { RepositoryError } from '@/db/errors';
 import { incomeSourceSchema, type IncomeSource } from '@/db/models';
 import { parseOrThrow } from '@/db/validate';
+import { strings } from '@/i18n';
 import { publishAppEvent } from '@/lib/broadcast';
 
 export interface IncomeSourceInput {
@@ -38,7 +39,7 @@ export async function createIncomeSource(input: IncomeSourceInput): Promise<Inco
       sortOrder: count,
       createdAt: Date.now(),
     },
-    'Источник дохода',
+    strings.data.subjects.incomeSource,
   );
 
   await db.incomeSources.add(source);
@@ -51,12 +52,12 @@ export async function updateIncomeSource(
   patch: Partial<IncomeSourceInput> & { archived?: boolean },
 ): Promise<IncomeSource> {
   const current = await db.incomeSources.get(id);
-  if (!current) throw new RepositoryError('Источник дохода не найден');
+  if (!current) throw new RepositoryError(strings.data.notFound.incomeSource);
 
   const next = parseOrThrow(
     incomeSourceSchema,
     { ...current, ...patch, id: current.id, createdAt: current.createdAt },
-    'Источник дохода',
+    strings.data.subjects.incomeSource,
   );
 
   await db.incomeSources.put(next);

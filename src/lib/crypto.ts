@@ -3,6 +3,8 @@
  * AES-GCM encrypts the payload. Everything runs locally in WebCrypto.
  */
 
+import { strings } from '@/i18n';
+
 export const PBKDF2_ITERATIONS = 310_000;
 const SALT_BYTES = 16;
 const IV_BYTES = 12;
@@ -54,7 +56,7 @@ export interface EncryptedPayload {
 }
 
 export async function encryptText(text: string, password: string): Promise<EncryptedPayload> {
-  if (!password) throw new CryptoError('Пароль не может быть пустым');
+  if (!password) throw new CryptoError(strings.data.passwordEmpty);
 
   const salt = crypto.getRandomValues(new Uint8Array(SALT_BYTES));
   const iv = crypto.getRandomValues(new Uint8Array(IV_BYTES));
@@ -75,7 +77,7 @@ export async function encryptText(text: string, password: string): Promise<Encry
 }
 
 export async function decryptText(payload: EncryptedPayload, password: string): Promise<string> {
-  if (!password) throw new CryptoError('Введите пароль от файла');
+  if (!password) throw new CryptoError(strings.data.passwordNeeded);
 
   const key = await deriveKey(password, fromBase64(payload.salt), payload.iterations);
 
@@ -87,6 +89,6 @@ export async function decryptText(payload: EncryptedPayload, password: string): 
     );
     return new TextDecoder().decode(decrypted);
   } catch {
-    throw new CryptoError('Не удалось расшифровать файл: неверный пароль или файл повреждён');
+    throw new CryptoError(strings.data.decryptFailed);
   }
 }

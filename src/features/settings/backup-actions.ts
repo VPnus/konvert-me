@@ -15,7 +15,7 @@ import {
 } from '@/db/backup';
 import { markBackupDone } from '@/db/repositories/settings';
 import { publishAppEvent } from '@/lib/broadcast';
-import { strings } from '@/i18n';
+import { currentLocale, strings } from '@/i18n';
 import { downloadBlob } from '@/lib/download';
 import { clearUsage } from '@/lib/usage';
 
@@ -50,5 +50,5 @@ export async function wipeEverything(): Promise<void> {
 /** When the last backup was made, in words; «копий ещё не было» if never. */
 export function lastBackupLabel(timestamp: number | null): string {
   if (timestamp === null) return strings.settings.backupNever;
-  return new Intl.DateTimeFormat('ru-RU', { dateStyle: 'long' }).format(new Date(timestamp));
+  return new Intl.DateTimeFormat(currentLocale(), { dateStyle: 'long' }).format(new Date(timestamp));
 }

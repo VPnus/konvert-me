@@ -8,6 +8,7 @@ import { db } from '@/db/db';
 import { RepositoryError } from '@/db/errors';
 import { deductionYearSchema, type DeductionYear } from '@/db/models';
 import { parseOrThrow } from '@/db/validate';
+import { fill, strings } from '@/i18n';
 import { publishAppEvent } from '@/lib/broadcast';
 
 export type DeductionYearInput = Omit<DeductionYear, 'createdAt' | 'updatedAt'>;
@@ -24,7 +25,11 @@ export async function getDeductionYear(year: number): Promise<DeductionYear | un
 export async function saveDeductionYear(input: DeductionYearInput): Promise<DeductionYear> {
   const now = Date.now();
   // Checked before the database is asked anything: a key that is not a year must not reach it.
-  const next = parseOrThrow(deductionYearSchema, { ...input, createdAt: now, updatedAt: now }, 'Год вычетов');
+  const next = parseOrThrow(
+    deductionYearSchema,
+    { ...input, createdAt: now, updatedAt: now },
+    strings.data.subjects.deductionYear,
+  );
 
   const current = await db.deductionYears.get(next.year);
   // The answers are saved from the form, the papers gathered are ticked one by one: saving the
@@ -45,7 +50,7 @@ export async function saveDeductionYear(input: DeductionYearInput): Promise<Dedu
 export async function setChecklistItem(year: number, key: string, gathered: boolean): Promise<void> {
   await db.transaction('rw', db.deductionYears, async () => {
     const current = await db.deductionYears.get(year);
-    if (!current) throw new RepositoryError(`Анкета за ${year} год ещё не сохранена`);
+    if (!current) throw new RepositoryError(fill(strings.data.notFound.deductionYear, { year }));
 
     const keys = new Set(current.checklist ?? []);
     if (gathered) keys.add(key);
@@ -54,7 +59,7 @@ export async function setChecklistItem(year: number, key: string, gathered: bool
     const next = parseOrThrow(
       deductionYearSchema,
       { ...current, checklist: [...keys].sort(), updatedAt: Date.now() },
-      'Год вычетов',
+      strings.data.subjects.deductionYear,
     );
     await db.deductionYears.put(next);
   });

@@ -1,6 +1,7 @@
 import { db } from '@/db/db';
 import { DEFAULT_SETTINGS, SCHEMA_VERSION, settingsSchema, type AppSettings } from '@/db/models';
 import { parseOrThrow } from '@/db/validate';
+import { strings } from '@/i18n';
 import { publishAppEvent } from '@/lib/broadcast';
 
 const SETTINGS_ID = 'app';
@@ -10,7 +11,11 @@ export async function getSettings(): Promise<AppSettings> {
 
   if (stored) {
     // A row written by an older schema misses the newer fields; Zod fills the defaults.
-    const migrated = parseOrThrow(settingsSchema, { ...DEFAULT_SETTINGS, ...stored }, 'Настройки');
+    const migrated = parseOrThrow(
+      settingsSchema,
+      { ...DEFAULT_SETTINGS, ...stored },
+      strings.data.subjects.settings,
+    );
     if (JSON.stringify(migrated) !== JSON.stringify(stored)) await db.settings.put(migrated);
     return migrated;
   }
@@ -24,7 +29,11 @@ export async function updateSettings(patch: Partial<Omit<AppSettings, 'id'>>): P
   // Read and write in one transaction: two updates at once must not write over each other.
   const next = await db.transaction('rw', db.settings, async () => {
     const current = await getSettings();
-    const merged = parseOrThrow(settingsSchema, { ...current, ...patch, id: SETTINGS_ID }, 'Настройки');
+    const merged = parseOrThrow(
+      settingsSchema,
+      { ...current, ...patch, id: SETTINGS_ID },
+      strings.data.subjects.settings,
+    );
     await db.settings.put(merged);
     return merged;
   });

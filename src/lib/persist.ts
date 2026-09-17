@@ -3,6 +3,8 @@
  * evict IndexedDB when the disk gets tight.
  */
 
+import { strings } from '@/i18n';
+
 export interface StorageStatus {
   readonly supported: boolean;
   readonly persisted: boolean;
@@ -35,8 +37,9 @@ export async function requestPersistentStorage(): Promise<boolean> {
 }
 
 export function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} Б`;
-  const units = ['КБ', 'МБ', 'ГБ'];
+  const { b, kb, mb, gb } = strings.settings.bytes;
+  if (bytes < 1024) return `${bytes} ${b}`;
+  const units = [kb, mb, gb];
   let value = bytes / 1024;
   let unitIndex = 0;
   while (value >= 1024 && unitIndex < units.length - 1) {

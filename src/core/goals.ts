@@ -63,7 +63,7 @@ export function monthlyContribution({
   months,
 }: MonthlyContributionParams): number {
   if (!Number.isFinite(months) || months <= 0) {
-    throw new RangeError(`months: срок должен быть больше нуля, получено ${String(months)}`);
+    throw new RangeError(`months: the term must be above zero, got ${String(months)}`);
   }
   const i = monthlyRate(returnRate);
   const grown = i === 0 ? savedMinor : savedMinor * Math.pow(1 + i, months);
@@ -140,7 +140,7 @@ export function monthsToGoal(params: MonthsToGoalParams): number | null {
   } = params;
 
   if (!(paymentMinor > 0)) {
-    throw new RangeError(`paymentMinor: взнос должен быть больше нуля, получено ${String(paymentMinor)}`);
+    throw new RangeError(`paymentMinor: the contribution must be above zero, got ${String(paymentMinor)}`);
   }
 
   const i = monthlyRate(returnRate);

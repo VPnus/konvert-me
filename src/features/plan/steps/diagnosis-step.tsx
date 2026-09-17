@@ -3,7 +3,7 @@ import { monthsLabel } from '@/features/goals/months-label';
 import type { PlanData } from '@/features/plan/plan-data';
 import { percentOf, rubles, t } from '@/features/plan/plan-format';
 import { Muted, PlanCard, Row } from '@/features/plan/plan-parts';
-import { fill, strings } from '@/i18n';
+import { currentLocale, fill, strings } from '@/i18n';
 
 const d = t.diagnosis;
 
@@ -79,7 +79,9 @@ export function DiagnosisStep({ data }: { data: PlanData }) {
         ) : (
           <p className="font-medium" data-testid="diagnosis-reserve">
             {fill(d.reserveMonths, {
-              months: `${reserve.months.toLocaleString('ru-RU', { maximumFractionDigits: 1 })} мес.`,
+              months: fill(d.reserveMonthsValue, {
+                months: reserve.months.toLocaleString(currentLocale(), { maximumFractionDigits: 1 }),
+              }),
             })}
           </p>
         )}

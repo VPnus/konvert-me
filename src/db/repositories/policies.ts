@@ -7,6 +7,7 @@ import { db } from '@/db/db';
 import { RepositoryError } from '@/db/errors';
 import { insurancePolicySchema, type InsurancePolicy } from '@/db/models';
 import { parseOrThrow } from '@/db/validate';
+import { strings } from '@/i18n';
 import { publishAppEvent } from '@/lib/broadcast';
 
 export interface PolicyInput {
@@ -32,7 +33,7 @@ export async function createPolicy(input: PolicyInput): Promise<InsurancePolicy>
   const policy = parseOrThrow(
     insurancePolicySchema,
     { ...input, id: crypto.randomUUID(), archived: false, createdAt: now, updatedAt: now },
-    'Полис',
+    strings.data.subjects.policy,
   );
 
   await db.policies.add(policy);
@@ -45,12 +46,12 @@ export async function updatePolicy(
   patch: Partial<PolicyInput> & { archived?: boolean },
 ): Promise<InsurancePolicy> {
   const current = await db.policies.get(id);
-  if (!current) throw new RepositoryError('Полис не найден');
+  if (!current) throw new RepositoryError(strings.data.notFound.policy);
 
   const next = parseOrThrow(
     insurancePolicySchema,
     { ...current, ...patch, id: current.id, createdAt: current.createdAt, updatedAt: Date.now() },
-    'Полис',
+    strings.data.subjects.policy,
   );
 
   await db.policies.put(next);

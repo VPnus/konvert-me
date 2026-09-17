@@ -7,9 +7,9 @@ import type { CardGrace } from '@/core/credit-card';
 import { formatForecast } from '@/core/money';
 import { todayIso, type IsoDate } from '@/core/time';
 import type { Account } from '@/db/models';
-import { fill, strings } from '@/i18n';
+import { currentLocale, fill, strings } from '@/i18n';
 
-const DAY_MONTH = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long' });
+const DAY_MONTH = new Intl.DateTimeFormat(currentLocale(), { day: 'numeric', month: 'long' });
 
 /** «14 октября 2026». */
 export function fullDateLabel(date: IsoDate): string {
@@ -26,7 +26,7 @@ export function dateLabel(date: IsoDate, today: IsoDate = todayIso()): string {
 
 /** 0.499 → «49,9 %». */
 export function rateLabel(rate: number): string {
-  return `${(Math.round(rate * 10_000) / 100).toLocaleString('ru-RU', { maximumFractionDigits: 2 })} %`;
+  return `${(Math.round(rate * 10_000) / 100).toLocaleString(currentLocale(), { maximumFractionDigits: 2 })} %`;
 }
 
 const rubles = (minor: number): string => formatForecast(minor);

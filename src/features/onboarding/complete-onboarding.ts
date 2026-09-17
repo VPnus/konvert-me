@@ -17,6 +17,7 @@ import {
 import { resetDashboardLayout } from '@/db/repositories/dashboard';
 import { createGoal, ensureReserveGoal } from '@/db/repositories/goals';
 import { updateSettings } from '@/db/repositories/settings';
+import { strings } from '@/i18n';
 import { recordOnboarding } from '@/lib/usage';
 
 export interface OnboardingAnswers {
@@ -64,7 +65,7 @@ export async function completeOnboarding(answers: OnboardingAnswers): Promise<vo
 
   if (answers.savingsRub > 0) {
     await createAccount({
-      name: 'Накопления',
+      name: strings.defaults.savingsAccount,
       side: 'asset',
       type: 'savings',
       openingBalanceMinor: rublesToMinor(answers.savingsRub),
@@ -74,7 +75,7 @@ export async function completeOnboarding(answers: OnboardingAnswers): Promise<vo
 
   if (answers.debtBalanceRub > 0 || answers.debtPaymentRub > 0) {
     await createAccount({
-      name: 'Кредит',
+      name: strings.defaults.debtAccount,
       side: 'liability',
       type: 'other_debt',
       openingBalanceMinor: rublesToMinor(answers.debtBalanceRub),

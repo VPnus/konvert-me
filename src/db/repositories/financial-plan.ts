@@ -21,6 +21,7 @@ import {
 } from '@/db/models';
 import { createGoal, updateGoal, type GoalInput } from '@/db/repositories/goals';
 import { parseOrThrow } from '@/db/validate';
+import { strings } from '@/i18n';
 import { publishAppEvent } from '@/lib/broadcast';
 
 export const FINANCIAL_PLAN_ID = 'plan';
@@ -59,7 +60,7 @@ async function changePlan(
     const next = parseOrThrow(
       financialPlanSchema,
       { ...current, ...change(current), id: FINANCIAL_PLAN_ID, updatedAt: Date.now() },
-      'Финансовый план',
+      strings.data.subjects.financialPlan,
     );
     await db.financialPlans.put(next);
     return next;
@@ -181,7 +182,7 @@ export async function saveEducationAsGoal(
   return db.transaction('rw', [db.financialPlans, db.goals, db.settings], async () => {
     const plan = await getFinancialPlan();
     const item = plan?.education.find((education) => education.id === educationId);
-    if (!item) throw new RepositoryError('Расчёт образования не найден');
+    if (!item) throw new RepositoryError(strings.data.notFound.education);
 
     const goal = await saveGoalOf(item.goalId, 'education', input);
     await changePlan(
@@ -199,7 +200,7 @@ export async function saveEducationAsGoal(
 export async function savePensionAsGoal(input: CalculationGoal, today: IsoDate = todayIso()): Promise<Goal> {
   return db.transaction('rw', [db.financialPlans, db.goals, db.settings], async () => {
     const plan = await getFinancialPlan();
-    if (!plan?.pension) throw new RepositoryError('Расчёт пенсии не сохранён');
+    if (!plan?.pension) throw new RepositoryError(strings.data.notFound.pension);
 
     const goal = await saveGoalOf(plan.pension.goalId, 'pension', input);
     await changePlan(

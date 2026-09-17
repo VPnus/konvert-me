@@ -9,7 +9,7 @@ import { listFeedItems, listFeeds, refreshEnabledFeeds } from '@/db/repositories
 import { createLink, deleteLink, listLinks } from '@/db/repositories/links';
 import { useDataVersion } from '@/hooks/use-data-version';
 import { useSettings } from '@/hooks/use-settings';
-import { strings } from '@/i18n';
+import { currentLocale, strings } from '@/i18n';
 import { WidgetEmpty, WidgetFrame } from '@/features/overview/widgets/widget-shell';
 import type { WidgetProps } from '@/features/overview/widgets/types';
 
@@ -178,7 +178,7 @@ export function NewsWidget(_props: WidgetProps) {
       title={strings.widgets.news.title}
       hint={
         lastFetchedAt
-          ? `${strings.widgets.news.updated}: ${new Intl.DateTimeFormat('ru-RU', { dateStyle: 'short', timeStyle: 'short' }).format(lastFetchedAt)}`
+          ? `${strings.widgets.news.updated}: ${new Intl.DateTimeFormat(currentLocale(), { dateStyle: 'short', timeStyle: 'short' }).format(lastFetchedAt)}`
           : strings.widgets.news.never
       }
     >
@@ -199,7 +199,7 @@ export function NewsWidget(_props: WidgetProps) {
               <span className="text-xs text-muted-foreground">
                 {hostOf(item.url)}
                 {item.publishedAt
-                  ? ` · ${new Intl.DateTimeFormat('ru-RU', { dateStyle: 'short' }).format(item.publishedAt)}`
+                  ? ` · ${new Intl.DateTimeFormat(currentLocale(), { dateStyle: 'short' }).format(item.publishedAt)}`
                   : ''}
               </span>
             </li>

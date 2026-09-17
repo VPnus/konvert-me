@@ -8,6 +8,7 @@ import { RepositoryError } from '@/db/errors';
 import { categorySchema, type Category } from '@/db/models';
 import { parseOrThrow } from '@/db/validate';
 import { DEFAULT_CATEGORIES, type DefaultCategory } from '@/db/default-categories';
+import { strings } from '@/i18n';
 import { publishAppEvent } from '@/lib/broadcast';
 
 export { DEFAULT_CATEGORIES, type DefaultCategory };
@@ -37,7 +38,7 @@ export async function seedDefaultCategories(): Promise<number> {
     parseOrThrow(
       categorySchema,
       { ...category, sortOrder: existing.size + index, archived: false },
-      'Категория',
+      strings.data.subjects.category,
     ),
   );
 
@@ -59,13 +60,13 @@ export async function createCategory(
       (category) => category.kind === input.kind && category.name.toLocaleLowerCase('ru') === name,
     )
   ) {
-    throw new RepositoryError('Такая категория уже есть. Если она в архиве, верните её.');
+    throw new RepositoryError(strings.data.categoryExists);
   }
   const count = existing.length;
   const category = parseOrThrow(
     categorySchema,
     { ...input, id: input.id ?? crypto.randomUUID(), sortOrder: count, archived: false },
-    'Категория',
+    strings.data.subjects.category,
   );
 
   await db.categories.add(category);
@@ -75,7 +76,7 @@ export async function createCategory(
 
 export async function setCategoryArchived(id: string, archived: boolean): Promise<Category> {
   const current = await db.categories.get(id);
-  if (!current) throw new RepositoryError('Категория не найдена');
+  if (!current) throw new RepositoryError(strings.data.notFound.category);
 
   const next = { ...current, archived };
   await db.categories.put(next);

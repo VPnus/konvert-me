@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { strings } from '@/i18n';
+import { fill, strings } from '@/i18n';
 import { useSettings } from '@/hooks/use-settings';
 import {
   downloadBackup,
@@ -55,7 +55,9 @@ export function BackupCard() {
     setError(null);
     try {
       const summary = await importBackupFile(pendingFile, importPassword || undefined);
-      setMessage(`${strings.settings.backupImported} Записей: ${summary.total}.`);
+      setMessage(
+        `${strings.settings.backupImported} ${fill(strings.settings.backupImportedCount, { count: summary.total })}`,
+      );
       setPendingFile(null);
       if (fileInput.current) fileInput.current.value = '';
     } catch (cause) {

@@ -192,7 +192,7 @@ export function carryPropertyDeduction(deductionMinor: number, years: readonly T
   let left = deductionMinor;
   return years.map((taxYear, index) => {
     if (index > 0 && taxYear.year <= years[index - 1].year) {
-      throw new RangeError(`Годы должны идти по порядку: ${years[index - 1].year}, затем ${taxYear.year}`);
+      throw new RangeError(`Years must go in order: ${years[index - 1].year}, then ${taxYear.year}`);
     }
     assertNonNegativeMinor(taxYear.incomeMinor, 'incomeMinor');
     assertNonNegativeMinor(taxYear.otherDeductionsMinor, 'otherDeductionsMinor');
@@ -214,7 +214,7 @@ const MONTHS = 12;
 
 function assertMonth(month: number, label: string): void {
   if (!Number.isInteger(month) || month < 1 || month > MONTHS) {
-    throw new RangeError(`${label}: месяц должен быть от 1 до 12, получено ${month}`);
+    throw new RangeError(`${label}: a month must be from 1 to 12, got ${month}`);
   }
 }
 
@@ -261,12 +261,12 @@ export function childDeductionMinor(
   let total = 0;
   for (const child of claim.items) {
     if (!Number.isInteger(child.order) || child.order < 1) {
-      throw new RangeError(`Очерёдность ребёнка должна быть целым числом от 1, получено ${child.order}`);
+      throw new RangeError(`The order of a child must be a whole number from 1, got ${child.order}`);
     }
     assertMonth(child.fromMonth, 'fromMonth');
     assertMonth(child.toMonth, 'toMonth');
     if (child.fromMonth > child.toMonth) {
-      throw new RangeError(`Месяцы идут не по порядку: ${child.fromMonth}, затем ${child.toMonth}`);
+      throw new RangeError(`Months are out of order: ${child.fromMonth}, then ${child.toMonth}`);
     }
 
     const byOrder =

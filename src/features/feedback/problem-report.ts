@@ -24,7 +24,7 @@ export interface ReportEnvironment {
 /** A browser as people call it, with its major version, and the system under it: "Chrome 140, Android". */
 export function browserOf(userAgent: string): string {
   const browsers: readonly [RegExp, string][] = [
-    [/YaBrowser\/(\d+)/, 'Яндекс Браузер'],
+    [/YaBrowser\/(\d+)/, strings.feedback.yandexBrowser],
     [/SamsungBrowser\/(\d+)/, 'Samsung Internet'],
     [/(?:OPR|OPiOS)\/(\d+)/, 'Opera'],
     [/Edg(?:A|iOS)?\/(\d+)/, 'Edge'],

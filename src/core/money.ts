@@ -3,8 +3,11 @@
  * numbers and rounded to kopecks only when they are saved or displayed.
  */
 
+import { currentLocale } from '@/i18n/locale';
+
+// Keyed by the language too: a test may format in another one without a reload.
 const RUB_FORMATTERS = new Map<string, Intl.NumberFormat>();
-let compactFormatter: Intl.NumberFormat | undefined;
+const COMPACT_FORMATTERS = new Map<string, Intl.NumberFormat>();
 
 export class MoneyError extends Error {
   constructor(message: string) {
@@ -22,21 +25,21 @@ export function isMinor(value: unknown): value is Minor {
 
 export function assertMinor(value: number, label = 'amountMinor'): asserts value is Minor {
   if (!isMinor(value)) {
-    throw new MoneyError(`${label}: ожидались целые копейки, получено ${String(value)}`);
+    throw new MoneyError(`${label}: whole kopecks expected, got ${String(value)}`);
   }
 }
 
 export function assertPositiveMinor(value: number, label = 'amountMinor'): asserts value is Minor {
   assertMinor(value, label);
   if (value <= 0) {
-    throw new MoneyError(`${label}: сумма должна быть больше нуля, получено ${String(value)}`);
+    throw new MoneyError(`${label}: the sum must be above zero, got ${String(value)}`);
   }
 }
 
 export function assertNonNegativeMinor(value: number, label = 'amountMinor'): asserts value is Minor {
   assertMinor(value, label);
   if (value < 0) {
-    throw new MoneyError(`${label}: сумма не может быть отрицательной, получено ${String(value)}`);
+    throw new MoneyError(`${label}: the sum cannot be negative, got ${String(value)}`);
   }
 }
 
@@ -46,7 +49,7 @@ export function assertNonNegativeMinor(value: number, label = 'amountMinor'): as
  */
 export function roundToMinor(value: number): Minor {
   if (!Number.isFinite(value)) {
-    throw new MoneyError(`Невозможно округлить нечисловое значение: ${String(value)}`);
+    throw new MoneyError(`Cannot round a value that is not a number: ${String(value)}`);
   }
   return Math.round(value);
 }
@@ -77,10 +80,11 @@ export interface FormatMinorOptions {
 export function formatMinor(minor: Minor, options: FormatMinorOptions = {}): string {
   assertMinor(minor);
   const { withCurrency = true, fractionDigits = 2 } = options;
-  const key = `${withCurrency ? 'rub' : 'plain'}:${fractionDigits}`;
+  const locale = currentLocale();
+  const key = `${locale}:${withCurrency ? 'rub' : 'plain'}:${fractionDigits}`;
   let formatter = RUB_FORMATTERS.get(key);
   if (!formatter) {
-    formatter = new Intl.NumberFormat('ru-RU', {
+    formatter = new Intl.NumberFormat(locale, {
       style: withCurrency ? 'currency' : 'decimal',
       currency: 'RUB',
       minimumFractionDigits: fractionDigits,
@@ -106,8 +110,13 @@ export function formatForecast(value: number, options: FormatMinorOptions = {}):
  */
 export function formatCompactMinor(value: number): string {
   if (!Number.isFinite(value)) {
-    throw new MoneyError(`Невозможно показать нечисловое значение: ${String(value)}`);
+    throw new MoneyError(`Cannot show a value that is not a number: ${String(value)}`);
   }
-  compactFormatter ??= new Intl.NumberFormat('ru-RU', { notation: 'compact' });
-  return compactFormatter.format(value / 100);
+  const locale = currentLocale();
+  let formatter = COMPACT_FORMATTERS.get(locale);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(locale, { notation: 'compact' });
+    COMPACT_FORMATTERS.set(locale, formatter);
+  }
+  return formatter.format(value / 100);
 }

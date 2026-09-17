@@ -2,6 +2,7 @@ import { addMonths, monthsOfYear, type IsoMonth } from '@/core/time';
 import { db } from '@/db/db';
 import { budgetPlanSchema, type BudgetPlan } from '@/db/models';
 import { parseOrThrow } from '@/db/validate';
+import { strings } from '@/i18n';
 import { publishAppEvent } from '@/lib/broadcast';
 
 export async function listPlansOfMonth(month: IsoMonth): Promise<BudgetPlan[]> {
@@ -34,7 +35,7 @@ export async function setPlan(
   const line = parseOrThrow(
     budgetPlanSchema,
     { id: existing?.id ?? crypto.randomUUID(), month, categoryId, amountMinor },
-    'План бюджета',
+    strings.data.subjects.budgetPlan,
   );
 
   await db.budgetPlans.put(line);

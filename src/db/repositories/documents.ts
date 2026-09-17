@@ -7,6 +7,7 @@ import { db } from '@/db/db';
 import { RepositoryError } from '@/db/errors';
 import { documentFileSchema, documentSchema, type DocumentCategory, type TaxDocument } from '@/db/models';
 import { parseOrThrow } from '@/db/validate';
+import { fill, strings } from '@/i18n';
 import { publishAppEvent } from '@/lib/broadcast';
 
 export interface DocumentInput {
@@ -31,9 +32,9 @@ export async function addDocument(input: DocumentInput): Promise<TaxDocument> {
       sizeBytes: content.byteLength,
       createdAt: Date.now(),
     },
-    'Документ',
+    strings.data.subjects.document,
   );
-  const file = parseOrThrow(documentFileSchema, { id: document.id, content }, 'Документ');
+  const file = parseOrThrow(documentFileSchema, { id: document.id, content }, strings.data.subjects.document);
 
   await db.transaction('rw', db.documents, db.documentFiles, async () => {
     await db.documents.add(document);
@@ -62,7 +63,8 @@ export async function readDocumentContent(id: string): Promise<ArrayBuffer | und
  */
 export async function documentBlob(document: TaxDocument): Promise<Blob> {
   const content = await readDocumentContent(document.id);
-  if (!content) throw new RepositoryError(`Файл документа «${document.fileName}» не найден`);
+  if (!content)
+    throw new RepositoryError(fill(strings.data.notFound.documentFile, { name: document.fileName }));
   return new Blob([content], { type: document.mimeType });
 }
 

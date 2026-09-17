@@ -19,7 +19,7 @@ import { updateSettings } from '@/db/repositories/settings';
 import { FeedForm } from '@/features/settings/cards/feed-form';
 import { useDataVersion } from '@/hooks/use-data-version';
 import { useSettings } from '@/hooks/use-settings';
-import { strings } from '@/i18n';
+import { currentLocale, strings } from '@/i18n';
 import { maskSecret, maskUrl } from '@/lib/secrets';
 
 function authLabel(feed: Feed): string {
@@ -34,7 +34,9 @@ function authLabel(feed: Feed): string {
 
 function formatMoment(timestamp: number | null): string {
   if (timestamp === null) return strings.widgets.news.never;
-  return new Intl.DateTimeFormat('ru-RU', { dateStyle: 'short', timeStyle: 'short' }).format(timestamp);
+  return new Intl.DateTimeFormat(currentLocale(), { dateStyle: 'short', timeStyle: 'short' }).format(
+    timestamp,
+  );
 }
 
 /**

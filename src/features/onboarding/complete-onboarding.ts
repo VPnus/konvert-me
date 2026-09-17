@@ -17,6 +17,7 @@ import {
 import { resetDashboardLayout } from '@/db/repositories/dashboard';
 import { createGoal, ensureReserveGoal } from '@/db/repositories/goals';
 import { updateSettings } from '@/db/repositories/settings';
+import { recordOnboarding } from '@/lib/usage';
 
 export interface OnboardingAnswers {
   readonly incomeRub: number;
@@ -99,6 +100,7 @@ export async function completeOnboarding(answers: OnboardingAnswers): Promise<vo
 
   await resetDashboardLayout();
   await updateSettings({ onboardingDone: true });
+  recordOnboarding('completed');
 }
 
 /** Skipping still gives the user a working app: categories, the reserve and a layout. */
@@ -107,4 +109,5 @@ export async function skipOnboarding(): Promise<void> {
   await ensureReserveGoal();
   await resetDashboardLayout();
   await updateSettings({ onboardingDone: true });
+  recordOnboarding('skipped');
 }

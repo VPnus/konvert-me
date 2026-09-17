@@ -13,7 +13,8 @@
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write .",
     "e2e": "playwright test",
-    "icons": "node scripts/generate-icons.mjs"
+    "icons": "node scripts/generate-icons.mjs",
+    "og-image": "node scripts/generate-og-image.mjs"
   },
   "private": "true",
   "type": "module",

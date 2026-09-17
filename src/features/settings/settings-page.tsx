@@ -1,6 +1,7 @@
 import { BackupCard } from '@/features/settings/cards/backup-card';
 import { CalculationCard } from '@/features/settings/cards/calculation-card';
 import { InstallCard } from '@/features/settings/cards/install-card';
+import { PilotCard } from '@/features/settings/cards/pilot-card';
 import { SourcesCard } from '@/features/settings/cards/sources-card';
 import { StorageCard } from '@/features/settings/cards/storage-card';
 import { ru } from '@/i18n/ru';
@@ -13,6 +14,7 @@ export default function SettingsPage() {
         <p className="text-sm text-muted-foreground">{ru.pages.settings.subtitle}</p>
       </div>
 
+      <PilotCard />
       <CalculationCard />
       <BackupCard />
       <StorageCard />

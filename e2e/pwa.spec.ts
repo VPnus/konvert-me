@@ -12,7 +12,9 @@ test.describe('installable and offline', () => {
     const manifest = await (await request.get(manifestHref!)).json();
     expect(manifest.name).toBe('Конверкот');
     expect(manifest.display).toBe('standalone');
-    expect(manifest.start_url).toBe('/');
+    // The installed app opens on the app; its identity stays the root, whatever the start.
+    expect(manifest.id).toBe('/');
+    expect(manifest.start_url).toBe('/overview');
     expect(manifest.icons.map((icon: { sizes: string }) => icon.sizes)).toEqual(
       expect.arrayContaining(['192x192', '512x512']),
     );

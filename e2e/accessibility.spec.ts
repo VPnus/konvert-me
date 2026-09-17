@@ -42,6 +42,13 @@ for (const size of WIDTHS) {
       await page.addInitScript((value) => localStorage.setItem('konvert-me.theme', value), theme);
       const findings: Findings = {};
 
+      // The site first, as someone new sees it: the landing and the policy.
+      await page.goto('/');
+      await expect(page.getByTestId('landing-start')).toBeVisible();
+      await audit(page, findings, 'лендинг');
+      await page.goto('/privacy');
+      await audit(page, findings, 'политика конфиденциальности');
+
       await page.goto('/welcome');
       await expect(page.locator('html')).toHaveAttribute('lang', 'ru');
       const steps: [string, () => Promise<void>][] = [

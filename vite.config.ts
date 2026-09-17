@@ -1,25 +1,51 @@
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
+import site from './src/app/site.json' with { type: 'json' };
+
+const { version } = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as {
+  version: string;
+};
+
+/**
+ * Messengers build a link preview from the meta tags alone, without running the app, and want
+ * whole addresses in them: the address of the site is written into index.html at build time.
+ */
+function siteAddress(): Plugin {
+  return {
+    name: 'konverkot-site-address',
+    transformIndexHtml: (html) => html.replaceAll('__SITE_ORIGIN__', site.origin),
+  };
+}
+
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(version),
+  },
   plugins: [
     react(),
     tailwindcss(),
+    siteAddress(),
     VitePWA({
       // The user confirms the update: a reload must never interrupt data entry.
       registerType: 'prompt',
       includeAssets: ['favicon.svg', 'favicon-64.png', 'apple-touch-icon.png'],
       manifest: {
+        // The identity of the installed app, kept apart from where it starts: the start may move,
+        // the identity may not, or browsers would take it for another app.
+        id: '/',
         name: 'Конверкот',
         short_name: 'Конверкот',
         description: 'Личные финансы офлайн: бюджет, цели и конверты. Данные остаются на вашем устройстве.',
         lang: 'ru-RU',
         dir: 'ltr',
-        start_url: '/',
+        // The installed app opens on the app, not on the landing that the root shows to newcomers.
+        start_url: '/overview',
         scope: '/',
         display: 'standalone',
         orientation: 'portrait-primary',
@@ -34,6 +60,9 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // The pictures of the landing and of the link preview are for visitors, who are online:
+        // the offline copy of the app does not need them.
+        globIgnores: ['**/node_modules/**/*', 'landing/**', 'og-image.png'],
         navigateFallback: '/index.html',
         cleanupOutdatedCaches: true,
       },

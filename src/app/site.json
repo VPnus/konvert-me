@@ -1,0 +1,19 @@
+{
+  "origin": "https://konverkot.gitverse.site",
+  "repository": "https://gitverse.ru/konverkot/konverkot.git",
+  "branch": "main",
+  "feedbackFormUrl": null,
+  "contactEmail": null,
+  "pilotActive": true,
+  "routes": [
+    "/welcome",
+    "/privacy",
+    "/overview",
+    "/budget",
+    "/goals",
+    "/balance",
+    "/deductions",
+    "/plan",
+    "/settings"
+  ]
+}

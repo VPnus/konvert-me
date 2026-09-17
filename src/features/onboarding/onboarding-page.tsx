@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 
 import { formatMinor, rublesToMinor } from '@/core/money';
 import { parseNumericInput } from '@/lib/numeric-input';
@@ -15,6 +15,7 @@ import {
   skipOnboarding,
   type OnboardingAnswers,
 } from '@/features/onboarding/complete-onboarding';
+import { useSettingsState } from '@/hooks/use-settings';
 import { ru } from '@/i18n/ru';
 
 const STEPS = 5;
@@ -30,6 +31,7 @@ type NumericKey =
 
 export default function OnboardingPage() {
   const navigate = useNavigate();
+  const { settings, loading } = useSettingsState();
   const [step, setStep] = useState(1);
   const [answers, setAnswers] = useState<OnboardingAnswers>(() => ({
     ...EMPTY_ANSWERS,
@@ -74,6 +76,10 @@ export default function OnboardingPage() {
       setBusy(false);
     }
   };
+
+  if (loading) return null;
+  // Once is enough: going through it again would add a second set of accounts and goals.
+  if (settings.onboardingDone && !busy) return <Navigate to="/overview" replace />;
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-xl flex-col gap-6 px-4 py-8">
@@ -325,6 +331,13 @@ export default function OnboardingPage() {
           )}
         </div>
       </div>
+
+      <p className="text-xs text-muted-foreground">
+        {ru.onboarding.privacyNote}{' '}
+        <Link to="/privacy" className="underline underline-offset-2 hover:text-foreground">
+          {ru.site.privacyLink}
+        </Link>
+      </p>
     </main>
   );
 }

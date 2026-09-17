@@ -17,6 +17,7 @@ import { markBackupDone } from '@/db/repositories/settings';
 import { publishAppEvent } from '@/lib/broadcast';
 import { ru } from '@/i18n/ru';
 import { downloadBlob } from '@/lib/download';
+import { clearUsage } from '@/lib/usage';
 
 export async function downloadBackup(password?: string): Promise<void> {
   const backup = await collectBackup();
@@ -41,6 +42,8 @@ export async function importBackupFile(file: File, password?: string): Promise<R
 
 export async function wipeEverything(): Promise<void> {
   await clearAllData();
+  // "All the data" means the days of use too, though they live apart from the database.
+  clearUsage();
   publishAppEvent({ type: 'data-cleared' });
 }
 

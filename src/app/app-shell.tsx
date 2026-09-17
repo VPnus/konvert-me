@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { Link, NavLink, Outlet } from 'react-router-dom';
 
 import { BackupReminder } from '@/components/common/backup-reminder';
 import { DataRiskBanner } from '@/components/common/data-risk-banner';
@@ -8,6 +8,7 @@ import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { NAV_ITEMS } from '@/app/navigation';
 import { DeductionReminderBanner } from '@/features/deductions/deduction-reminder';
 import { PlanReviewReminderBanner } from '@/features/plan/review-reminder';
+import { PilotReminderBanner } from '@/features/settings/pilot-reminder';
 import { ru } from '@/i18n/ru';
 import { cn } from '@/lib/utils';
 
@@ -83,12 +84,20 @@ export function AppShell() {
           <BackupReminder />
           <DeductionReminderBanner />
           <PlanReviewReminderBanner />
+          <PilotReminderBanner />
           <Outlet />
         </ErrorBoundary>
       </main>
 
-      <footer className="mx-auto w-full max-w-6xl px-4 pb-6 text-[11px] text-muted-foreground md:px-8">
-        {ru.app.disclaimer}
+      <footer className="mx-auto flex w-full max-w-6xl flex-col gap-1 px-4 pb-6 text-[11px] text-muted-foreground sm:flex-row sm:justify-between sm:gap-4 md:px-8">
+        <span>{ru.app.disclaimer}</span>
+        <Link
+          to="/privacy"
+          className="shrink-0 underline underline-offset-2 hover:text-foreground"
+          data-testid="app-privacy-link"
+        >
+          {ru.site.privacyLink}
+        </Link>
       </footer>
     </div>
   );

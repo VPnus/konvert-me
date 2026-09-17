@@ -28,6 +28,7 @@ export function CategoriesCard() {
   const [group, setGroup] = useState<Group>('variable');
   const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [shown, setShown] = useState(false);
 
   if (!categories) return null;
   const active = categories.filter((category) => !category.archived);
@@ -124,25 +125,34 @@ export function CategoriesCard() {
           {message?.text ?? ''}
         </p>
 
-        <details data-testid="categories-list">
-          <summary className="cursor-pointer text-sm font-medium">
-            {fill(t.show, { count: active.length })}
-          </summary>
-          <div className="mt-2 grid gap-4 sm:grid-cols-3">
-            {(Object.keys(t.groups) as Group[]).map((key) => (
-              <div key={key}>
-                <p className="text-xs font-medium text-muted-foreground">{t.groups[key]}</p>
-                <ul>{active.filter((category) => groupOf(category) === key).map(row)}</ul>
-              </div>
-            ))}
-          </div>
-          {archived.length > 0 ? (
-            <div className="mt-2">
-              <p className="text-xs font-medium text-muted-foreground">{t.archived}</p>
-              <ul>{archived.map(row)}</ul>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-fit px-0"
+          aria-expanded={shown}
+          data-testid="categories-toggle"
+          onClick={() => setShown(!shown)}
+        >
+          {fill(t.show, { count: active.length })}
+        </Button>
+        {shown ? (
+          <div data-testid="categories-list">
+            <div className="grid gap-4 sm:grid-cols-3">
+              {(Object.keys(t.groups) as Group[]).map((key) => (
+                <div key={key}>
+                  <p className="text-xs font-medium text-muted-foreground">{t.groups[key]}</p>
+                  <ul>{active.filter((category) => groupOf(category) === key).map(row)}</ul>
+                </div>
+              ))}
             </div>
-          ) : null}
-        </details>
+            {archived.length > 0 ? (
+              <div className="mt-2">
+                <p className="text-xs font-medium text-muted-foreground">{t.archived}</p>
+                <ul>{archived.map(row)}</ul>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );

@@ -72,8 +72,9 @@ function GoalRow({ view, allocation, onOpen, onEdit, onDelete }: GoalRowProps) {
       )}
       data-testid="goal-row"
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex min-w-0 items-start gap-2">
+      {/* on a narrow page the sums and buttons move under the name rather than squeeze it out */}
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="flex min-w-0 flex-1 basis-40 items-start gap-2">
           {isReserve ? (
             <span className="mt-1 size-5 shrink-0" aria-hidden />
           ) : (
@@ -105,7 +106,7 @@ function GoalRow({ view, allocation, onOpen, onEdit, onDelete }: GoalRowProps) {
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="ml-auto flex shrink-0 items-center gap-1">
           <div className="mr-1 text-right">
             <p className="text-sm font-semibold tabular-nums" data-testid={`goal-contribution-${goal.name}`}>
               {view.plan

@@ -136,12 +136,21 @@ export function reminderText(reminder: CardReminder, today: IsoDate): string {
 
 /** The cards as they stand today, for the banner. */
 export async function loadCards(today: IsoDate): Promise<CardOfReminder[]> {
-  const [accounts, transactions] = await Promise.all([
-    db.accounts.where('side').equals('liability').toArray(),
-    db.transactions.toArray(),
-  ]);
-  return accounts
-    .filter((account) => !account.archived)
+  // Only a card with grace terms can have a reminder, and only its own operations are read: the banner
+  // stands on every page, and a household may hold years of operations.
+  const cards = (await db.accounts.where('side').equals('liability').toArray()).filter(
+    (account) =>
+      !account.archived && ((account.statementDay && account.paymentDay) || account.gracePeriodEnd),
+  );
+  if (cards.length === 0) return [];
+  const ids = cards.map((card) => card.id);
+  const transactions = await db.transactions
+    .where('accountId')
+    .anyOf(ids)
+    .or('toAccountId')
+    .anyOf(ids)
+    .toArray();
+  return cards
     .map((account) => ({ account, grace: cardGrace(account, transactions, today) }))
     .filter((card) => card.grace.kind !== 'none');
 }

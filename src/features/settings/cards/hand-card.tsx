@@ -1,8 +1,8 @@
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useHand } from '@/hooks/use-hand';
 import { ru } from '@/i18n/ru';
 import { writeHand, type Hand } from '@/lib/hand';
-import { cn } from '@/lib/utils';
 
 const OPTIONS: readonly { readonly hand: Hand; readonly label: string }[] = [
   { hand: 'right', label: ru.settings.handRight },
@@ -20,29 +20,20 @@ export function HandCard() {
         <CardDescription>{ru.settings.handText}</CardDescription>
       </CardHeader>
       <CardContent>
-        <fieldset className="flex flex-col gap-2 sm:flex-row">
-          <legend className="sr-only">{ru.settings.handTitle}</legend>
+        <div role="group" aria-label={ru.settings.handTitle} className="flex flex-col gap-2 sm:flex-row">
           {OPTIONS.map((option) => (
-            <label
+            <Button
               key={option.hand}
-              className={cn(
-                'flex flex-1 cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm',
-                hand === option.hand ? 'border-primary bg-primary/10 font-medium' : 'border-border',
-              )}
+              variant={hand === option.hand ? 'default' : 'outline'}
+              aria-pressed={hand === option.hand}
+              className="h-auto min-h-10 flex-1 py-2 whitespace-normal"
+              data-testid={`hand-${option.hand}`}
+              onClick={() => writeHand(option.hand)}
             >
-              <input
-                type="radio"
-                name="hand"
-                value={option.hand}
-                checked={hand === option.hand}
-                className="size-4 accent-[var(--color-primary)]"
-                data-testid={`hand-${option.hand}`}
-                onChange={() => writeHand(option.hand)}
-              />
               {option.label}
-            </label>
+            </Button>
           ))}
-        </fieldset>
+        </div>
       </CardContent>
     </Card>
   );

@@ -46,8 +46,8 @@ function AccountRow({
   const status = grace ? cardStatus(grace) : null;
 
   return (
-    <li className="flex items-center justify-between gap-3 border-b border-border py-3 last:border-b-0">
-      <div className="min-w-0">
+    <li className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-border py-3 last:border-b-0">
+      <div className="min-w-0 flex-1 basis-40">
         <p className="truncate text-sm font-medium">
           {account.name}
           {account.archived ? (
@@ -72,7 +72,7 @@ function AccountRow({
         ) : null}
       </div>
 
-      <div className="flex shrink-0 items-center gap-1">
+      <div className="ml-auto flex shrink-0 items-center gap-1">
         <span
           className={`mr-1 text-sm font-semibold tabular-nums ${account.side === 'liability' ? 'text-destructive' : ''}`}
           data-testid={`balance-${account.name}`}

@@ -14,7 +14,3 @@ export const COUNTRY_CURRENCY: Readonly<Record<Country, Currency>> = { ru: 'RUB'
 
 /** Data kept before the country was asked lived in Russia and in rubles. */
 export const DEFAULT_COUNTRY: Country = 'ru';
-
-export function isCountry(value: unknown): value is Country {
-  return (COUNTRIES as readonly unknown[]).includes(value);
-}

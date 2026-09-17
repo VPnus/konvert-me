@@ -31,6 +31,11 @@ export interface PlanBudget {
   readonly expenseMinor: number;
   readonly freeCashMinor: number;
   readonly balance: BudgetBalance;
+  /** The principal the debts take by schedule, and what is left of the free money after it. */
+  readonly principalDueMinor: number;
+  readonly afterDebtsMinor: number;
+  /** Income covers the expenses but not the principal of the debts. */
+  readonly debtsShort: boolean;
 }
 
 export interface PlanData {
@@ -80,6 +85,9 @@ export async function loadPlan(now: Date = new Date()): Promise<PlanData> {
       freeCashMinor: basis.freeCashMinor,
       // Rounded first: an average of 0,4 kopeck is a balanced budget, not a surplus.
       balance: budgetBalance(Math.round(basis.freeCashMinor)),
+      principalDueMinor: goals.principalDueMinor,
+      afterDebtsMinor: goals.availableMinor,
+      debtsShort: Math.round(basis.freeCashMinor) >= 0 && Math.round(goals.availableMinor) < 0,
     },
     education: plan.education.map((item) => educationView(item, month, savedOf(item.goalId))),
     pension: plan.pension ? pensionView(plan.pension, month, savedOf(plan.pension.goalId)) : null,
@@ -90,6 +98,9 @@ export async function loadPlan(now: Date = new Date()): Promise<PlanData> {
       accounts: overview.accounts,
       policies: inForce,
       settings: goals.settings,
+      balances: overview.balances,
+      cards: overview.cards,
+      availableMinor: goals.availableMinor,
     }),
     review: planReviewState(plan, today),
   };

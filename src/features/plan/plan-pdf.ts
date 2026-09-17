@@ -14,7 +14,16 @@ import { monthsBetween, todayIso, type IsoDate } from '@/core/time';
 import { RESERVE_GOAL_ID } from '@/db/repositories/goals';
 import { fill } from '@/features/deductions/fill';
 import type { PlanData } from '@/features/plan/plan-data';
-import { actionText, dateInText, monthInText, percentOf, rubles, t } from '@/features/plan/plan-format';
+import { debtQueue, savingsBenchmark } from '@/features/plan/debts';
+import {
+  actionText,
+  dateInText,
+  debtAdvice,
+  monthInText,
+  percentOf,
+  rubles,
+  t,
+} from '@/features/plan/plan-format';
 import { ru } from '@/i18n/ru';
 import { downloadBlob } from '@/lib/download';
 import { monthsLabel } from '@/features/goals/months-label';
@@ -60,11 +69,14 @@ function diagnosis(data: PlanData): Content[] {
   return [
     heading(1),
     subheading(d.budget),
-    paragraph(d.balance[budget.balance]),
+    paragraph(budget.debtsShort ? d.balance.debtsShort : d.balance[budget.balance]),
     rows([
       [d.income, rubles(budget.incomeMinor)],
       [d.expense, rubles(budget.expenseMinor)],
       [d.free, rubles(budget.freeCashMinor)],
+      ...(budget.principalDueMinor > 0
+        ? ([[d.afterDebts, rubles(budget.afterDebtsMinor)]] as [string, string][])
+        : []),
     ]),
     paragraph(
       budget.source === 'fact'
@@ -240,7 +252,17 @@ function protection(data: PlanData): Content[] {
 
 function optimization(data: PlanData): Content[] {
   const o = t.optimization;
-  const debts = data.overview.accounts.filter((account) => account.side === 'liability' && !account.archived);
+  const benchmark = savingsBenchmark(
+    data.overview.accounts,
+    data.overview.balances,
+    data.goals.settings.defaultReturnRate,
+  );
+  const debts = debtQueue({
+    accounts: data.overview.accounts,
+    balances: data.overview.balances,
+    cards: data.overview.cards,
+    benchmark,
+  });
   const reserve = data.goals.reserve;
   const idle = reserve.targetMinor === null ? 0 : Math.max(reserve.reserveMinor - reserve.targetMinor, 0);
 
@@ -250,10 +272,14 @@ function optimization(data: PlanData): Content[] {
     debts.length === 0
       ? paragraph(o.noDebts)
       : rows(
-          debts.map((account) => [
-            account.name,
-            account.rate === undefined ? o.noRate : fill(o.rate, { rate: percentOf(account.rate) }),
-          ]),
+          debts.map((debt) => {
+            const rate =
+              debt.account.rate === undefined
+                ? o.noRate
+                : fill(o.rate, { rate: percentOf(debt.account.rate) });
+            const advice = debtAdvice(debt, benchmark);
+            return [debt.account.name, advice ? `${rate}. ${advice}` : rate];
+          }),
         ),
     paragraph(idle > 0 ? fill(o.idle, { amount: rubles(idle) }) : o.noIdle),
     ...note(data.plan.notes.optimization),

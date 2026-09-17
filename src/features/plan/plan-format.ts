@@ -4,6 +4,7 @@ import { monthLabel } from '@/features/budget/month-label';
 import { dateOfYear } from '@/features/deductions/dates';
 import { fill } from '@/features/deductions/fill';
 import type { PlanAction } from '@/features/plan/actions';
+import type { Benchmark, DebtInQueue } from '@/features/plan/debts';
 import { ru } from '@/i18n/ru';
 
 export const t = ru.plan;
@@ -34,6 +35,12 @@ export function rateText(rate: number): string {
 /** What an action of step 7 says, on the screen and in the PDF alike. */
 export function actionText(action: PlanAction): string {
   switch (action.kind) {
+    case 'statement':
+      return fill(t.actions.statement, {
+        name: action.name,
+        amount: rubles(action.amountMinor),
+        date: dateInText(action.dueDate),
+      });
     case 'reserve':
       return fill(t.actions.reserve, { amount: rubles(action.amountMinor) });
     case 'insurance':
@@ -47,4 +54,25 @@ export function actionText(action: PlanAction): string {
     case 'deductions':
       return t.actions.deductions;
   }
+}
+
+/** What the plan says of a debt in the queue: pay the statement, it is free, it is dear, or nothing. */
+export function debtAdvice(debt: DebtInQueue, benchmark: Benchmark): string | null {
+  if (debt.statement) {
+    return fill(t.optimization.statement, {
+      date: dateInText(debt.statement.dueDate),
+      amount: rubles(debt.statement.remainingMinor),
+    });
+  }
+  if (debt.free) return t.optimization.free;
+  if (debt.grace.kind === 'missed' || debt.grace.kind === 'grace-ended') {
+    return debt.dear ? `${t.optimization.lost} ${adviceOfDear(benchmark)}` : t.optimization.lost;
+  }
+  return debt.dear ? adviceOfDear(benchmark) : null;
+}
+
+function adviceOfDear(benchmark: Benchmark): string {
+  return benchmark.accountName
+    ? fill(t.optimization.dearAccount, { rate: percentOf(benchmark.rate), account: benchmark.accountName })
+    : fill(t.optimization.dear, { rate: percentOf(benchmark.rate) });
 }

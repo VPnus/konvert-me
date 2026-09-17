@@ -30,11 +30,14 @@ export function DiagnosisStep({ data }: { data: PlanData }) {
     <div className="grid gap-4 md:grid-cols-2">
       <PlanCard title={d.budget} link={{ to: '/budget', label: ru.nav.budget }} testId="diagnosis-budget">
         <p className="font-medium" data-testid="diagnosis-balance">
-          {d.balance[budget.balance]}
+          {budget.debtsShort ? d.balance.debtsShort : d.balance[budget.balance]}
         </p>
         <Row label={d.income} value={rubles(budget.incomeMinor)} />
         <Row label={d.expense} value={rubles(budget.expenseMinor)} />
         <Row label={d.free} value={rubles(budget.freeCashMinor)} strong testId="diagnosis-free" />
+        {budget.principalDueMinor > 0 ? (
+          <Row label={d.afterDebts} value={rubles(budget.afterDebtsMinor)} testId="diagnosis-after-debts" />
+        ) : null}
         <Muted>
           {budget.source === 'fact'
             ? fill(d.budgetFromFact, { months: monthsLabel(budget.months) })

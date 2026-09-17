@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { pensionCapitalMinor } from '@/core/pension';
 import { clearAllData } from '@/db/backup';
 import { db } from '@/db/db';
-import type { EducationPlan, FinancialPlan, PensionPlan } from '@/db/models';
+import type { CardGrace } from '@/core/credit-card';
+import type { Account, EducationPlan, FinancialPlan, PensionPlan } from '@/db/models';
 import { createAccount } from '@/db/repositories/accounts';
 import {
   emptyFinancialPlan,
@@ -14,6 +15,8 @@ import {
 import { seedDefaultCategories } from '@/db/repositories/categories';
 import { createGoal, ensureReserveGoal, RESERVE_GOAL_ID } from '@/db/repositories/goals';
 import { planActions } from '@/features/plan/actions';
+import { debtQueue, savingsBenchmark } from '@/features/plan/debts';
+import { actionText } from '@/features/plan/plan-format';
 import { educationView, pensionView, retirementMonthOf } from '@/features/plan/calculations';
 import { loadPlan } from '@/features/plan/plan-data';
 import { planReviewReminder } from '@/features/plan/review';
@@ -202,12 +205,12 @@ describe('plan: what there is to do', () => {
     const data = await loadPlan(NOW);
     const keys = data.actions.map((action) => action.key);
 
+    // the card at 29 % is dearer than savings: repaid before a goal is saved for, so no contribution yet
     expect(keys).toEqual([
       'reserve',
       'insurance',
-      `account:${flat.id}`,
-      `contribution:${flat.id}`,
       expect.stringMatching(/^debt:/),
+      `account:${flat.id}`,
       'deductions',
     ]);
     const debt = data.actions.find((action) => action.kind === 'debt');
@@ -255,6 +258,145 @@ describe('plan: what there is to do', () => {
       settings: { defaultReturnRate: 0.1 },
     });
     expect(actions.map((action) => action.key)).toEqual(['deductions']);
+  });
+});
+
+describe('plan: one queue of the debts', () => {
+  const account = (patch: Partial<Account>): Account => ({
+    id: 'a',
+    name: 'Счёт',
+    side: 'liability',
+    type: 'consumer',
+    currency: 'RUB',
+    openingBalanceMinor: 0,
+    openingDate: '2026-06-01',
+    isLiquid: false,
+    archived: false,
+    createdAt: 1,
+    updatedAt: 1,
+    ...patch,
+  });
+  const reserve = {
+    reserveMinor: 0,
+    months: null,
+    targetMinor: null,
+    norm: null,
+    status: 'unknown' as const,
+  };
+  const life = {
+    id: 'p',
+    name: 'Жизнь',
+    type: 'life' as const,
+    endDate: '2027-01-01',
+    archived: false,
+    createdAt: 1,
+    updatedAt: 1,
+  };
+
+  // The worker of 17.09.2026: a card with its statement due, two dear debts, a repaid card, a piggy bank at 15,5 %.
+  const accounts = [
+    account({ id: 'loan', name: 'Потребительский кредит', rate: 0.219 }),
+    account({ id: 'old', name: 'Кредитная карта', type: 'credit_card', rate: 0.299 }),
+    account({ id: 'closed', name: 'Старая карта', type: 'credit_card', rate: 0.35 }),
+    account({
+      id: 'platinum',
+      name: 'Кредитка Платинум',
+      type: 'credit_card',
+      rate: 0.499,
+      statementDay: 19,
+      paymentDay: 14,
+    }),
+    account({ id: 'mortgage', name: 'Ипотека', type: 'mortgage', rate: 0.06 }),
+    account({
+      id: 'kopilka',
+      name: 'Копилка на миллион',
+      side: 'asset',
+      type: 'savings',
+      rate: 0.155,
+      isLiquid: true,
+    }),
+  ];
+  const balances = new Map([
+    ['loan', 230_000 * RUB],
+    ['old', 60_848 * RUB],
+    ['closed', 0],
+    ['platinum', 14_000 * RUB],
+    ['mortgage', 3_000_000 * RUB],
+    ['kopilka', 6_055 * RUB],
+  ]);
+  const cards = new Map<string, CardGrace>([
+    [
+      'platinum',
+      {
+        kind: 'due',
+        statementDate: '2026-09-19',
+        dueDate: '2026-10-14',
+        statementMinor: 14_000 * RUB,
+        paidMinor: 0,
+        remainingMinor: 14_000 * RUB,
+        minimumMinor: 1_120 * RUB,
+      },
+    ],
+  ]);
+
+  it('puts the statement first, then the dear debts by rate, and leaves out the repaid and the cheap', () => {
+    const benchmark = savingsBenchmark(accounts, balances, 0.1);
+    expect(benchmark).toEqual({ rate: 0.155, accountName: 'Копилка на миллион' });
+
+    const queue = debtQueue({ accounts, balances, cards, benchmark });
+    expect(queue.map((debt) => [debt.account.id, debt.dear, debt.free, Boolean(debt.statement)])).toEqual([
+      ['platinum', false, true, true],
+      ['old', true, false, false],
+      ['loan', true, false, false],
+      ['mortgage', false, false, false],
+    ]);
+
+    const actions = planActions({
+      goals: [],
+      reserve,
+      accounts,
+      policies: [life],
+      settings: { defaultReturnRate: 0.1 },
+      balances,
+      cards,
+      availableMinor: -3_083 * RUB,
+    });
+    expect(actions.map((action) => action.key)).toEqual([
+      'statement:platinum:2026-10-14',
+      'debt:old',
+      'debt:loan',
+      'deductions',
+    ]);
+    expect(actionText(actions[0]).replace(/\s/g, ' ')).toBe(
+      'Внести на «Кредитка Платинум» всю выписку, 14 000 ₽, до 14 октября 2026 года: тогда проценты не начислят',
+    );
+  });
+
+  it('asks to save for a goal only when the debts leave money and none is dearer than savings', async () => {
+    await ensureReserveGoal();
+    const goal = await createGoal({
+      name: 'Дача',
+      kind: 'purchase',
+      costMinor: 1_000_000 * RUB,
+      targetMonth: '2031-09',
+    });
+    const view = (await loadPlan(NOW)).goals.goals.find((item) => item.goal.id === goal.id);
+    if (!view) throw new Error('no goal');
+    const cheap = [accounts[4], accounts[5]];
+    const params = {
+      goals: [view],
+      reserve,
+      policies: [life],
+      settings: { defaultReturnRate: 0.1 },
+      balances,
+      cards: new Map<string, CardGrace>(),
+    };
+
+    const keys = (patch: object) =>
+      planActions({ ...params, accounts: cheap, ...patch }).map((action) => action.key);
+    expect(keys({ availableMinor: 5_000 * RUB })).toContain(`contribution:${goal.id}`);
+    expect(keys({ availableMinor: -1 })).not.toContain(`contribution:${goal.id}`);
+    expect(keys({ availableMinor: 5_000 * RUB, accounts })).not.toContain(`contribution:${goal.id}`);
   });
 });
 

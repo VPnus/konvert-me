@@ -1,4 +1,6 @@
 import * as Dialog from '@radix-ui/react-dialog';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { CreditCard } from 'lucide-react';
 import { useState } from 'react';
 
 import { minorToRubles, rublesToMinor } from '@/core/money';
@@ -10,6 +12,7 @@ import { NumberInput } from '@/components/ui/number-input';
 import { Select } from '@/components/ui/select';
 import type { Account, Category, Transaction } from '@/db/models';
 import { createTransaction, updateTransaction } from '@/db/repositories/transactions';
+import { cardTransferWarning, loadCardTransfer } from '@/features/budget/card-transfer';
 import { ru } from '@/i18n/ru';
 import { parseNumericInput } from '@/lib/numeric-input';
 
@@ -103,6 +106,27 @@ export function TransactionForm({
       ? state.toAccountId
       : (otherAccounts[0]?.id ?? '')
     : '';
+
+  // A new transfer from a credit card is money borrowed: the form says when it has to come back.
+  const source = accounts.find((account) => account.id === state.accountId);
+  const fromCard =
+    !transaction &&
+    state.kind === 'transfer' &&
+    source?.side === 'liability' &&
+    source.type === 'credit_card';
+  const cardContext = useLiveQuery(
+    () => (fromCard && state.date ? loadCardTransfer(state.accountId, state.date) : Promise.resolve(null)),
+    [fromCard, state.accountId, state.date],
+  );
+  const cardWarning =
+    fromCard && cardContext && state.date
+      ? cardTransferWarning(
+          cardContext,
+          state.amount ? rublesToMinor(parseNumericInput(state.amount)) : 0,
+          accounts.find((account) => account.id === chosenToAccount),
+          state.date,
+        )
+      : null;
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -224,6 +248,22 @@ export function TransactionForm({
                   </Select>
                 )}
               </Field>
+            ) : null}
+
+            {cardWarning ? (
+              <div
+                role="note"
+                data-testid="card-transfer-warning"
+                className="flex gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm"
+              >
+                <CreditCard className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden />
+                <div className="flex flex-col gap-1">
+                  <p className="font-medium">{ru.cards.transfer.title}</p>
+                  {cardWarning.map((line) => (
+                    <p key={line}>{line}</p>
+                  ))}
+                </div>
+              </div>
             ) : null}
 
             {needsCategory(state.kind) ? (

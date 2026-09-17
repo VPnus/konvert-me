@@ -127,26 +127,36 @@ function WidgetCell({ item, data, editing, onResize, onRemove }: WidgetCellProps
     const startX = event.clientX;
     const startY = event.clientY;
 
-    const move = (moveEvent: React.PointerEvent<HTMLButtonElement> | PointerEvent) => {
-      const width = clampWidth(stored.width + Math.round((moveEvent.clientX - startX) / step));
+    const handleMove = (moveEvent: PointerEvent) => {
+      // A narrower grid shows fewer columns than a widget keeps. The kept width changes only
+      // when the one on screen does, so resizing on a phone leaves the wide layout alone.
+      const shown = Math.min(stored.width, columns);
+      const target = Math.min(clampWidth(shown + Math.round((moveEvent.clientX - startX) / step)), columns);
+      const width = target === shown ? stored.width : target;
       const height = clampHeight(stored.height + Math.round((moveEvent.clientY - startY) / (rowStep + gap)));
-      showPreview({ width: Math.min(width, columns === 1 ? 1 : MAX_WIDGET_WIDTH), height });
+      showPreview({ width, height });
     };
 
-    const handleMove = (moveEvent: PointerEvent) => move(moveEvent);
-    const handleUp = () => {
+    // pointercancel: the browser took the gesture over (a call, a system swipe), nothing is saved.
+    const handleEnd = (endEvent: PointerEvent) => {
       window.removeEventListener('pointermove', handleMove);
-      window.removeEventListener('pointerup', handleUp);
+      window.removeEventListener('pointerup', handleEnd);
+      window.removeEventListener('pointercancel', handleEnd);
 
       const next = previewRef.current;
       showPreview(null);
-      if (next && (next.width !== stored.width || next.height !== stored.height)) {
+      if (
+        endEvent.type === 'pointerup' &&
+        next &&
+        (next.width !== stored.width || next.height !== stored.height)
+      ) {
         onResize(item.instanceId, () => next);
       }
     };
 
     window.addEventListener('pointermove', handleMove);
-    window.addEventListener('pointerup', handleUp);
+    window.addEventListener('pointerup', handleEnd);
+    window.addEventListener('pointercancel', handleEnd);
   };
 
   /** The same resizing from the keyboard: the corner is a button, not just a grip. */
@@ -188,7 +198,8 @@ function WidgetCell({ item, data, editing, onResize, onRemove }: WidgetCellProps
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3 py-2">
           <button
             type="button"
-            className="flex cursor-grab items-center gap-1 rounded-md px-1 py-1 text-xs text-muted-foreground hover:bg-accent active:cursor-grabbing"
+            // touch-none: otherwise a finger on a phone scrolls the page and the drag is cancelled
+            className="flex cursor-grab touch-none items-center gap-1 rounded-md px-1 py-1 text-xs text-muted-foreground select-none hover:bg-accent active:cursor-grabbing pointer-coarse:py-2"
             aria-label={`${ru.overview.drag}: ${title}`}
             {...attributes}
             {...listeners}
@@ -238,7 +249,8 @@ function WidgetCell({ item, data, editing, onResize, onRemove }: WidgetCellProps
           aria-label={`${ru.overview.resize}: ${title}`}
           title={ru.overview.resizeHint}
           data-testid={`resize-${item.widgetType}`}
-          className="absolute right-0 bottom-0 flex size-6 cursor-se-resize items-center justify-center rounded-tl-md rounded-br-xl bg-accent text-muted-foreground hover:text-foreground"
+          // Bigger under a finger; touch-none so that pulling it does not scroll the page.
+          className="absolute right-0 bottom-0 flex size-6 cursor-se-resize touch-none items-center justify-center rounded-tl-md rounded-br-xl bg-accent text-muted-foreground select-none hover:text-foreground pointer-coarse:size-10"
           onPointerDown={startResize}
           onKeyDown={onHandleKey}
         >

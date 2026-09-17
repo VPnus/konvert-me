@@ -1,4 +1,6 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
+
+import { skipOnboarding } from './helpers';
 
 /** The plan asks for the whole onboarding in no more than 25 actions. */
 async function passOnboarding(page: Page): Promise<number> {
@@ -202,5 +204,65 @@ test.describe('dashboard: a widget is resized by its corner', () => {
 
     await page.reload();
     await expect(page.getByTestId('widget-free-cash')).toHaveAttribute('data-width', '3');
+  });
+});
+
+test.describe('dashboard on a phone: a finger', () => {
+  test.skip(({ viewport }) => (viewport?.width ?? 0) >= 768, 'only on a phone width');
+  test.use({ hasTouch: true, isMobile: true });
+
+  test('pulls the corner to make a widget taller and drags a widget below the next one', async ({ page }) => {
+    await skipOnboarding(page);
+    await page.getByTestId('customize-dashboard').tap();
+
+    // Touch events of the browser itself, not mouse ones: a finger that moves may scroll the page
+    // instead, and that is what broke both gestures on a phone.
+    const touch = await page.context().newCDPSession(page);
+    const swipe = async (from: { x: number; y: number }, dy: number) => {
+      await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [from] });
+      for (let step = 1; step <= 20; step++) {
+        const point = { x: from.x, y: from.y + (dy * step) / 20 };
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [point] });
+        await page.waitForTimeout(16);
+      }
+      await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    };
+    const centre = async (target: Locator) => {
+      const box = await target.boundingBox();
+      if (!box) throw new Error('виджет не отрисовался');
+      return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    };
+
+    const widget = page.getByTestId('widget-free-cash');
+    await expect(widget).toHaveAttribute('data-width', '2');
+    await expect(widget).toHaveAttribute('data-height', '1');
+
+    // A row down. The phone shows one column, and the width kept for a wide screen stays.
+    const corner = page.getByTestId('resize-free-cash');
+    await corner.scrollIntoViewIfNeeded();
+    await swipe(await centre(corner), 200);
+    await expect(widget).toHaveAttribute('data-height', '2');
+    await expect(widget).toHaveAttribute('data-width', '2');
+
+    const order = () =>
+      page
+        .getByTestId('dashboard-grid')
+        .locator('[data-testid^="widget-"]')
+        .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-testid')));
+    const [first, second, ...rest] = await order();
+    expect(first).toBe('widget-free-cash');
+
+    // The grip near the top of the screen, so the drag does not scroll the page on its own.
+    await widget.evaluate((node) =>
+      window.scrollTo(0, node.getBoundingClientRect().top + window.scrollY - 70),
+    );
+    const next = await page.getByTestId(second ?? '').boundingBox();
+    if (!next) throw new Error('виджет не отрисовался');
+    await swipe(await centre(widget.getByRole('button', { name: /Перетащить/ })), next.height + 60);
+    await expect.poll(order).toEqual([second, first, ...rest]);
+
+    await page.reload();
+    await expect.poll(order).toEqual([second, first, ...rest]);
+    await expect(page.getByTestId('widget-free-cash')).toHaveAttribute('data-height', '2');
   });
 });

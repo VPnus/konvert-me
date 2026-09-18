@@ -24,6 +24,7 @@ import {
   t,
 } from '@/features/plan/plan-format';
 import { fill, strings } from '@/i18n';
+import { currentCountry } from '@/i18n/country';
 import { percentLabel } from '@/i18n/format';
 import { downloadBlob } from '@/lib/download';
 import { monthsLabel } from '@/features/goals/months-label';
@@ -181,7 +182,7 @@ function goals(data: PlanData): Content[] {
       rows([
         [p.retirement.replace(': {month}', ''), monthInText(pension.retirementMonth)],
         [p.desired, rubles(pension.need.desiredMonthlyMinor)],
-        [p.state, rubles(pension.pension.statePensionMinor)],
+        [p.state[currentCountry()], rubles(pension.pension.statePensionMinor)],
         [
           fill(p.gapAtRetirement, { year: pension.retirementMonth.slice(0, 4) }),
           rubles(pension.need.gapAtRetirementMinor),

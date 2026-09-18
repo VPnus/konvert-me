@@ -14,6 +14,7 @@ import { pensionView, type PensionView } from '@/features/plan/calculations';
 import { monthInText, rateText, rubles, t } from '@/features/plan/plan-format';
 import { Muted, Row } from '@/features/plan/plan-parts';
 import { fill, strings } from '@/i18n';
+import { currentCountry } from '@/i18n/country';
 import { inCurrency } from '@/i18n/format';
 import { parseNumericInput } from '@/lib/numeric-input';
 
@@ -104,7 +105,7 @@ function Results({ view }: { view: PensionView }) {
         {fill(p.retirement, { month: monthInText(view.retirementMonth) })}
       </Muted>
       <Row label={p.desired} value={rubles(need.desiredMonthlyMinor)} />
-      <Row label={p.state} value={rubles(pension.statePensionMinor)} />
+      <Row label={p.state[currentCountry()]} value={rubles(pension.statePensionMinor)} />
       <Row label={p.gapToday} value={rubles(need.gapTodayMinor)} />
       <Row
         label={fill(p.gapAtRetirement, { year: retirementYear })}
@@ -290,7 +291,9 @@ export function PensionCard({
           {number('lifeAge', p.lifeAge, 'pension-life-age', { integer: true, hint: p.lifeAgeHint })}
           {number('expenses', inCurrency(p.expenses), 'pension-expenses', { hint: p.expensesHint })}
           {number('replacement', p.replacement, 'pension-replacement', { hint: p.replacementHint })}
-          {number('statePension', inCurrency(p.statePension), 'pension-state', { hint: p.statePensionHint })}
+          {number('statePension', inCurrency(p.statePension[currentCountry()]), 'pension-state', {
+            hint: p.statePensionHint[currentCountry()],
+          })}
           {number('returnRate', p.returnRate, 'pension-return')}
           {number('inflationRate', p.inflationRate, 'pension-inflation')}
           <Field label={p.strategy} className="sm:col-span-2">

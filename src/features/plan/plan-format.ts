@@ -51,6 +51,12 @@ export function actionText(action: PlanAction): string {
       return fill(t.actions.contribution, { name: action.name, amount: rubles(action.amountMinor) });
     case 'debt':
       return fill(t.actions.debt, { name: action.name, rate: percentOf(action.rate) });
+    case 'match':
+      return fill(t.actions.match, { name: action.name, amount: rubles(action.amountMinor) });
+    case 'tax-room':
+      return fill(t.actions.taxRoom[action.group === 'hsa' ? 'hsa' : 'ira'], {
+        amount: rubles(action.amountMinor),
+      });
     case 'deductions':
       return t.actions.deductions;
   }

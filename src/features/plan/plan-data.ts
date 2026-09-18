@@ -7,10 +7,13 @@
 import type { BudgetBasisSource } from '@/core/budget';
 import type { ReviewState } from '@/core/financial-plan';
 import { budgetBalance, type BudgetBalance } from '@/core/financial-plan';
+import { monthlyTotalMinor } from '@/core/payday';
 import { todayIso, type IsoDate } from '@/core/time';
 import { db } from '@/db/db';
 import type { FinancialPlan, InsurancePolicy } from '@/db/models';
 import { emptyFinancialPlan, getFinancialPlan } from '@/db/repositories/financial-plan';
+import { listIncomeSources } from '@/db/repositories/income-sources';
+import { loadTaxAccounts } from '@/db/repositories/tax-accounts';
 import { loadGoals, type GoalsData } from '@/features/goals/goals-data';
 import { loadOverview, type OverviewData } from '@/features/overview/overview-data';
 import { planActions, type PlanAction } from '@/features/plan/actions';
@@ -21,6 +24,7 @@ import {
   type PensionView,
 } from '@/features/plan/calculations';
 import { planReviewState } from '@/features/plan/review';
+import { taxAccountsAvailable } from '@/features/tax-accounts/country';
 
 export interface PlanBudget {
   /** The same usual month as the distribution of free money on the goals screen. */
@@ -56,12 +60,18 @@ export interface PlanData {
 
 export async function loadPlan(now: Date = new Date()): Promise<PlanData> {
   const today = todayIso(now);
+  const year = now.getFullYear();
   const [overview, goals, stored, policies] = await Promise.all([
     loadOverview(now),
     loadGoals(now),
     getFinancialPlan(),
     db.policies.toArray(),
   ]);
+
+  // The steps of the United States: the match of an employer and the room left in the accounts of
+  // the year. A month of pay times twelve is the year the match is a share of.
+  const tax = taxAccountsAvailable() ? await loadTaxAccounts(year) : undefined;
+  const annualPayMinor = tax ? monthlyTotalMinor(await listIncomeSources()) * 12 : 0;
 
   const plan = stored ?? emptyFinancialPlan(today, now.getTime());
   const month = goals.month;
@@ -101,6 +111,10 @@ export async function loadPlan(now: Date = new Date()): Promise<PlanData> {
       balances: overview.balances,
       cards: overview.cards,
       availableMinor: goals.availableMinor,
+      taxAccounts: tax?.accounts,
+      taxLimits: tax?.limits,
+      taxYear: year,
+      annualPayMinor,
     }),
     review: planReviewState(plan, today),
   };

@@ -1256,9 +1256,14 @@ export const en: Dictionary = {
       expensesHint: 'The average expenses from the budget are filled in, if there are any',
       replacement: 'Share of expenses needed in retirement, %',
       replacementHint: 'The usual guide is 70%',
-      statePension: 'State pension a month now',
-      statePensionHint:
-        'A forecast is on Gosuslugi and in the pension calculator of the Social Fund of Russia',
+      statePension: {
+        ru: 'State pension a month now',
+        us: 'Social Security a month now',
+      },
+      statePensionHint: {
+        ru: 'A forecast is on Gosuslugi and in the pension calculator of the Social Fund of Russia',
+        us: 'Take the amount from your SSA statement: it is at ssa.gov in your My Social Security account',
+      },
       returnRate: 'Return on capital, % a year',
       inflationRate: 'Inflation, % a year',
       strategy: 'How to spend the capital',
@@ -1267,7 +1272,7 @@ export const en: Dictionary = {
         'keep-capital': 'Live on the income, keep the capital',
       },
       desired: 'Needed a month in retirement',
-      state: 'The state will give',
+      state: { ru: 'The state will give', us: 'Social Security will give' },
       gapToday: 'Needed from capital a month today',
       gapAtRetirement: 'The same in {year} prices',
       retirement: 'Retirement: {month}',
@@ -1417,6 +1422,11 @@ export const en: Dictionary = {
       account: 'Choose the account where the money for the goal “{name}” will be kept',
       contribution: 'Set aside {amount} every month for the goal “{name}”',
       debt: 'Pay off “{name}” early: rate {rate}',
+      match: 'Put enough into “{name}” to take the whole match: {amount} short for the year',
+      taxRoom: {
+        hsa: 'Add to the health savings account: {amount} is still allowed this year',
+        ira: 'Add to an IRA or a Roth IRA: {amount} is still allowed this year',
+      },
       deductions: 'Check tax deductions: IIS, education, medical care, housing',
     },
     review: {

@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { pensionCapitalMinor } from '@/core/pension';
+import { US_RULES_2026 } from '@/core/rules/us/2026';
+import { limitsOfYear } from '@/core/tax-accounts';
 import { clearAllData } from '@/db/backup';
 import { db } from '@/db/db';
 import type { CardGrace } from '@/core/credit-card';
-import type { Account, EducationPlan, FinancialPlan, PensionPlan } from '@/db/models';
+import type { Account, EducationPlan, FinancialPlan, PensionPlan, TaxAccount } from '@/db/models';
 import { createAccount } from '@/db/repositories/accounts';
 import {
   emptyFinancialPlan,
@@ -258,6 +260,100 @@ describe('plan: what there is to do', () => {
       settings: { defaultReturnRate: 0.1 },
     });
     expect(actions.map((action) => action.key)).toEqual(['deductions']);
+  });
+
+  it('puts the match of an employer before the debts, and the tax accounts after them', () => {
+    const plan: TaxAccount = {
+      id: 'plan',
+      name: '401(k) at work',
+      kind: '401k',
+      catchUp: 'none',
+      familyCoverage: false,
+      matchShare: 0.5,
+      matchUpToShareOfPay: 0.06,
+      years: [{ year: 2026, ownMinor: 2_000_00, employerMinor: 1_000_00 }],
+      archived: false,
+      sortOrder: 0,
+      createdAt: 1,
+      updatedAt: 1,
+    };
+    const hsa: TaxAccount = {
+      ...plan,
+      id: 'hsa',
+      name: 'HSA',
+      kind: 'hsa',
+      matchShare: undefined,
+      matchUpToShareOfPay: undefined,
+      years: [],
+    };
+
+    const params = {
+      goals: [],
+      reserve: { reserveMinor: 0, months: null, targetMinor: null, norm: null, status: 'unknown' as const },
+      accounts: [],
+      policies: [],
+      settings: { defaultReturnRate: 0.1 },
+      country: 'us' as const,
+      taxAccounts: [plan, hsa],
+      taxLimits: limitsOfYear(
+        [plan, hsa],
+        new Map([
+          ['plan', { ownMinor: 2_000_00, employerMinor: 1_000_00 }],
+          ['hsa', { ownMinor: 0, employerMinor: 0 }],
+        ]),
+        US_RULES_2026,
+      ),
+      taxYear: 2026,
+      annualPayMinor: 100_000_00,
+    };
+
+    const actions = planActions(params);
+    expect(actions.map((action) => action.key)).toEqual([
+      'insurance',
+      'match:plan:2026',
+      'tax-room:hsa:2026',
+    ]);
+    // 6 % of 100 000 is 6 000, of which 2 000 is already in
+    const match = actions.find((action) => action.kind === 'match');
+    expect(match?.kind === 'match' ? match.amountMinor : null).toBe(4_000_00);
+  });
+
+  it('says nothing of a match already taken in full, and nothing of tax accounts in Russia', () => {
+    const plan: TaxAccount = {
+      id: 'plan',
+      name: '401(k) at work',
+      kind: '401k',
+      catchUp: 'none',
+      familyCoverage: false,
+      matchShare: 0.5,
+      matchUpToShareOfPay: 0.06,
+      years: [{ year: 2026, ownMinor: 6_000_00, employerMinor: 3_000_00 }],
+      archived: false,
+      sortOrder: 0,
+      createdAt: 1,
+      updatedAt: 1,
+    };
+    const params = {
+      goals: [],
+      reserve: { reserveMinor: 0, months: null, targetMinor: null, norm: null, status: 'unknown' as const },
+      accounts: [],
+      policies: [],
+      settings: { defaultReturnRate: 0.1 },
+      taxAccounts: [plan],
+      taxLimits: limitsOfYear(
+        [plan],
+        new Map([['plan', { ownMinor: 6_000_00, employerMinor: 3_000_00 }]]),
+        US_RULES_2026,
+      ),
+      taxYear: 2026,
+      annualPayMinor: 100_000_00,
+    };
+
+    expect(planActions({ ...params, country: 'us' }).map((action) => action.key)).toEqual(['insurance']);
+    expect(planActions({ ...params, country: 'ru' }).map((action) => action.key)).toEqual([
+      'insurance',
+      'deductions',
+    ]);
   });
 
   it('asks to check the deductions only in Russia, where they exist', () => {

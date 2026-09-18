@@ -12,6 +12,7 @@ import type { Account, Category } from '@/db/models';
 import { importTransactions, listTransactions, type ImportedRow } from '@/db/repositories/transactions';
 import { useDataVersion } from '@/hooks/use-data-version';
 import { strings } from '@/i18n';
+import { currentCountry } from '@/i18n/country';
 import { decodeStatement } from '@/lib/statement/decode';
 import { guessMapping, isMappingReady, type ColumnMapping } from '@/lib/statement/mapping';
 import {
@@ -294,7 +295,9 @@ export default function ImportWizard({ accounts, categories, onOpenChange }: Imp
 
               {step === 'columns' && mapping ? (
                 <>
-                  <p className="text-xs text-muted-foreground">{strings.import.columnsHint}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {strings.import.columnsHint} {strings.import.dateOrderHint[currentCountry()]}
+                  </p>
                   <div className="grid gap-3 sm:grid-cols-2">
                     {columnSelect(
                       strings.import.columnDate,

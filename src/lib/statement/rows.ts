@@ -3,8 +3,10 @@
  * that keeps a file from landing twice.
  */
 
+import type { Country } from '@/core/country';
 import { rublesToMinor } from '@/core/money';
 import type { IsoDate } from '@/core/time';
+import { currentLocale } from '@/i18n/locale';
 import { hashString } from '@/lib/hash';
 import type { ColumnMapping } from '@/lib/statement/mapping';
 import type { RawTable } from '@/lib/statement/table';
@@ -60,13 +62,17 @@ function amountOf(
  * same file must not add either of them again. So the identity of a row is its text
  * plus how many times that same text has already appeared in this file.
  */
-export function buildRows(table: RawTable, mapping: ColumnMapping): BuiltRows {
+export function buildRows(
+  table: RawTable,
+  mapping: ColumnMapping,
+  options: { country?: Country } = {},
+): BuiltRows {
   const rows: StatementRow[] = [];
   const seen = new Map<string, number>();
   let skipped = 0;
 
   table.rows.forEach((raw, index) => {
-    const date = parseStatementDate(raw[mapping.date] ?? '');
+    const date = parseStatementDate(raw[mapping.date] ?? '', { country: options.country });
     const amount = date ? amountOf(raw, mapping) : null;
 
     if (!date || !amount) {
@@ -130,10 +136,11 @@ export interface CategoryRule {
 
 /** The first rule whose keyword is in the note wins; nothing matches, nothing set. */
 export function applyRules(note: string, rules: readonly CategoryRule[]): string | null {
-  const text = note.toLocaleLowerCase('ru');
+  const locale = currentLocale();
+  const text = note.toLocaleLowerCase(locale);
   const rule = rules.find(
     (candidate) =>
-      candidate.keyword.trim() && text.includes(candidate.keyword.trim().toLocaleLowerCase('ru')),
+      candidate.keyword.trim() && text.includes(candidate.keyword.trim().toLocaleLowerCase(locale)),
   );
   return rule?.categoryId ?? null;
 }

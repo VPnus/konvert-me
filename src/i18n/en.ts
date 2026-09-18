@@ -463,6 +463,10 @@ export const en: Dictionary = {
     columnsHint:
       'If the amount comes in one column, a minus means an expense. If money in and money out are in separate columns, choose both.',
     columnsIncomplete: 'A date column and at least one amount column are needed.',
+    dateOrderHint: {
+      ru: 'Dates are read as day.month.year.',
+      us: 'Dates are read as month/day/year, the way the United States writes them.',
+    },
     rulesTitle: 'Categories by keywords',
     rulesHint:
       'A word in the description → a category. Rules apply from top to bottom and only for this import.',

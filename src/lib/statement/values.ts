@@ -3,7 +3,9 @@
  * bank felt like writing them.
  */
 
+import type { Country } from '@/core/country';
 import { isIsoDate, type IsoDate } from '@/core/time';
+import { currentCountry } from '@/i18n/country';
 
 /** Spaces banks use inside numbers, including the narrow and non-breaking ones. */
 const SPACES = /[\s\u00a0\u202f\u2009]/g;
@@ -49,8 +51,21 @@ export function parseAmount(raw: string): number | null {
 const DOTTED = /^(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{4}|\d{2})/;
 const ISO = /^(\d{4})-(\d{2})-(\d{2})/;
 
-/** "05.09.2026", "5/9/26", "2026-09-05 12:30" → "2026-09-05". */
-export function parseStatementDate(raw: string, now: Date = new Date()): IsoDate | null {
+/** Which of the two numbers comes first where the statement was printed. */
+export function monthComesFirst(country: Country = currentCountry()): boolean {
+  return country === 'us';
+}
+
+export interface StatementDateOptions {
+  /** For a year of two digits: 26 is 2026 while this century lasts. */
+  readonly now?: Date;
+  /** The country the statement was printed in: "09/05/2026" is 5 September in one and 9 May in the other. */
+  readonly country?: Country;
+}
+
+/** "05.09.2026", "5/9/26", "09/05/2026" in the United States, "2026-09-05 12:30" → "2026-09-05". */
+export function parseStatementDate(raw: string, options: StatementDateOptions = {}): IsoDate | null {
+  const { now = new Date(), country } = options;
   const text = raw.trim();
   if (!text) return null;
 
@@ -63,10 +78,15 @@ export function parseStatementDate(raw: string, now: Date = new Date()): IsoDate
   const dotted = DOTTED.exec(text);
   if (!dotted) return null;
 
-  const [, day, month, year] = dotted;
+  const [, first, second, year] = dotted;
+  let day = monthComesFirst(country) ? Number(second) : Number(first);
+  let month = monthComesFirst(country) ? Number(first) : Number(second);
+  // A number above twelve is a day whatever the country: a bank that writes the other way round is read too.
+  if (month > 12 && day <= 12) [day, month] = [month, day];
+
   const century = Math.floor(now.getFullYear() / 100) * 100;
   const fullYear = year.length === 4 ? Number(year) : century + Number(year);
-  const value = `${String(fullYear).padStart(4, '0')}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  const value = `${String(fullYear).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
   return isIsoDate(value) ? value : null;
 }

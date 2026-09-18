@@ -68,13 +68,55 @@ describe('statement: dates the way banks write them', () => {
     expect(parseStatementDate('05.09.2026')).toBe('2026-09-05');
     expect(parseStatementDate('5/9/2026')).toBe('2026-09-05');
     expect(parseStatementDate('2026-09-05 12:30:00')).toBe('2026-09-05');
-    expect(parseStatementDate('05.09.26', now)).toBe('2026-09-05');
+    expect(parseStatementDate('05.09.26', { now })).toBe('2026-09-05');
+  });
+
+  it('reads a date of the United States month first, and one of Russia day first', () => {
+    // 09/05/2026 is September 5 in the United States and May 9 in Russia
+    expect(parseStatementDate('09/05/2026', { country: 'us' })).toBe('2026-09-05');
+    expect(parseStatementDate('09/05/2026', { country: 'ru' })).toBe('2026-05-09');
+    expect(parseStatementDate('12/31/2026', { country: 'us' })).toBe('2026-12-31');
+  });
+
+  it('takes a number above twelve for a day whatever the country', () => {
+    // a bank of the United States that writes 31/12/2026 is still read
+    expect(parseStatementDate('31/12/2026', { country: 'us' })).toBe('2026-12-31');
+    expect(parseStatementDate('13/01/2026', { country: 'us' })).toBe('2026-01-13');
   });
 
   it('refuses what is not a date', () => {
     expect(parseStatementDate('')).toBeNull();
     expect(parseStatementDate('Остаток')).toBeNull();
     expect(parseStatementDate('32.13.2026')).toBeNull();
+  });
+});
+
+describe('statement: a file of a bank of the United States', () => {
+  const csv = [
+    'Transaction Date,Post Date,Description,Category,Type,Amount',
+    '09/05/2026,09/06/2026,BLUE BOTTLE COFFEE,Food & Drink,Sale,-12.75',
+    '09/06/2026,09/06/2026,ACME INC PAYROLL,,Payment,2450.00',
+    '',
+  ].join('\n');
+
+  it('finds the date, the sum and the description among its columns', () => {
+    const mapping = guessMapping(parseCsv(csv));
+    const table = parseCsv(csv);
+
+    expect(table.headers[mapping.date]).toBe('Transaction Date');
+    expect(mapping.amount === null ? null : table.headers[mapping.amount]).toBe('Amount');
+    expect(mapping.note === null ? null : table.headers[mapping.note]).toBe('Description');
+  });
+
+  it('reads its rows: dots in the sums and the month before the day', () => {
+    const table = parseCsv(csv);
+    const { rows } = buildRows(table, guessMapping(table), { country: 'us' });
+
+    expect(rows.map((row) => [row.date, row.kind, row.amountMinor])).toEqual([
+      ['2026-09-05', 'expense', 12_75],
+      ['2026-09-06', 'income', 245_000],
+    ]);
+    expect(rows[0].note).toBe('BLUE BOTTLE COFFEE');
   });
 });
 

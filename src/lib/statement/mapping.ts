@@ -18,11 +18,22 @@ export interface ColumnMapping {
 }
 
 const PATTERNS: Record<keyof Omit<ColumnMapping, 'date'> | 'date', readonly RegExp[]> = {
-  date: [/дата.*операц/i, /дата/i, /date/i],
-  income: [/приход/i, /поступлени/i, /кредит/i, /зачислени/i, /credit/i],
-  expense: [/расход/i, /списани/i, /дебет/i, /debit/i],
-  amount: [/сумма.*операц/i, /сумма/i, /amount/i, /оборот/i],
-  note: [/назначени/i, /описани/i, /коммент/i, /получател/i, /контрагент/i, /description/i, /details/i],
+  date: [/дата.*операц/i, /дата/i, /transaction date/i, /post(ing)? date/i, /date/i],
+  income: [/приход/i, /поступлени/i, /кредит/i, /зачислени/i, /credit/i, /deposit/i],
+  expense: [/расход/i, /списани/i, /дебет/i, /debit/i, /withdrawal/i],
+  amount: [/сумма.*операц/i, /сумма/i, /transaction amount/i, /amount/i, /оборот/i],
+  note: [
+    /назначени/i,
+    /описани/i,
+    /коммент/i,
+    /получател/i,
+    /контрагент/i,
+    /description/i,
+    /details/i,
+    /payee/i,
+    /merchant/i,
+    /memo/i,
+  ],
 };
 
 function findColumn(headers: readonly string[], patterns: readonly RegExp[]): number | null {

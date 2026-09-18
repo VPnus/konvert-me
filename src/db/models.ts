@@ -7,7 +7,7 @@
 
 import { z } from 'zod';
 
-import { COUNTRIES, CURRENCIES, DEFAULT_COUNTRY } from '@/core/country';
+import { COUNTRIES, CURRENCIES, DEFAULT_COUNTRY, type Country } from '@/core/country';
 import { RISK_PROFILES } from '@/core/portfolio';
 import { CATCH_UPS, TAX_ACCOUNT_KINDS } from '@/core/tax-accounts';
 import { isIsoDate, isIsoMonth } from '@/core/time';
@@ -46,6 +46,18 @@ export const ASSET_TYPES = [
 ] as const;
 
 export const LIABILITY_TYPES = ['credit_card', 'mortgage', 'consumer', 'car', 'other_debt'] as const;
+
+/**
+ * Types of account one country knows and another does not: an investment account of the Russian
+ * kind means nothing in the United States. A type kept in the data stays valid everywhere, so a
+ * change of the country never refuses an account written before it; it is only no longer offered.
+ */
+const COUNTRY_ONLY_TYPES: Readonly<Partial<Record<string, readonly Country[]>>> = { iis: ['ru'] };
+
+/** The types of asset a country offers when an account is added. */
+export function assetTypesFor(country: Country): readonly (typeof ASSET_TYPES)[number][] {
+  return ASSET_TYPES.filter((type) => COUNTRY_ONLY_TYPES[type]?.includes(country) ?? true);
+}
 
 /** Liquid by default, per section 4 of the plan. */
 export const LIQUID_BY_DEFAULT: readonly string[] = ['cash', 'debit', 'savings'];

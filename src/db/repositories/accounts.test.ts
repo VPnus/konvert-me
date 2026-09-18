@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { db } from '@/db/db';
 import { RepositoryError, ValidationError } from '@/db/errors';
+import { ASSET_TYPES, assetTypesFor } from '@/db/models';
 import {
   assertEnvelopesFit,
   createAccount,
@@ -14,6 +15,7 @@ import {
   updateAccount,
 } from '@/db/repositories/accounts';
 import { seedDefaultCategories } from '@/db/repositories/categories';
+import { changeCountry } from '@/db/repositories/settings';
 import { createTransaction } from '@/db/repositories/transactions';
 
 const RUB = 100;
@@ -330,5 +332,32 @@ describe('accounts: an account without envelopes', () => {
     });
 
     expect(await getAccountBalanceMinor(account.id)).toBe(-500 * 100);
+  });
+});
+
+describe('accounts: the types a country offers', () => {
+  it('offers an investment account of the Russian kind in Russia only', () => {
+    expect(assetTypesFor('ru')).toContain('iis');
+    expect(assetTypesFor('us')).not.toContain('iis');
+  });
+
+  it('offers every other type in both countries, in the same order', () => {
+    expect(assetTypesFor('us')).toEqual(ASSET_TYPES.filter((type) => type !== 'iis'));
+    expect(assetTypesFor('ru')).toEqual([...ASSET_TYPES]);
+  });
+
+  it('keeps an account of a type the country no longer offers', async () => {
+    // the data of a person who moved is not refused: the type was written before the move
+    const account = await createAccount({
+      name: 'ИИС',
+      side: 'asset',
+      type: 'iis',
+      openingBalanceMinor: 0,
+      openingDate: '2026-01-01',
+    });
+
+    await changeCountry('us');
+    expect((await db.accounts.get(account.id))?.type).toBe('iis');
+    await changeCountry('ru');
   });
 });

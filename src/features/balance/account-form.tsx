@@ -9,7 +9,7 @@ import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { NumberInput } from '@/components/ui/number-input';
 import { Select } from '@/components/ui/select';
-import { ASSET_TYPES, LIABILITY_TYPES, type Account, type AccountType } from '@/db/models';
+import { LIABILITY_TYPES, assetTypesFor, type Account, type AccountType } from '@/db/models';
 import { createAccount, isLiquidByDefault, updateAccount } from '@/db/repositories/accounts';
 import { strings } from '@/i18n';
 import { currentCountry } from '@/i18n/country';
@@ -158,7 +158,7 @@ export function AccountForm({ account, open, onOpenChange }: AccountFormProps) {
     }
   };
 
-  const types = state.side === 'asset' ? ASSET_TYPES : LIABILITY_TYPES;
+  const types = state.side === 'asset' ? assetTypesFor(currentCountry()) : LIABILITY_TYPES;
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>

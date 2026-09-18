@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { ChevronLeft, ChevronRight, CopyPlus } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
 import { addMonths, currentMonth, yearOfMonth, type IsoMonth } from '@/core/time';
@@ -14,8 +14,10 @@ import { loadBudgetMonth, loadBudgetYear } from '@/features/budget/budget-data';
 import { loadOperations } from '@/features/budget/operations-data';
 import { isCurrentMonth, monthLabel } from '@/features/budget/month-label';
 import { CategoriesCard } from '@/features/budget/categories-card';
+import { CategoryChart } from '@/features/budget/category-chart';
 import { ImportCard } from '@/features/budget/import/import-card';
 import { PlanFactTable } from '@/features/budget/plan-fact-table';
+import { toggleId } from '@/features/budget/transaction-filter';
 import { TransactionForm } from '@/features/budget/transaction-form';
 import {
   filterFromSearch,
@@ -28,6 +30,9 @@ import { TransactionsCard } from '@/features/budget/transactions-card';
 import { YearTable } from '@/features/budget/year-table';
 import { useDataVersion } from '@/hooks/use-data-version';
 import { strings } from '@/i18n';
+
+// Recharts is heavy and only the year view needs it: it arrives when that view is opened.
+const YearChart = lazy(() => import('@/features/budget/year-chart'));
 
 type Tab = 'month' | 'year';
 
@@ -86,9 +91,19 @@ export default function BudgetPage() {
     [search, remembered],
   );
 
-  const setFilter = (next: TransactionFilterState) => {
-    writePeriod(next.period);
-    setSearchParams(filterToSearch(next), { replace: true });
+  /**
+   * The address of the page is the filter, and a change is always read from the address as it is at
+   * that moment: two fields changed in the same breath would otherwise overwrite each other.
+   */
+  const changeFilter = (change: (current: TransactionFilterState) => TransactionFilterState) => {
+    setSearchParams(
+      (previous) => {
+        const next = change(filterFromSearch(previous, remembered));
+        writePeriod(next.period);
+        return filterToSearch(next);
+      },
+      { replace: true },
+    );
   };
 
   const pageKey = `${search}|${month}`;
@@ -132,7 +147,7 @@ export default function BudgetPage() {
 
   /** A category of the table above filters the list below, and the screen scrolls to it. */
   const pickCategory = (categoryId: string) => {
-    setFilter({ ...filter, categoryIds: [categoryId] });
+    changeFilter((current) => ({ ...current, categoryIds: [categoryId] }));
     listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
@@ -208,7 +223,18 @@ export default function BudgetPage() {
           <CardContent className="pt-3">
             {yearData ? (
               yearData.hasAnything ? (
-                <YearTable data={yearData} />
+                <div className="flex flex-col gap-4">
+                  <div>
+                    <p className="text-sm font-medium">{strings.budget.chart.yearTitle}</p>
+                    <p className="pb-2 text-xs text-muted-foreground">{strings.budget.chart.yearHint}</p>
+                    <Suspense
+                      fallback={<p className="text-sm text-muted-foreground">{strings.common.loading}</p>}
+                    >
+                      <YearChart data={yearData} />
+                    </Suspense>
+                  </div>
+                  <YearTable data={yearData} />
+                </div>
               ) : (
                 <p className="text-sm text-muted-foreground">{strings.budget.year.empty}</p>
               )
@@ -258,13 +284,39 @@ export default function BudgetPage() {
             </Card>
           ) : (
             <>
+              <Card>
+                <CardHeader className="pb-0">
+                  <CardTitle className="text-base">{strings.budget.chart.title}</CardTitle>
+                  <p className="text-sm text-muted-foreground">{strings.budget.chart.hint}</p>
+                </CardHeader>
+                <CardContent className="pt-3">
+                  {operations && operations.expenses.length > 0 ? (
+                    <CategoryChart
+                      expenses={operations.expenses}
+                      categories={monthData.categories}
+                      chosen={filter.categoryIds}
+                      onPick={(categoryId) =>
+                        changeFilter((current) => ({
+                          ...current,
+                          categoryIds: toggleId(current.categoryIds, categoryId),
+                        }))
+                      }
+                    />
+                  ) : (
+                    <p className="text-sm text-muted-foreground" data-testid="category-chart-empty">
+                      {strings.budget.chart.empty}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+
               <div ref={listRef}>
                 <TransactionsCard
                   categories={monthData.categories}
                   accounts={monthData.accounts}
                   operations={operations}
                   filter={filter}
-                  onFilterChange={setFilter}
+                  onFilterChange={changeFilter}
                   limit={limit}
                   onShowMore={() => setPage({ key: pageKey, limit: limit + PAGE })}
                   onAdd={openAdd}

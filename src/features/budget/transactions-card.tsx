@@ -71,7 +71,11 @@ interface TransactionsCardProps {
   readonly accounts: readonly Account[];
   readonly operations: OperationsData | undefined;
   readonly filter: TransactionFilterState;
-  readonly onFilterChange: (filter: TransactionFilterState) => void;
+  /**
+   * A change of whatever the filter is at that moment. Two fields changed one after another (the
+   * two dates of a period, say) must not race: the second must see the first.
+   */
+  readonly onFilterChange: (change: (current: TransactionFilterState) => TransactionFilterState) => void;
   readonly limit: number;
   readonly onShowMore: () => void;
   readonly onAdd: () => void;
@@ -94,7 +98,8 @@ export function TransactionsCard({
   const [extraOpen, setExtraOpen] = useState(false);
   const nameOfCategory = new Map(categories.map((category) => [category.id, category.name]));
   const nameOfAccount = new Map(accounts.map((account) => [account.id, account.name]));
-  const patch = (next: Partial<TransactionFilterState>) => onFilterChange({ ...filter, ...next });
+  const patch = (next: Partial<TransactionFilterState>) =>
+    onFilterChange((current) => ({ ...current, ...next }));
   const extra = extraFilterCount(filter);
 
   const describe = (transaction: Transaction): string => {
@@ -160,7 +165,10 @@ export function TransactionsCard({
               aria-label={strings.operations.period.from}
               data-testid="period-from"
               onChange={(event) =>
-                patch({ period: { kind: 'custom', from: event.target.value, to: filter.period.to } })
+                onFilterChange((current) => ({
+                  ...current,
+                  period: { kind: 'custom', from: event.target.value, to: current.period.to },
+                }))
               }
             />
             <Input
@@ -169,7 +177,10 @@ export function TransactionsCard({
               aria-label={strings.operations.period.to}
               data-testid="period-to"
               onChange={(event) =>
-                patch({ period: { kind: 'custom', from: filter.period.from, to: event.target.value } })
+                onFilterChange((current) => ({
+                  ...current,
+                  period: { kind: 'custom', from: current.period.from, to: event.target.value },
+                }))
               }
             />
           </div>
@@ -235,7 +246,12 @@ export function TransactionsCard({
                       label={category.name}
                       pressed={filter.categoryIds.includes(category.id)}
                       testId={`filter-category-${category.id}`}
-                      onClick={() => patch({ categoryIds: toggleId(filter.categoryIds, category.id) })}
+                      onClick={() =>
+                        onFilterChange((current) => ({
+                          ...current,
+                          categoryIds: toggleId(current.categoryIds, category.id),
+                        }))
+                      }
                     />
                   ))}
               </div>
@@ -252,7 +268,12 @@ export function TransactionsCard({
                       label={account.name}
                       pressed={filter.accountIds.includes(account.id)}
                       testId={`filter-account-${account.id}`}
-                      onClick={() => patch({ accountIds: toggleId(filter.accountIds, account.id) })}
+                      onClick={() =>
+                        onFilterChange((current) => ({
+                          ...current,
+                          accountIds: toggleId(current.accountIds, account.id),
+                        }))
+                      }
                     />
                   ))}
               </div>
@@ -283,7 +304,7 @@ export function TransactionsCard({
             variant="outline"
             className="w-fit"
             data-testid="filter-reset"
-            onClick={() => onFilterChange({ ...EMPTY_FILTER, period: filter.period })}
+            onClick={() => onFilterChange((current) => ({ ...EMPTY_FILTER, period: current.period }))}
           >
             {strings.operations.reset}
           </Button>

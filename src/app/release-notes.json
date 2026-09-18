@@ -1,4 +1,18 @@
 {
+  "0.20.0": {
+    "ru": [
+      "Список операций ищет за любой период: этот месяц, три месяца, год, всё время или свои даты — трата трёхмесячной давности находится без перелистывания месяцев.",
+      "Отбор сразу по нескольким категориям и счетам, по сумме «от» и «до»; над списком видно, сколько нашлось и на какую сумму.",
+      "Фильтр остаётся в адресе страницы: поиск переживает перезагрузку, а ссылку можно сохранить.",
+      "Появились графики: куда ушли деньги по категориям, год столбиками, динамика на «Обзоре», распределение свободных денег на «Целях» и состав капитала на «Балансе»."
+    ],
+    "en": [
+      "The list of transactions searches any period: this month, three months, a year, all time or two dates of your own — a purchase three months back is found without walking through the months.",
+      "Filter by several categories and accounts at once and by an amount from and to; above the list you see how many rows were found and what they add up to.",
+      "The filter stays in the address of the page: a search survives a reload and can be kept as a link.",
+      "Charts arrived: where the money went by category, the year in bars, the trend on the overview, the split of the free money on the goals and what the capital is made of on the balance."
+    ]
+  },
   "0.19.1": {
     "ru": [
       "Кнопка языка в шапке: переключиться на английский можно прямо с лендинга и со знакомства, не заходя в настройки.",

@@ -20,6 +20,7 @@ import { CheckCircle2, GripVertical, Pause, Pencil, Play, Plus, Trash2 } from 'l
 import { useState } from 'react';
 
 import { formatForecast } from '@/core/money';
+import { StackedBar } from '@/components/common/stacked-bar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -271,6 +272,33 @@ function AllocationCard({ data }: { data: GoalsData }) {
             </p>
           </div>
         </div>
+
+        {data.freeCashMinor > 0 ? (
+          <StackedBar
+            testId="allocation-bar"
+            caption={strings.goals.allocationTitle}
+            parts={[
+              {
+                key: 'principal',
+                label: strings.goals.allocationPrincipal,
+                amountMinor: Math.max(0, Math.round(data.principalDueMinor)),
+              },
+              {
+                key: 'goals',
+                label: strings.goals.allocationToGoals,
+                amountMinor: Math.max(
+                  0,
+                  Math.round(data.availableMinor) - Math.max(0, Math.round(data.leftoverMinor)),
+                ),
+              },
+              {
+                key: 'leftover',
+                label: strings.goals.allocationLeftover,
+                amountMinor: Math.max(0, Math.round(data.leftoverMinor)),
+              },
+            ].filter((part) => part.amountMinor > 0)}
+          />
+        ) : null}
 
         {data.allocations.length === 0 ? (
           <p className="text-sm text-muted-foreground">{strings.goals.allocationNone}</p>

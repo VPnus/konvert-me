@@ -3,10 +3,12 @@ import { Archive, ArchiveRestore, Pencil, Plus, ShieldCheck, Trash2 } from 'luci
 import { Suspense, lazy, useState } from 'react';
 
 import { formatForecast } from '@/core/money';
+import { topSlices } from '@/core/slices';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ErrorBoundary } from '@/components/common/error-boundary';
+import { StackedBar } from '@/components/common/stacked-bar';
 import { AccountForm } from '@/features/balance/account-form';
 import { loadBalance, type BalanceData } from '@/features/balance/balance-data';
 import { accountDetails, cardStatus, fullDateLabel, limitStatus } from '@/features/balance/card-view';
@@ -15,7 +17,7 @@ import { PaydayCard } from '@/features/balance/payday-card';
 import { PoliciesCard } from '@/features/balance/policies-card';
 import { useDataVersion } from '@/hooks/use-data-version';
 import type { CardGrace } from '@/core/credit-card';
-import type { Account } from '@/db/models';
+import type { Account, AccountType } from '@/db/models';
 import { deleteAccount, setAccountArchived } from '@/db/repositories/accounts';
 import { strings } from '@/i18n';
 import { currentCountry } from '@/i18n/country';
@@ -155,6 +157,58 @@ function CapitalCard({ data }: { data: BalanceData }) {
             {strings.capital.empty}
           </p>
         )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * What the capital is made of. The line above says how much there is; this says of what, by the
+ * kind of the account, biggest first and the tail as one. Debts get a bar of their own: mixing
+ * what is owned with what is owed into one picture would say nothing.
+ */
+function MixCard({ data }: { data: BalanceData }) {
+  const parts = (side: 'asset' | 'liability') => {
+    const byType = new Map<string, number>();
+    for (const account of data.accounts) {
+      if (account.archived || account.side !== side) continue;
+      const balance = Math.abs(Math.round(data.balances.get(account.id) ?? 0));
+      if (balance <= 0) continue;
+      byType.set(account.type, (byType.get(account.type) ?? 0) + balance);
+    }
+
+    return topSlices([...byType].map(([key, amountMinor]) => ({ key, amountMinor }))).map((slice) => ({
+      ...slice,
+      label:
+        slice.key === 'rest'
+          ? strings.budget.chart.rest
+          : (strings.accounts.types[slice.key as AccountType] ?? slice.key),
+    }));
+  };
+
+  const assets = parts('asset');
+  const debts = parts('liability');
+  if (assets.length === 0 && debts.length === 0) return null;
+
+  return (
+    <Card data-testid="mix-card">
+      <CardHeader className="pb-0">
+        <CardTitle className="text-base">{strings.capital.mixTitle}</CardTitle>
+        <p className="text-sm text-muted-foreground">{strings.capital.mixHint}</p>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4 pt-3">
+        {assets.length > 0 ? (
+          <div className="flex flex-col gap-2">
+            <p className="text-xs font-medium text-muted-foreground">{strings.capital.assets}</p>
+            <StackedBar parts={assets} caption={strings.capital.assets} testId="mix-assets" />
+          </div>
+        ) : null}
+        {debts.length > 0 ? (
+          <div className="flex flex-col gap-2">
+            <p className="text-xs font-medium text-muted-foreground">{strings.capital.liabilities}</p>
+            <StackedBar parts={debts} caption={strings.capital.liabilities} testId="mix-debts" />
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );
@@ -305,6 +359,7 @@ export default function BalancePage() {
           </Card>
 
           <CapitalCard data={data} />
+          <MixCard data={data} />
         </>
       )}
 

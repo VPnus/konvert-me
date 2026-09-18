@@ -16,6 +16,7 @@ import {
 import { DeductionsWidget } from '@/features/overview/widgets/deductions-widget';
 import { GoalProgressWidget, GoalsWidget, WarningsWidget } from '@/features/overview/widgets/goal-widgets';
 import { QuickAddWidget } from '@/features/overview/widgets/quick-add-widget';
+import { TrendWidget } from '@/features/overview/widgets/trend-widget';
 import { UpcomingWidget } from '@/features/overview/widgets/upcoming-widget';
 import { LinksWidget, NewsWidget } from '@/features/overview/widgets/source-widgets';
 import type { WidgetDefinition } from '@/features/overview/widgets/types';
@@ -40,6 +41,14 @@ export const WIDGET_REGISTRY: readonly WidgetDefinition[] = [
     sizes: ['S', 'M', 'L'],
     defaultSize: 'M',
     Component: ReserveWidget,
+  },
+  {
+    type: 'trend',
+    title: strings.widgets.trend.title,
+    description: strings.widgets.trend.description,
+    sizes: ['M', 'L'],
+    defaultSize: 'M',
+    Component: TrendWidget,
   },
   {
     type: 'goal-progress',

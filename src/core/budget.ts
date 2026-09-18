@@ -48,6 +48,33 @@ export function monthTotals(transactions: readonly CoreTransaction[], month: Iso
   return totalsOf(transactions.filter((transaction) => monthOfDate(transaction.date) === month));
 }
 
+export interface MonthPoint extends MonthTotals {
+  readonly month: IsoMonth;
+}
+
+/**
+ * Income, expenses and what is left, month by month, in one pass over the operations. The months
+ * asked for are the months answered, in their order and empty ones included: a chart of a year has
+ * no gaps just because nothing happened in March.
+ */
+export function totalsByMonth(
+  transactions: readonly CoreTransaction[],
+  months: readonly IsoMonth[],
+): MonthPoint[] {
+  const wanted = new Set(months);
+  const buckets = new Map<IsoMonth, CoreTransaction[]>();
+
+  for (const transaction of transactions) {
+    const month = monthOfDate(transaction.date);
+    if (!wanted.has(month)) continue;
+    const bucket = buckets.get(month);
+    if (bucket) bucket.push(transaction);
+    else buckets.set(month, [transaction]);
+  }
+
+  return months.map((month) => ({ month, ...totalsOf(buckets.get(month) ?? []) }));
+}
+
 export function freeCashMinor(transactions: readonly CoreTransaction[], month: IsoMonth): number {
   return monthTotals(transactions, month).freeCashMinor;
 }

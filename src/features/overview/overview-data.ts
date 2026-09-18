@@ -25,6 +25,8 @@ import {
   planTotals,
   type BudgetBasis,
   type MonthTotals,
+  totalsByMonth,
+  type MonthPoint,
 } from '@/core/budget';
 import { cardGrace, type CardGrace } from '@/core/credit-card';
 import { upcomingEvents, type UpcomingEvent } from '@/core/upcoming';
@@ -35,7 +37,7 @@ import {
   type ContributionPlan,
 } from '@/core/goals';
 import { formatForecast } from '@/core/money';
-import { currentMonth, todayIso, type IsoMonth } from '@/core/time';
+import { addMonths, currentMonth, monthsRange, todayIso, type IsoMonth } from '@/core/time';
 import type { CoreAccount, CoreCategory, CoreTransaction } from '@/core/types';
 import { db } from '@/db/db';
 import type { Account, AppSettings, Goal } from '@/db/models';
@@ -69,6 +71,8 @@ export interface OverviewData {
   readonly averageExpenses: AverageExpenses;
   readonly reserve: ReserveState;
   readonly netWorthMinor: number;
+  /** The last twelve months of income and expenses, for the chart among the widgets. */
+  readonly trend: MonthPoint[];
   readonly assetsMinor: number;
   readonly liabilitiesMinor: number;
   readonly debtBurden: DebtBurden;
@@ -214,6 +218,7 @@ export async function loadOverview(now: Date = new Date()): Promise<OverviewData
     averageExpenses,
     reserve,
     netWorthMinor: netWorthMinor(coreAccounts, coreTransactions),
+    trend: totalsByMonth(coreTransactions, monthsRange(addMonths(month, -11), month)),
     assetsMinor: totalAssetsMinor(coreAccounts, coreTransactions),
     liabilitiesMinor: totalLiabilitiesMinor(coreAccounts, coreTransactions),
     debtBurden: debtBurden(monthlyPayments, incomeForBurden),

@@ -391,6 +391,18 @@ export const en: Dictionary = {
     },
   },
   budget: {
+    chart: {
+      title: 'Where the money went',
+      hint: 'Expenses by category over the chosen period. Tap a row and the list below shows it.',
+      rest: 'The rest',
+      empty: 'Nothing to show yet: no expenses in this period.',
+      noCategory: 'No category',
+      yearTitle: 'Income and expenses by month',
+      yearHint: 'The bars are the income and the expenses of a month, the line is what is left.',
+      income: 'Income',
+      expense: 'Expenses',
+      free: 'Left',
+    },
     title: 'Budget',
     subtitle: 'Plan and actual by category, the month’s transactions and the whole year in one table.',
     monthTab: 'Month',
@@ -613,6 +625,8 @@ export const en: Dictionary = {
     archive: 'Archive',
   },
   capital: {
+    mixTitle: 'What the capital is made of',
+    mixHint: 'Assets and debts by kind of account, the biggest first.',
     title: 'How net worth changed',
     subtitle: 'Assets minus debts at the end of each month: worked out from the transactions, not stored.',
     assets: 'Assets',
@@ -814,6 +828,7 @@ export const en: Dictionary = {
       'Debt payments without the interest from the “Loan interest” category. Not an expense, but not free money either.',
     allocationAvailable: 'Left for the emergency fund and goals',
     allocationNeeded: 'Needed for the emergency fund and goals',
+    allocationToGoals: 'Reserve and goals',
     allocationLeftover: 'Stays free',
     allocationDeficit: 'Short by',
     allocationDeficitHint:
@@ -1721,6 +1736,15 @@ export const en: Dictionary = {
     added: 'already on the overview',
   },
   widgets: {
+    trend: {
+      title: 'Trend',
+      description: 'What was left of every month over the last year.',
+      free: 'Left',
+      thisMonth: 'This month',
+      year: 'Over 12 months',
+      empty: 'Nothing to show yet: write down a couple of months of transactions.',
+      emptyAction: 'Open the budget',
+    },
     freeCash: {
       title: 'Free cash this month',
       description: 'Income minus expenses for the current month: plan and actual.',

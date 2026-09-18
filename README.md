@@ -12,7 +12,7 @@
 
 <br/>
 
-<a href="https://github.com/VPnus/konvert-me/releases"><img src="https://img.shields.io/badge/%D0%92%D0%B5%D1%80%D1%81%D0%B8%D1%8F-0.19.1-000000?style=for-the-badge" alt="Версия 0.19.1"></a>
+<a href="https://github.com/VPnus/konvert-me/releases"><img src="https://img.shields.io/badge/%D0%92%D0%B5%D1%80%D1%81%D0%B8%D1%8F-0.20.0-000000?style=for-the-badge" alt="Версия 0.20.0"></a>
 <a href="#-быстрый-старт"><img src="https://img.shields.io/badge/PWA-%D1%80%D0%B0%D0%B1%D0%BE%D1%82%D0%B0%D0%B5%D1%82_%D0%BE%D1%84%D0%BB%D0%B0%D0%B9%D0%BD-000000?style=for-the-badge&logo=pwa&logoColor=white" alt="PWA, работает офлайн"></a>
 <a href="#-данные-и-приватность"><img src="https://img.shields.io/badge/%D0%94%D0%B0%D0%BD%D0%BD%D1%8B%D0%B5-%D1%82%D0%BE%D0%BB%D1%8C%D0%BA%D0%BE_%D0%BD%D0%B0_%D1%83%D1%81%D1%82%D1%80%D0%BE%D0%B9%D1%81%D1%82%D0%B2%D0%B5-555555?style=for-the-badge" alt="Данные только на устройстве"></a>
 
@@ -20,14 +20,14 @@
 <img src="https://img.shields.io/badge/TypeScript-strict-3178c6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript strict">
 <img src="https://img.shields.io/badge/React-18-149eca?style=flat-square&logo=react&logoColor=white" alt="React 18">
 <img src="https://img.shields.io/badge/Vite-8-646cff?style=flat-square&logo=vite&logoColor=white" alt="Vite 8">
-<img src="https://img.shields.io/badge/%D0%9C%D0%BE%D0%B4%D1%83%D0%BB%D1%8C%D0%BD%D1%8B%D1%85_%D1%82%D0%B5%D1%81%D1%82%D0%BE%D0%B2-804-2b9246?style=flat-square&logo=vitest&logoColor=white" alt="804 модульных теста">
-<img src="https://img.shields.io/badge/E2E-235_%D0%BF%D1%80%D0%BE%D0%B3%D0%BE%D0%BD%D0%BE%D0%B2-2b9246?style=flat-square&logo=playwright&logoColor=white" alt="235 e2e-прогонов">
+<img src="https://img.shields.io/badge/%D0%9C%D0%BE%D0%B4%D1%83%D0%BB%D1%8C%D0%BD%D1%8B%D1%85_%D1%82%D0%B5%D1%81%D1%82%D0%BE%D0%B2-833-2b9246?style=flat-square&logo=vitest&logoColor=white" alt="833 модульных теста">
+<img src="https://img.shields.io/badge/E2E-258_%D0%BF%D1%80%D0%BE%D0%B3%D0%BE%D0%BD%D0%BE%D0%B2-2b9246?style=flat-square&logo=playwright&logoColor=white" alt="258 e2e-прогонов">
 <img src="https://img.shields.io/badge/%D0%90%D0%BD%D0%B0%D0%BB%D0%B8%D1%82%D0%B8%D0%BA%D0%B0-%D0%BD%D0%B5%D1%82-555555?style=flat-square" alt="Аналитики нет">
 
 </div>
 
 > [!TIP]
-> **Новое в 0.19.1:** кнопка языка в шапке: английский на расстоянии одного нажатия с лендинга, из знакомства и из приложения. Стартовые категории, счета знакомства и цель «Финансовый резерв» переезжают на язык приложения, а то, что вы переименовали сами, остаётся вашим. Вместо выбора страны теперь выбор бюджета: рублёвый или долларовый. **В 0.19.0:** два языка и две страны, экономика США: выплаты раз в две недели, вкладка «Налоговые счета» с лимитами 401(k), IRA, HSA и 529, свой порядок действий в финплане и импорт американских выписок.
+> **Новое в 0.20.0:** список операций ищет за любой период: этот месяц, три месяца, год, всё время или свои даты, сразу по нескольким категориям и счетам и по сумме «от» и «до». Над списком видно, сколько нашлось и на какую сумму, а фильтр остаётся в адресе страницы, поэтому поиск переживает перезагрузку. Появились графики: куда ушли деньги по категориям, год столбиками, «Динамика» среди виджетов, распределение свободных денег на «Целях» и состав капитала на «Балансе». **В 0.19.1:** кнопка языка в шапке, стартовые названия по языку приложения, выбор рублёвого или долларового бюджета.
 
 ---
 

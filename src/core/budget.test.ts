@@ -10,6 +10,7 @@ import {
   monthTotals,
   planTotals,
   planVsFact,
+  totalsByMonth,
   yearPlanTotals,
   yearTotals,
 } from './budget';
@@ -435,5 +436,38 @@ describe('budget: what a usual month looks like', () => {
     );
     expect(categoryExpenseAverageMinor(history, ['2026-08'], 'food')).toBe(r(55_000));
     expect(categoryExpenseAverageMinor(history, [], 'food')).toBe(0);
+  });
+});
+
+describe('totalsByMonth', () => {
+  it('answers exactly the months asked, empty ones included', () => {
+    const points = totalsByMonth(
+      [
+        tx({ date: '2026-07-10', kind: 'income', amountMinor: r(50_000), categoryId: 'salary' }),
+        tx({ date: '2026-09-12', kind: 'expense', amountMinor: r(9_000), categoryId: 'food' }),
+        // outside the months asked for
+        tx({ date: '2026-05-01', kind: 'expense', amountMinor: r(1_000), categoryId: 'food' }),
+      ],
+      ['2026-07', '2026-08', '2026-09'],
+    );
+
+    expect(points.map((point) => point.month)).toEqual(['2026-07', '2026-08', '2026-09']);
+    expect(points[0].incomeMinor).toBe(r(50_000));
+    expect(points[1]).toEqual({ month: '2026-08', incomeMinor: 0, expenseMinor: 0, freeCashMinor: 0 });
+    expect(points[2].expenseMinor).toBe(r(9_000));
+    expect(points[2].freeCashMinor).toBe(r(-9_000));
+  });
+
+  it('counts a month the same way the month view does', () => {
+    const rows = [
+      tx({ date: '2026-09-02', kind: 'income', amountMinor: r(80_000), categoryId: 'salary' }),
+      tx({ date: '2026-09-05', kind: 'expense', amountMinor: r(20_000), categoryId: 'food' }),
+      tx({ date: '2026-09-06', kind: 'refund', amountMinor: r(2_000), categoryId: 'food' }),
+      tx({ date: '2026-09-07', kind: 'transfer', amountMinor: r(15_000) }),
+    ];
+    expect(totalsByMonth(rows, ['2026-09'])[0]).toEqual({
+      month: '2026-09',
+      ...monthTotals(rows, '2026-09'),
+    });
   });
 });

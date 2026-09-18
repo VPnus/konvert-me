@@ -71,6 +71,8 @@ export const DEFAULT_WIDGETS: readonly Omit<WidgetInstance, 'instanceId' | 'orde
   { widgetType: 'free-cash', size: 'M', settings: {} },
   { widgetType: 'reserve', size: 'M', settings: {} },
   { widgetType: 'goals', size: 'L', settings: {} },
+  // the shape of the year beside the numbers of the month
+  { widgetType: 'trend', size: 'M', settings: {} },
   { widgetType: 'net-worth', size: 'S', settings: {} },
   { widgetType: 'debt-burden', size: 'S', settings: {} },
   // the dates of payments and grace periods, where the reminder of a card is kept

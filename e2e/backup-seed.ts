@@ -34,7 +34,7 @@ export async function seed(page: Page, fill: (data: BackupData) => void): Promis
 
   await page.getByTestId('backup-import').setInputFiles(file);
   await page.getByTestId('confirm-action').click();
-  await expect(page.getByTestId('backup-message')).toContainText('восстановлены');
+  await expect(page.getByTestId('backup-message')).toContainText(/восстановлены|restored/);
 }
 
 export function account(id: string, patch: Row): Row {

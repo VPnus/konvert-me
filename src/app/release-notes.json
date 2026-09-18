@@ -1,4 +1,16 @@
 {
+  "0.19.0": {
+    "ru": [
+      "Приложение говорит по-английски: язык выбирается в «Настройках», а новому человеку подставляется язык браузера.",
+      "Появилась страна данных: Россия или США. От неё зависят валюта всех сумм, нормативы и разделы; при смене страны суммы не пересчитываются.",
+      "Для США: выплаты раз в две недели или два раза в месяц, вкладка «Налоговые счета» с лимитами 401(k), IRA, HSA и 529, свой порядок действий в финплане и импорт американских выписок."
+    ],
+    "en": [
+      "The app speaks English: the language is chosen in Settings, and a newcomer gets the language of the browser.",
+      "The data now has a country, Russia or the United States. It sets the currency of every sum, the norms and the sections; changing it converts no sum.",
+      "For the United States: pay every two weeks or twice a month, a Tax accounts tab with the limits of a 401(k), an IRA, an HSA and a 529, an order of its own in the financial plan, and the import of American statements."
+    ]
+  },
   "0.18.1": {
     "ru": [
       "На телефоне виджеты «Обзора» перетаскиваются пальцем, а высота меняется за уголок, который стал крупнее.",

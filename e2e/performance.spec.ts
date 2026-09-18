@@ -272,8 +272,8 @@ async function runMeasurement(page: Page, testInfo: TestInfo, language: 'ru' | '
         }),
       );
       // The widget follows the write at once, the form is cleared when the whole save is
-      // done: a sum typed in between would be wiped.
-      await expect(page.getByTestId('quick-saved')).toBeVisible();
+      // done: a sum typed in between would be wiped. The cleared field is what says so — the
+      // "saved" note beside it hides itself after two seconds and a slow run can miss it.
       await expect(page.getByTestId('quick-amount')).toHaveValue('');
     }
 

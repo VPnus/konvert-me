@@ -2,6 +2,7 @@ import {
   ClipboardList,
   Landmark,
   LayoutDashboard,
+  PiggyBank,
   ReceiptText,
   Settings,
   Target,
@@ -11,6 +12,7 @@ import {
 
 import type { Country } from '@/core/country';
 import { DEDUCTION_COUNTRIES } from '@/features/deductions/country';
+import { TAX_ACCOUNT_COUNTRIES } from '@/features/tax-accounts/country';
 import { strings } from '@/i18n';
 
 export interface NavItem {
@@ -21,13 +23,19 @@ export interface NavItem {
   readonly countries?: readonly Country[];
 }
 
-/** All seven tabs, in the order they stand in the bar above the page. */
+/** Every tab, in the order they stand in the bar above the page; a country shows seven of them. */
 export const NAV_ITEMS: readonly NavItem[] = [
   { to: '/overview', label: strings.nav.overview, icon: LayoutDashboard },
   { to: '/budget', label: strings.nav.budget, icon: Wallet },
   { to: '/goals', label: strings.nav.goals, icon: Target },
   { to: '/balance', label: strings.nav.balance, icon: Landmark },
   { to: '/deductions', label: strings.nav.deductions, icon: ReceiptText, countries: DEDUCTION_COUNTRIES },
+  {
+    to: '/tax-accounts',
+    label: strings.nav.taxAccounts,
+    icon: PiggyBank,
+    countries: TAX_ACCOUNT_COUNTRIES,
+  },
   { to: '/plan', label: strings.nav.plan, icon: ClipboardList },
   { to: '/settings', label: strings.nav.settings, icon: Settings },
 ];

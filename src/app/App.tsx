@@ -15,6 +15,8 @@ import OnboardingPage from '@/features/onboarding/onboarding-page';
 import OverviewPage from '@/features/overview/overview-page';
 import PlanPage from '@/features/plan/plan-page';
 import SettingsPage from '@/features/settings/settings-page';
+import { TAX_ACCOUNT_COUNTRIES } from '@/features/tax-accounts/country';
+import TaxAccountsPage from '@/features/tax-accounts/tax-accounts-page';
 import HomePage from '@/features/site/home-page';
 import PrivacyPage from '@/features/site/privacy-page';
 
@@ -38,6 +40,14 @@ export default function App() {
               element={
                 <CountryRoute countries={DEDUCTION_COUNTRIES}>
                   <DeductionsPage />
+                </CountryRoute>
+              }
+            />
+            <Route
+              path="/tax-accounts"
+              element={
+                <CountryRoute countries={TAX_ACCOUNT_COUNTRIES}>
+                  <TaxAccountsPage />
                 </CountryRoute>
               }
             />

@@ -130,4 +130,41 @@ test.describe('a household in the United States', () => {
     await expect(actions).not.toContainText('tax deductions');
     expect(await russianOnScreen(page)).toEqual([]);
   });
+
+  test('reads like English: the dates, the decimal point and the categories of the country', async ({
+    page,
+  }) => {
+    await american(page);
+    await page.goto('/welcome');
+    await page.getByTestId('onboarding-country-us').click();
+    await page.getByTestId('onboarding-next').click();
+    await page.getByTestId('onboarding-income').fill('5200');
+    await page.getByTestId('onboarding-next').click();
+    await page.getByTestId('onboarding-mandatory').fill('3200');
+    await page.getByTestId('onboarding-next').click();
+    await page.getByTestId('onboarding-variable').fill('1200');
+    await page.getByTestId('onboarding-next').click();
+    await page.getByTestId('onboarding-savings').fill('8000');
+    await page.getByTestId('onboarding-next').click();
+    await page.getByTestId('onboarding-goal-name').fill('House down payment');
+    await page.getByTestId('onboarding-goal-cost').fill('60000');
+    await page.getByTestId('onboarding-goal-month').fill('2031-06');
+    await page.getByTestId('onboarding-finish').click();
+    await expect(page).toHaveURL(/\/overview$/, { timeout: 15_000 });
+
+    // 8 000 of 4 400 a month is 1.8 months, with a point and not a comma
+    await expect(page.getByTestId('widget-reserve')).toContainText('1.8 months of expenses');
+
+    await page.goto('/balance');
+    await expect(page.getByTestId('insurance-card')).toContainText(/checked \w+ \d{1,2}, \d{4}/);
+
+    // the advance of a Russian payroll is not a category of the United States
+    await page.goto('/budget');
+    await expect(page.getByRole('cell', { name: 'Salary', exact: true })).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'Advance', exact: true })).toHaveCount(0);
+
+    // a month inside a sentence keeps its capital in English
+    await page.goto('/plan?step=2');
+    await expect(page.getByTestId('plan-goals')).toContainText('by June 2031');
+  });
 });

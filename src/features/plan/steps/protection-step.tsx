@@ -1,6 +1,7 @@
 import { reserveContributionMinor } from '@/core/balance';
 import type { InsurancePolicy } from '@/db/models';
 import { fill } from '@/i18n';
+import { currentCountry } from '@/i18n/country';
 import { monthsLabel } from '@/features/goals/months-label';
 import type { PlanData } from '@/features/plan/plan-data';
 import { rubles, t } from '@/features/plan/plan-format';
@@ -67,7 +68,7 @@ export function ProtectionStep({ data }: { data: PlanData }) {
                 {policies.length > 0
                   ? fill(p.covered, { names: policies.map((policy) => policy.name).join(', ') })
                   : risk.key === 'liability'
-                    ? p.liabilityHint
+                    ? p.liabilityHint[currentCountry()]
                     : p.notCovered}
               </span>
             </div>

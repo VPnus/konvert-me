@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { RESERVE_GOAL_ID } from '@/db/repositories/goals';
 import { fill } from '@/i18n';
+import { currentCountry } from '@/i18n/country';
 import type { GoalView } from '@/features/goals/goals-data';
 import { EducationCard } from '@/features/plan/education-card';
 import { PensionCard } from '@/features/plan/pension-card';
@@ -87,7 +88,7 @@ export function GoalsStep({ data }: { data: PlanData }) {
         )}
       </Section>
 
-      <Section title={t.pension.title} lead={t.pension.lead}>
+      <Section title={t.pension.title} lead={t.pension.lead[currentCountry()]}>
         <PensionCard
           pension={data.plan.pension}
           savedMinor={data.pension?.savedMinor ?? 0}

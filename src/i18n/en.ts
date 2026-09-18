@@ -24,7 +24,7 @@ export const en: Dictionary = {
       title: 'Budget, goals and envelopes',
       lead: 'Konvercat works out how much to set aside for each goal, whether your budget holds up and how much tax you can get back. All your data stays on your device, and the app works offline.',
       start: 'Get started',
-      startNote: 'Five questions, and your first numbers are ready.',
+      startNote: 'Six questions, and your first numbers are ready.',
       more: 'What it does',
       overviewAlt:
         'The Overview screen: free cash this month, emergency fund, goals, net worth and debt load',
@@ -52,8 +52,11 @@ export const en: Dictionary = {
         },
         {
           key: 'deductions',
-          title: 'Tax deductions',
-          text: 'How much tax you get back for medical care, education, sport and housing, and which papers to collect for it.',
+          title: 'Taxes: deductions and tax advantaged accounts',
+          text:
+            'In Russia: how much tax you get back for medical care, education, sport and housing, and ' +
+            'which papers it takes. In the United States: how much a 401(k), an IRA, an HSA and a 529 ' +
+            'still allow this year.',
         },
         {
           key: 'plan',
@@ -280,6 +283,7 @@ export const en: Dictionary = {
   },
   formats: {
     percent: '{value}%',
+    fullDate: '{dayMonth}, {year}',
     inCurrency: '{label}, {currency}',
   },
   countries: {
@@ -796,8 +800,8 @@ export const en: Dictionary = {
   },
   income: {
     title: 'Upcoming income',
-    subtitle: 'How many days are left until each payment. You set the days of the month yourself.',
-    empty: 'No income sources yet. Add your advance and salary, and we will show how many days to wait.',
+    subtitle: 'How many days are left until each payment. You set the schedule yourself.',
+    empty: 'No income sources yet. Add your paycheck, and we will show how many days to wait.',
     add: 'Add a source',
     addTitle: 'New income source',
     editTitle: 'Income source',
@@ -1255,7 +1259,10 @@ export const en: Dictionary = {
     },
     pension: {
       title: 'Retirement',
-      lead: 'In retirement 70% of today’s expenses is usually enough. The state pension covers part of it, and capital covers the rest: it is counted in the prices of the retirement year and so that the payments grow with prices.',
+      lead: {
+        ru: 'In retirement 70% of today’s expenses is usually enough. The state pension covers part of it, and capital covers the rest: it is counted in the prices of the retirement year and so that the payments grow with prices.',
+        us: 'In retirement 70% of today’s expenses is usually enough. Social Security covers part of it, and capital covers the rest: it is counted in the prices of the retirement year and so that the payments grow with prices.',
+      },
       birthMonth: 'Month and year of birth',
       retirementAge: 'Age to stop working',
       lifeAge: 'Age the money has to last until',
@@ -1353,8 +1360,10 @@ export const en: Dictionary = {
       },
       covered: 'Covered: {names}',
       notCovered: 'No policy',
-      liabilityHint:
-        'For example, compulsory motor insurance (OSAGO) or cover in case you flood your neighbours',
+      liabilityHint: {
+        ru: 'For example, compulsory motor insurance (OSAGO) or cover in case you flood your neighbours',
+        us: 'For example, the liability part of car insurance, or of a homeowners or renters policy',
+      },
       manage: 'Policies on the Balance tab',
     },
     optimization: {
@@ -1553,7 +1562,8 @@ export const en: Dictionary = {
     languageText: 'The language of the interface. Another one reloads the page; the data stays where it is.',
     countryTitle: 'Country',
     countryText:
-      'The country sets the currency of all sums, the rules and the sections: Deductions exist only for Russia.',
+      'The country sets the currency of all sums, the rules and the sections: Deductions exist only ' +
+      'for Russia, and Tax accounts only for the United States.',
     countryConfirmTitle: 'Change the country?',
     countryConfirmText:
       'New country: {country}. Sums are not converted: {from} becomes {to}. The currency, the rules and the sections will be those of this country. You can switch back here.',
@@ -1620,8 +1630,6 @@ export const en: Dictionary = {
   onboarding: {
     title: 'Getting started',
     intro:
-      'Five short questions, and the app works out how much to set aside and whether the budget holds up.',
-    introWithCountry:
       'Six short questions, and the app works out how much to set aside and whether the budget holds up.',
     countryTitle: 'Where do you live?',
     countryText:

@@ -7,11 +7,12 @@ import { db } from '@/db/db';
 import { RepositoryError } from '@/db/errors';
 import { categorySchema, type Category } from '@/db/models';
 import { parseOrThrow } from '@/db/validate';
-import { DEFAULT_CATEGORIES, type DefaultCategory } from '@/db/default-categories';
+import { DEFAULT_CATEGORIES, defaultCategoriesFor, type DefaultCategory } from '@/db/default-categories';
 import { strings } from '@/i18n';
+import { currentCountry } from '@/i18n/country';
 import { publishAppEvent } from '@/lib/broadcast';
 
-export { DEFAULT_CATEGORIES, type DefaultCategory };
+export { DEFAULT_CATEGORIES, defaultCategoriesFor, type DefaultCategory };
 
 /** Interest on loans: the part of a debt payment that is an expense, the rest is a transfer. */
 export const LOAN_INTEREST_CATEGORY = 'loan-interest';
@@ -34,13 +35,15 @@ export async function listCategoriesOfKind(kind: Category['kind']): Promise<Cate
 /** Creates the starter set once; categories the user already has are left alone. */
 export async function seedDefaultCategories(): Promise<number> {
   const existing = new Set((await db.categories.toArray()).map((category) => category.id));
-  const missing = DEFAULT_CATEGORIES.filter((category) => !existing.has(category.id)).map((category, index) =>
-    parseOrThrow(
-      categorySchema,
-      { ...category, sortOrder: existing.size + index, archived: false },
-      strings.data.subjects.category,
-    ),
-  );
+  const missing = defaultCategoriesFor(currentCountry())
+    .filter((category) => !existing.has(category.id))
+    .map((category, index) =>
+      parseOrThrow(
+        categorySchema,
+        { ...category, sortOrder: existing.size + index, archived: false },
+        strings.data.subjects.category,
+      ),
+    );
 
   if (missing.length > 0) {
     await db.categories.bulkAdd(missing);

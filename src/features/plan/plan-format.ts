@@ -4,7 +4,7 @@ import { monthLabel } from '@/features/budget/month-label';
 import { dateOfYear } from '@/features/deductions/dates';
 import type { PlanAction } from '@/features/plan/actions';
 import type { Benchmark, DebtInQueue } from '@/features/plan/debts';
-import { fill, strings } from '@/i18n';
+import { currentLanguage, currentLocale, fill, strings } from '@/i18n';
 import { percentLabel } from '@/i18n/format';
 
 export const t = strings.plan;
@@ -16,10 +16,14 @@ export function percentOf(rate: number): string {
   return percentLabel(rate * 100, 2);
 }
 
-/** "2034-09" → "сентябрь 2034", to sit in the middle of a sentence. */
+/**
+ * "2034-09" → "сентябрь 2034", to sit in the middle of a sentence. English keeps the capital: the
+ * name of a month is a proper noun there, "by September 2034", not "by september 2034".
+ */
 export function monthInText(month: IsoMonth): string {
   const label = monthLabel(month);
-  return label.charAt(0).toLocaleLowerCase('ru') + label.slice(1);
+  if (currentLanguage() !== 'ru') return label;
+  return label.charAt(0).toLocaleLowerCase(currentLocale()) + label.slice(1);
 }
 
 /** "2026-12-16" → "16 декабря 2026 года". */

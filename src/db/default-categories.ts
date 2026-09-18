@@ -4,6 +4,7 @@
  * schema can read it without importing the database.
  */
 
+import type { Country } from '@/core/country';
 import type { Category } from '@/db/models';
 import { strings } from '@/i18n';
 
@@ -69,3 +70,14 @@ export const DEFAULT_CATEGORIES: readonly DefaultCategory[] = [
 
 /** The starter categories added after the first version: someone who began earlier gets them on upgrade. */
 export const CATEGORIES_OF_SCHEMA_8: readonly string[] = ['subscriptions'];
+
+/**
+ * Categories one country knows and another does not: an advance is how Russia pays the first half
+ * of a month's wages, and the word means nothing in the United States.
+ */
+const COUNTRY_ONLY: Readonly<Partial<Record<string, readonly Country[]>>> = { advance: ['ru'] };
+
+/** The starter set of a country. A category already kept stays whatever the country becomes. */
+export function defaultCategoriesFor(country: Country): readonly DefaultCategory[] {
+  return DEFAULT_CATEGORIES.filter((category) => COUNTRY_ONLY[category.id]?.includes(country) ?? true);
+}

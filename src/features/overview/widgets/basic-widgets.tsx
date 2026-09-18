@@ -1,6 +1,6 @@
 import { formatMinor, roundToMinor } from '@/core/money';
 import { monthsLabel } from '@/features/goals/months-label';
-import { strings } from '@/i18n';
+import { currentLocale, strings } from '@/i18n';
 import { BigNumber, ProgressBar, WidgetEmpty, WidgetFrame } from '@/features/overview/widgets/widget-shell';
 import type { WidgetProps } from '@/features/overview/widgets/types';
 import { percentLabel } from '@/i18n/format';
@@ -62,7 +62,12 @@ export function ReserveWidget({ data }: WidgetProps) {
 
   return (
     <WidgetFrame title={strings.widgets.reserve.title} hint={basis}>
-      <BigNumber value={`${months.toFixed(1).replace('.', ',')} ${strings.widgets.reserve.months}`} />
+      <BigNumber
+        value={`${months.toLocaleString(currentLocale(), {
+          minimumFractionDigits: 1,
+          maximumFractionDigits: 1,
+        })} ${strings.widgets.reserve.months}`}
+      />
       <ProgressBar value={months / target} tone={months < 3 ? 'warning' : 'primary'} />
       <p className="text-xs text-muted-foreground">
         {formatMinor(roundToMinor(reserve.reserveMinor), { fractionDigits: 0 })}

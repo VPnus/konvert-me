@@ -109,9 +109,7 @@ export default function OnboardingPage() {
         <CatLogo className="size-12 shrink-0" />
         <div>
           <p className="text-lg font-semibold">{strings.app.name}</p>
-          <p className="text-sm text-muted-foreground">
-            {questions[0] === 'country' ? strings.onboarding.introWithCountry : strings.onboarding.intro}
-          </p>
+          <p className="text-sm text-muted-foreground">{strings.onboarding.intro}</p>
         </div>
       </header>
 

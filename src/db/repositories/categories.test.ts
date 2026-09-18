@@ -6,10 +6,13 @@ import { RepositoryError } from '@/db/errors';
 import {
   createCategory,
   DEFAULT_CATEGORIES,
+  defaultCategoriesFor,
   listCategories,
   seedDefaultCategories,
   setCategoryArchived,
 } from '@/db/repositories/categories';
+import { changeCountry } from '@/db/repositories/settings';
+import { setCurrentCountry } from '@/i18n/country';
 
 beforeEach(async () => {
   await clearAllData();
@@ -44,5 +47,27 @@ describe('categories of one’s own', () => {
     expect((await listCategories({ includeArchived: true })).map((category) => category.id)).toContain(
       pet.id,
     );
+  });
+});
+
+describe('categories: the starter set of a country', () => {
+  it('leaves the advance of a Russian payroll out of the United States', () => {
+    expect(defaultCategoriesFor('ru').map((category) => category.id)).toContain('advance');
+    expect(defaultCategoriesFor('us').map((category) => category.id)).not.toContain('advance');
+    expect(defaultCategoriesFor('us')).toHaveLength(DEFAULT_CATEGORIES.length - 1);
+  });
+
+  it('seeds the set of the country of the page', async () => {
+    // the app session sets the country of the page from the settings before a screen is drawn
+    await changeCountry('us');
+    setCurrentCountry('us');
+    await seedDefaultCategories();
+
+    const ids = (await db.categories.toArray()).map((category) => category.id);
+    expect(ids).not.toContain('advance');
+    expect(ids).toContain('salary');
+
+    await changeCountry('ru');
+    setCurrentCountry('ru');
   });
 });

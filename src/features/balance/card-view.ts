@@ -12,16 +12,19 @@ import { percentLabel } from '@/i18n/format';
 
 const DAY_MONTH = new Intl.DateTimeFormat(currentLocale(), { day: 'numeric', month: 'long' });
 
-/** «14 октября 2026». */
+/** «14 октября 2026», "October 14, 2026". */
 export function fullDateLabel(date: IsoDate): string {
   const [year, month, day] = date.split('-').map(Number);
-  return `${DAY_MONTH.format(new Date(year, month - 1, day))} ${year}`;
+  return fill(strings.formats.fullDate, {
+    dayMonth: DAY_MONTH.format(new Date(year, month - 1, day)),
+    year,
+  });
 }
 
 /** «14 октября» within this year, «14 октября 2027» beyond it. */
 export function dateLabel(date: IsoDate, today: IsoDate = todayIso()): string {
   return date.slice(0, 4) === today.slice(0, 4)
-    ? fullDateLabel(date).replace(/ \d{4}$/, '')
+    ? fullDateLabel(date).replace(/,? \d{4}$/, '')
     : fullDateLabel(date);
 }
 

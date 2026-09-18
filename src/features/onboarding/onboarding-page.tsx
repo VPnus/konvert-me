@@ -6,6 +6,7 @@ import { formatMinor, rublesToMinor } from '@/core/money';
 import { parseNumericInput } from '@/lib/numeric-input';
 import { addMonths, currentMonth } from '@/core/time';
 import { CatLogo } from '@/components/brand/cat-logo';
+import { LanguageToggle } from '@/components/i18n/language-toggle';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
@@ -105,12 +106,14 @@ export default function OnboardingPage() {
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-xl flex-col gap-6 px-4 py-8">
-      <header className="flex items-center gap-3">
+      <header className="flex items-start gap-3">
         <CatLogo className="size-12 shrink-0" />
-        <div>
+        <div className="min-w-0 flex-1">
           <p className="text-lg font-semibold">{strings.app.name}</p>
           <p className="text-sm text-muted-foreground">{strings.onboarding.intro}</p>
         </div>
+        {/* The language before the first question: a person who does not read Russian starts here. */}
+        <LanguageToggle className="shrink-0" />
       </header>
 
       <div className="flex items-center gap-3">
@@ -145,7 +148,7 @@ export default function OnboardingPage() {
                   data-testid={`onboarding-country-${country}`}
                   onClick={() => void chooseCountry(country)}
                 >
-                  {strings.countries[country]}
+                  {strings.budgets[country]}
                 </Button>
               ))}
             </div>

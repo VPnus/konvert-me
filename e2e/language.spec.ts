@@ -71,6 +71,38 @@ test.describe('the language of the page', () => {
     }
   });
 
+  test('one press in the header of the site turns the landing into English', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Бюджет, цели и конверты');
+    await page.getByTestId('language-toggle').click();
+
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Budget, goals and envelopes');
+    // and the introduction opens in English, with the same button in its header
+    await page.getByTestId('landing-start').click();
+    await expect(page.getByTestId('language-toggle')).toBeVisible();
+    expect(await russianOnScreen(page)).toEqual([]);
+  });
+
+  test('the names the app wrote itself follow the language', async ({ page }) => {
+    await skipOnboarding(page);
+
+    await page.goto('/budget');
+    await expect(page.getByRole('cell', { name: 'Зарплата', exact: true })).toBeVisible();
+
+    await page.goto('/settings');
+    await page.getByTestId('language-en').click();
+    await expect(page.getByRole('heading', { name: 'Settings', level: 1 })).toBeVisible();
+
+    await page.goto('/budget');
+    await expect(page.getByRole('cell', { name: 'Salary', exact: true })).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'Зарплата', exact: true })).toHaveCount(0);
+
+    // a name the person gave stays theirs whatever the language
+    await page.goto('/goals');
+    await expect(page.getByText('Emergency fund').first()).toBeVisible();
+  });
+
   test('the language is chosen in the settings and holds after a reload', async ({ page }) => {
     await skipOnboarding(page);
 
@@ -94,6 +126,6 @@ test.describe('a browser that speaks English', () => {
   test('gets the app in English without anything saved on the device', async ({ page }) => {
     await page.goto('/welcome');
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
-    await expect(page.getByRole('heading', { name: 'Where do you live?' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Which currency do you count in?' })).toBeVisible();
   });
 });

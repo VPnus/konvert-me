@@ -23,6 +23,9 @@ import { publishAppEvent } from '@/lib/broadcast';
 
 export interface AccountInput {
   name: string;
+  /** Schema 12: the app opened this account itself, so its name follows the language until renamed. */
+  defaultKey?: Account['defaultKey'];
+  defaultName?: string;
   side: Account['side'];
   type: AccountType;
   openingBalanceMinor: number;

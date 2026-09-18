@@ -1,4 +1,18 @@
 {
+  "0.19.1": {
+    "ru": [
+      "Кнопка языка в шапке: переключиться на английский можно прямо с лендинга и со знакомства, не заходя в настройки.",
+      "Стартовые категории, счета знакомства и цель «Финансовый резерв» переезжают на язык приложения; то, что вы переименовали сами, остаётся как есть.",
+      "Вместо выбора страны — выбор бюджета: «Рублёвый бюджет» или «Долларовый бюджет».",
+      "Настройка «Левша» показывается только на телефоне, где вкладки стоят столбиком у края."
+    ],
+    "en": [
+      "A language button in the header: English is one press away from the landing and the introduction, without going into the settings.",
+      "The starter categories, the accounts of the introduction and the Emergency fund goal follow the language of the app; anything you renamed yourself stays as it is.",
+      "Instead of choosing a country you choose a budget: in rubles or in dollars.",
+      "The left-handed setting is shown on a phone only, where the tabs stand in a column at the edge."
+    ]
+  },
   "0.19.0": {
     "ru": [
       "Приложение говорит по-английски: язык выбирается в «Настройках», а новому человеку подставляется язык браузера.",

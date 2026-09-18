@@ -59,7 +59,7 @@ export function CountryCard() {
                 if (country !== current) setTarget(country);
               }}
             >
-              {strings.countries[country]}
+              {strings.budgets[country]}
             </Button>
           ))}
         </div>
@@ -76,7 +76,7 @@ export function CountryCard() {
         description={
           target
             ? fill(strings.settings.countryConfirmText, {
-                country: strings.countries[target],
+                budget: strings.budgets[target],
                 from: formatMinor(EXAMPLE_MINOR, { fractionDigits: 0 }),
                 to: formatMinor(EXAMPLE_MINOR, { fractionDigits: 0, currency: COUNTRY_CURRENCY[target] }),
               })

@@ -294,6 +294,11 @@ export const en: Dictionary = {
     ru: 'Russian',
     en: 'English',
   },
+  budgets: {
+    ru: 'Budget in rubles',
+    us: 'Budget in dollars',
+  },
+  languageSwitch: 'Switch the language to {language}',
   accounts: {
     title: 'Accounts and debts',
     subtitle: 'The balance works itself out: the opening balance plus the transactions.',
@@ -1560,14 +1565,15 @@ export const en: Dictionary = {
     dangerAction: 'Delete all data',
     languageTitle: 'Language',
     languageText: 'The language of the interface. Another one reloads the page; the data stays where it is.',
-    countryTitle: 'Country',
+    countryTitle: 'Budget currency',
     countryText:
-      'The country sets the currency of all sums, the rules and the sections: Deductions exist only ' +
-      'for Russia, and Tax accounts only for the United States.',
-    countryConfirmTitle: 'Change the country?',
+      'A budget in rubles is counted by the rules of Russia, one in dollars by the rules of the ' +
+      'United States. That sets the currency of all sums, the rules and the sections: Deductions ' +
+      'exist only for Russia, and Tax accounts only for the United States.',
+    countryConfirmTitle: 'Change the budget currency?',
     countryConfirmText:
-      'New country: {country}. Sums are not converted: {from} becomes {to}. The currency, the rules and the sections will be those of this country. You can switch back here.',
-    countryConfirm: 'Change the country',
+      'New budget: {budget}. Sums are not converted: {from} becomes {to}. The currency, the rules and the sections will be those of that country. You can switch back here.',
+    countryConfirm: 'Change the budget',
     backupCountry:
       'This backup was made for another country: {country}. Its sums are not converted, and the currency, the rules and the sections of the app will be those of the country of the backup.',
     dangerConfirmTitle: 'Delete all data?',
@@ -1631,9 +1637,11 @@ export const en: Dictionary = {
     title: 'Getting started',
     intro:
       'Six short questions, and the app works out how much to set aside and whether the budget holds up.',
-    countryTitle: 'Where do you live?',
+    countryTitle: 'Which currency do you count in?',
     countryText:
-      'The country sets the currency of all sums, the rules and the sections of the app. You can change it in Settings.',
+      'A budget in rubles is counted by the rules of Russia, one in dollars by the rules of the ' +
+      'United States: that sets the currency of all sums, the rules and the sections of the app. ' +
+      'You can change it in Settings.',
     step: 'Step',
     of: 'of',
     next: 'Next',

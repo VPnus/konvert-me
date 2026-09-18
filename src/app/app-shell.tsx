@@ -6,6 +6,7 @@ import { DataRiskBanner } from '@/components/common/data-risk-banner';
 import { ErrorBoundary } from '@/components/common/error-boundary';
 import { UpdatedNotice } from '@/components/pwa/updated-notice';
 import { CatLogo } from '@/components/brand/cat-logo';
+import { LanguageToggle } from '@/components/i18n/language-toggle';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { navItemsFor, type NavItem } from '@/app/navigation';
 import { CardReminderBanner } from '@/features/balance/card-reminder-banner';
@@ -113,6 +114,7 @@ export function AppShell() {
           </div>
 
           <div className="flex shrink-0 items-center">
+            <LanguageToggle />
             <ReportProblemButton />
             <ThemeToggle />
           </div>

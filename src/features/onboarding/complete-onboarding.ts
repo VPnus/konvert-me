@@ -66,6 +66,8 @@ export async function completeOnboarding(answers: OnboardingAnswers): Promise<vo
   if (answers.savingsRub > 0) {
     await createAccount({
       name: strings.defaults.savingsAccount,
+      defaultKey: 'savingsAccount',
+      defaultName: strings.defaults.savingsAccount,
       side: 'asset',
       type: 'savings',
       openingBalanceMinor: rublesToMinor(answers.savingsRub),
@@ -76,6 +78,8 @@ export async function completeOnboarding(answers: OnboardingAnswers): Promise<vo
   if (answers.debtBalanceRub > 0 || answers.debtPaymentRub > 0) {
     await createAccount({
       name: strings.defaults.debtAccount,
+      defaultKey: 'debtAccount',
+      defaultName: strings.defaults.debtAccount,
       side: 'liability',
       type: 'other_debt',
       openingBalanceMinor: rublesToMinor(answers.debtBalanceRub),

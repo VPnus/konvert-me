@@ -40,7 +40,7 @@ export async function seedDefaultCategories(): Promise<number> {
     .map((category, index) =>
       parseOrThrow(
         categorySchema,
-        { ...category, sortOrder: existing.size + index, archived: false },
+        { ...category, defaultName: category.name, sortOrder: existing.size + index, archived: false },
         strings.data.subjects.category,
       ),
     );

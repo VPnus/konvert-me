@@ -49,7 +49,7 @@ test.describe('the country of the data', () => {
     await page.goto('/welcome');
 
     await expect(page.getByText('Шаг 1 из 6')).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Где вы живёте?' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'В какой валюте вы считаете деньги?' })).toBeVisible();
     await expect(page.getByTestId('onboarding-country-ru')).toHaveAttribute('aria-pressed', 'true');
     await page.getByTestId('onboarding-country-us').click();
     await expect(page.getByTestId('onboarding-country-us')).toHaveAttribute('aria-pressed', 'true');

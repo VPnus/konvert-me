@@ -112,3 +112,12 @@ test.describe('narrow screen, 375 px', () => {
     }
   });
 });
+
+test('the choice of the hand is not offered on a wide screen', async ({ page, viewport }) => {
+  test.skip((viewport?.width ?? 0) < 768, 'this is about the wide layout');
+
+  await page.goto('/settings');
+  await expect(page.getByTestId('language-card')).toBeVisible();
+  // the tabs stand above the page there, so there is no side to choose
+  await expect(page.getByTestId('hand-card')).toBeHidden();
+});

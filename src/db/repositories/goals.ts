@@ -23,6 +23,9 @@ export const RESERVE_GOAL_ID = 'reserve';
 
 export interface GoalInput {
   name: string;
+  /** Schema 12: the app created this goal itself, so its name follows the language until renamed. */
+  defaultKey?: Goal['defaultKey'];
+  defaultName?: string;
   kind: Goal['kind'];
   costMinor: number;
   costAsOf?: IsoMonth;
@@ -58,6 +61,8 @@ export async function createGoal(input: GoalInput): Promise<Goal> {
     {
       id: isReserve ? RESERVE_GOAL_ID : crypto.randomUUID(),
       name: input.name,
+      defaultKey: input.defaultKey,
+      defaultName: input.defaultName,
       kind: input.kind,
       priority: isReserve ? 0 : (input.priority ?? (await nextPriority())),
       costMinor: input.costMinor,
@@ -122,7 +127,13 @@ export async function ensureReserveGoal(): Promise<Goal> {
   const existing = await db.goals.get(RESERVE_GOAL_ID);
   if (existing) return existing;
 
-  return createGoal({ name: strings.defaults.reserveGoal, kind: 'reserve', costMinor: 0 });
+  return createGoal({
+    name: strings.defaults.reserveGoal,
+    defaultKey: 'reserveGoal',
+    defaultName: strings.defaults.reserveGoal,
+    kind: 'reserve',
+    costMinor: 0,
+  });
 }
 
 export async function listEnvelopes(): Promise<Envelope[]> {

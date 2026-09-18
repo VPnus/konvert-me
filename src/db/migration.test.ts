@@ -268,6 +268,8 @@ describe('schema migration', () => {
     expect(await v8.categories.get('subscriptions')).toEqual({
       id: 'subscriptions',
       name: 'Подписки и комиссии',
+      // schema 12 marks the name as the one the app wrote, so it can follow the language
+      defaultName: 'Подписки и комиссии',
       kind: 'expense',
       group: 'variable',
       sortOrder: 21,

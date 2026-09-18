@@ -9,12 +9,16 @@ const OPTIONS: readonly { readonly hand: Hand; readonly label: string }[] = [
   { hand: 'left', label: strings.settings.handLeft },
 ];
 
-/** The side the tabs of a phone stand on: the choice applies at once and stays on this device. */
+/**
+ * The side the tabs of a phone stand on: the choice applies at once and stays on this device. The
+ * card itself is for a phone only — on a wide screen the tabs stand above the page, and a choice of
+ * the hand there would mean nothing. The same breakpoint as the rail of the tabs.
+ */
 export function HandCard() {
   const hand = useHand();
 
   return (
-    <Card data-testid="hand-card">
+    <Card data-testid="hand-card" className="md:hidden">
       <CardHeader>
         <CardTitle>{strings.settings.handTitle}</CardTitle>
         <CardDescription>{strings.settings.handText}</CardDescription>

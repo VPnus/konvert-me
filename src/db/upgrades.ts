@@ -7,6 +7,7 @@
 import { splitUsedBefore } from '@/core/deductions';
 import { rulesForYear } from '@/core/rules';
 import { CATEGORIES_OF_SCHEMA_8, DEFAULT_CATEGORIES } from '@/db/default-categories';
+import { strings } from '@/i18n';
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -70,3 +71,36 @@ export function upgradeIncomeSource(record: unknown): unknown {
   const { dayOfMonth, ...rest } = record;
   return { ...rest, schedule: { kind: 'monthly', dayOfMonth } };
 }
+
+/**
+ * Schema 12: the names the app wrote itself are marked as such, so they can follow the language
+ * later. A row is marked only while it still carries the name the dictionary of this page gives it:
+ * anything renamed by the person belongs to the person and is left alone for good.
+ */
+export function markDefaultNames(record: unknown, table: 'categories' | 'accounts' | 'goals'): boolean {
+  if (!isObject(record) || typeof record.name !== 'string' || record.defaultName !== undefined) {
+    return false;
+  }
+
+  if (table === 'categories') {
+    const wanted = DEFAULT_CATEGORIES.find((category) => category.id === record.id)?.name;
+    if (wanted === undefined || wanted !== record.name) return false;
+    record.defaultName = wanted;
+    return true;
+  }
+
+  if (table === 'accounts') {
+    const key = DEFAULT_ACCOUNT_KEYS.find((candidate) => strings.defaults[candidate] === record.name);
+    if (!key) return false;
+    record.defaultKey = key;
+    record.defaultName = record.name;
+    return true;
+  }
+
+  if (record.id !== 'reserve' || record.name !== strings.defaults.reserveGoal) return false;
+  record.defaultKey = 'reserveGoal';
+  record.defaultName = record.name;
+  return true;
+}
+
+const DEFAULT_ACCOUNT_KEYS = ['savingsAccount', 'debtAccount'] as const;

@@ -16,7 +16,19 @@ import { fill, strings } from '@/i18n';
 /** The refusals of the checks, in the language of the page. */
 const invalid = strings.data.validation;
 
-export const SCHEMA_VERSION = 11;
+export const SCHEMA_VERSION = 12;
+
+/**
+ * Schema 12: the names the app writes itself, not the person. A row that still carries the name the
+ * app gave it follows the language of the page; once the person renames it, the name is theirs and
+ * nothing touches it again.
+ */
+export const DEFAULT_NAME_KEYS = ['savingsAccount', 'debtAccount', 'reserveGoal'] as const;
+export type DefaultNameKey = (typeof DEFAULT_NAME_KEYS)[number];
+
+/** Schema 12: the name the app gave the row, exactly as it was written. */
+const defaultName = z.string().max(120).optional();
+const defaultKey = z.enum(DEFAULT_NAME_KEYS).optional();
 
 const isoDate = z.string().refine(isIsoDate, { message: invalid.date });
 const isoMonth = z.string().refine(isIsoMonth, { message: invalid.month });
@@ -72,6 +84,9 @@ export const accountSchema = z
   .object({
     id,
     name,
+    /** Schema 12: the account the introduction opened follows the language until it is renamed. */
+    defaultName,
+    defaultKey,
     side: z.enum(['asset', 'liability']),
     type: z.enum([...ASSET_TYPES, ...LIABILITY_TYPES]),
     /** Schema 9: the currency of the country of the data; one for all the accounts. */
@@ -123,6 +138,8 @@ export const accountSchema = z
 export const categorySchema = z.object({
   id,
   name,
+  /** While the name is the one the app wrote, it follows the language of the page. */
+  defaultName,
   kind: z.enum(['income', 'expense']),
   group: z.enum(['mandatory', 'variable']).optional(),
   icon: z.string().max(40).optional(),
@@ -196,6 +213,9 @@ export const goalSchema = z
   .object({
     id,
     name,
+    /** Schema 12: the goal the app created itself follows the language until it is renamed. */
+    defaultName,
+    defaultKey,
     priority: z.number().int().min(0),
     kind: z.enum(['reserve', 'purchase', 'education', 'pension', 'other']),
     costMinor: nonNegativeMinor,

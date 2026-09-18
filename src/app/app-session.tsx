@@ -1,8 +1,10 @@
 import { useLiveQuery } from 'dexie-react-hooks';
+import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 
 import { StorageBootstrap } from '@/components/common/storage-bootstrap';
 import { DEFAULT_COUNTRY } from '@/core/country';
+import { retranslateDefaults } from '@/db/repositories/defaults';
 import { getCountry } from '@/db/repositories/settings';
 import { useDataVersion } from '@/hooks/use-data-version';
 import { useRecordAppOpen } from '@/hooks/use-usage';
@@ -24,6 +26,14 @@ export function AppSession() {
   // error inside its own boundary, instead of a blank page.
   const country = useLiveQuery(() => getCountry().catch(() => DEFAULT_COUNTRY), [dataVersion]);
   if (country !== undefined) setCurrentCountry(country);
+
+  // The names the app wrote itself follow the language and the country of the page: a starter
+  // category, an account of the introduction, the goal of the emergency fund. A name the person
+  // has changed is theirs and stays as it is. Failure changes nothing on the screen.
+  useEffect(() => {
+    if (country === undefined) return;
+    void retranslateDefaults().catch(() => undefined);
+  }, [country]);
 
   return (
     <>

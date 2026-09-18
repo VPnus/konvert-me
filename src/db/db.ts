@@ -25,7 +25,12 @@ import type {
   TaxDocument,
   Transaction,
 } from '@/db/models';
-import { categoriesOfSchema8, upgradeDeductionYear, upgradeIncomeSource } from '@/db/upgrades';
+import {
+  categoriesOfSchema8,
+  markDefaultNames,
+  upgradeDeductionYear,
+  upgradeIncomeSource,
+} from '@/db/upgrades';
 
 export const DATABASE_NAME = 'konvert-me';
 
@@ -155,6 +160,22 @@ export class KonvertDatabase extends Dexie {
     this.version(11).stores({
       taxAccounts: 'id, kind, sortOrder, archived',
     });
+
+    // v12 marks the names the app wrote itself — the starter categories, the accounts of the
+    // introduction, the goal of the emergency fund — so they can follow the language of the page.
+    // A name the person has changed is not marked and stays theirs.
+    this.version(12)
+      .stores({})
+      .upgrade(async (transaction) => {
+        for (const table of ['categories', 'accounts', 'goals'] as const) {
+          await transaction
+            .table(table)
+            .toCollection()
+            .modify((record: Record<string, unknown>) => {
+              markDefaultNames(record, table);
+            });
+        }
+      });
   }
 }
 

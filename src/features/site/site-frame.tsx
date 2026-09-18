@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
 import { CatLogo } from '@/components/brand/cat-logo';
+import { LanguageToggle } from '@/components/i18n/language-toggle';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { buttonVariants } from '@/components/ui/button';
 import { fill, strings } from '@/i18n';
@@ -31,6 +32,7 @@ export function SiteFrame({ action, children }: SiteFrameProps) {
             <span className="truncate text-base font-semibold md:text-lg">{strings.app.name}</span>
           </Link>
           <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+            <LanguageToggle />
             <ThemeToggle />
             <Link to={action.to} className={buttonVariants({ size: 'sm' })} data-testid={action.testId}>
               {action.shortLabel ? (

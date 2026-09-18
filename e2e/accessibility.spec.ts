@@ -52,6 +52,7 @@ for (const size of WIDTHS) {
       await page.goto('/welcome');
       await expect(page.locator('html')).toHaveAttribute('lang', 'ru');
       const steps: [string, () => Promise<void>][] = [
+        ['onboarding-country', () => Promise.resolve()],
         ['onboarding-income', () => page.getByTestId('onboarding-income').fill('150000')],
         ['onboarding-mandatory', () => page.getByTestId('onboarding-mandatory').fill('70000')],
         ['onboarding-variable', () => page.getByTestId('onboarding-variable').fill('30000')],
@@ -69,7 +70,7 @@ for (const size of WIDTHS) {
         await answer();
         await page.getByTestId('onboarding-next').click();
       }
-      await audit(page, findings, 'знакомство, шаг 5');
+      await audit(page, findings, 'знакомство, шаг 6');
       await page.getByTestId('onboarding-goal-name').fill('Квартира');
       await page.getByTestId('onboarding-goal-cost').fill('4000000');
       await page.getByTestId('onboarding-goal-month').fill('2030-09');
@@ -117,7 +118,86 @@ for (const size of WIDTHS) {
       await expect(page.locator(DIALOG).first()).toBeVisible();
       await audit(page, findings, '/overview → каталог виджетов', DIALOG);
 
+      // The tab of the United States, with a card of a limit and the form of an account.
+      await page.goto('/settings');
+      await page.getByTestId('country-us').click();
+      await page.getByTestId('confirm-action').click();
+      await expect(page.getByTestId('country-us')).toHaveAttribute('aria-pressed', 'true');
+      await page.goto('/tax-accounts');
+      await audit(page, findings, '/tax-accounts');
+      await page.getByTestId('add-tax-account').click();
+      await expect(page.locator(DIALOG).first()).toBeVisible();
+      await audit(page, findings, '/tax-accounts → новый счёт', DIALOG);
+      await page.keyboard.press('Escape');
+      await page.getByTestId('tax-account-name').waitFor({ state: 'detached' });
+
+      await page.getByTestId('add-tax-account').click();
+      await page.getByTestId('tax-account-name').fill('401(k)');
+      await page.getByTestId('tax-account-save').click();
+      await expect(page.getByTestId('limit-deferral')).toBeVisible();
+      await audit(page, findings, '/tax-accounts со счётом');
+
       expect(findings).toEqual({});
     });
   }
 }
+
+test('contrast, keyboard and names of the controls — English, laptop', async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.addInitScript(() => localStorage.setItem('konvert-me.language', 'en'));
+  const findings: Findings = {};
+
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+  await audit(page, findings, 'landing');
+  await page.goto('/privacy');
+  await audit(page, findings, 'privacy policy');
+
+  await page.goto('/welcome');
+  await audit(page, findings, 'introduction, the country');
+  // The introduction is answered, not skipped: the screens after it need accounts and a goal.
+  await page.getByTestId('onboarding-country-us').click();
+  await page.getByTestId('onboarding-next').click();
+  await page.getByTestId('onboarding-income').fill('5000');
+  await page.getByTestId('onboarding-next').click();
+  await page.getByTestId('onboarding-mandatory').fill('2000');
+  await page.getByTestId('onboarding-next').click();
+  await page.getByTestId('onboarding-variable').fill('1000');
+  await page.getByTestId('onboarding-next').click();
+  await page.getByTestId('onboarding-savings').fill('10000');
+  await page.getByTestId('onboarding-next').click();
+  await audit(page, findings, 'introduction, the goal');
+  await page.getByTestId('onboarding-goal-name').fill('A house');
+  await page.getByTestId('onboarding-goal-cost').fill('300000');
+  await page.getByTestId('onboarding-goal-month').fill('2032-09');
+  await page.getByTestId('onboarding-finish').click();
+  await expect(page).toHaveURL(/\/overview$/, { timeout: 15_000 });
+
+  const pages = ['/overview', '/budget', '/goals', '/balance', '/tax-accounts', '/settings'];
+  for (let step = 1; step <= 8; step += 1) pages.push(`/plan?step=${step}`);
+  for (const path of pages) {
+    await page.goto(path);
+    await audit(page, findings, path);
+  }
+
+  const opened: [string, string][] = [
+    ['/budget', 'add-transaction'],
+    ['/balance', 'add-income-source'],
+    ['/tax-accounts', 'add-tax-account'],
+    ['/goals', 'add-goal'],
+  ];
+  for (const [path, opener] of opened) {
+    await page.goto(path);
+    await page.locator(`[data-testid="${opener}"]:visible`).first().click();
+    const dialog = await page
+      .locator(DIALOG)
+      .first()
+      .waitFor({ timeout: 1500 })
+      .then(() => true)
+      .catch(() => false);
+    await audit(page, findings, `${path} → ${opener}`, dialog ? DIALOG : 'body');
+  }
+
+  expect(findings).toEqual({});
+});

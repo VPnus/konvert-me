@@ -20,15 +20,33 @@ function storage(): Storage | null {
 }
 
 /**
- * The language chosen on this device, Russian otherwise. Until English is finished (stage 9.5)
- * nothing in the interface chooses it, and the language of the browser is not asked.
+ * The language of the browser, if the app speaks it: "en-GB" and "en" alike are English. Nothing
+ * else about the browser is read, and a language chosen on the device always wins over it.
+ */
+export function languageOfBrowser(tags: readonly string[] = browserTags()): Language | null {
+  for (const tag of tags) {
+    const base = tag.toLowerCase().split('-')[0];
+    const known = LANGUAGES.find((language) => language === base);
+    if (known) return known;
+  }
+  return null;
+}
+
+function browserTags(): readonly string[] {
+  if (typeof navigator === 'undefined') return [];
+  return navigator.languages?.length ? navigator.languages : [navigator.language];
+}
+
+/**
+ * The language chosen on this device; without a choice, the language of the browser; Russian
+ * otherwise. The choice is written by the settings and takes effect on the next load.
  */
 export function readLanguage(store: Storage | null = storage()): Language {
   try {
     const saved = store?.getItem(LANGUAGE_STORAGE_KEY);
-    return LANGUAGES.find((language) => language === saved) ?? 'ru';
+    return LANGUAGES.find((language) => language === saved) ?? languageOfBrowser() ?? 'ru';
   } catch {
-    return 'ru';
+    return languageOfBrowser() ?? 'ru';
   }
 }
 

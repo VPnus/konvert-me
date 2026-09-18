@@ -286,6 +286,10 @@ export const en: Dictionary = {
     ru: 'Russia',
     us: 'United States',
   },
+  languages: {
+    ru: 'Russian',
+    en: 'English',
+  },
   accounts: {
     title: 'Accounts and debts',
     subtitle: 'The balance works itself out: the opening balance plus the transactions.',
@@ -1545,6 +1549,8 @@ export const en: Dictionary = {
     dangerTitle: 'Deleting data',
     dangerText: 'Clearing deletes all accounts, transactions and goals from this browser.',
     dangerAction: 'Delete all data',
+    languageTitle: 'Language',
+    languageText: 'The language of the interface. Another one reloads the page; the data stays where it is.',
     countryTitle: 'Country',
     countryText:
       'The country sets the currency of all sums, the rules and the sections: Deductions exist only for Russia.',

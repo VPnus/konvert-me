@@ -20,7 +20,6 @@ import { changeCountry } from '@/db/repositories/settings';
 import { useSettingsState } from '@/hooks/use-settings';
 import { strings } from '@/i18n';
 import { inCurrency } from '@/i18n/format';
-import { countryChoiceShown } from '@/lib/preview';
 
 const QUESTIONS = ['income', 'mandatory', 'variable', 'accounts', 'goal'] as const;
 type Question = 'country' | (typeof QUESTIONS)[number];
@@ -45,10 +44,8 @@ export default function OnboardingPage() {
   }));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // The country comes first: every sum asked after it is in its currency. Hidden until stage 9.5.
-  const [questions] = useState<readonly Question[]>(() =>
-    countryChoiceShown() ? ['country', ...QUESTIONS] : QUESTIONS,
-  );
+  // The country comes first: every sum asked after it is in its currency.
+  const questions: readonly Question[] = ['country', ...QUESTIONS];
   const steps = questions.length;
   const question = questions[step - 1];
 

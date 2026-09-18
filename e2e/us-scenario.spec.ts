@@ -2,15 +2,10 @@ import { expect, test, type Page } from '@playwright/test';
 
 /**
  * Stage 9.4: a person who lives in the United States goes through the app in English — a pay every
- * fortnight, a 401(k) with a match of the employer, and the order the plan puts the steps in.
- * Until stage 9.5 neither the language nor the country is offered on the screen, so the test sets
- * them the way the switches will.
+ * fortnight, a 401(k) with a match of the employer, and the order the plan puts the steps in. The
+ * language is saved the way the settings save it; the country is chosen in the introduction.
  */
-const american = (page: Page) =>
-  page.addInitScript(() => {
-    localStorage.setItem('konvert-me.language', 'en');
-    localStorage.setItem('konvert-me.country-choice', 'on');
-  });
+const american = (page: Page) => page.addInitScript(() => localStorage.setItem('konvert-me.language', 'en'));
 
 /** Every Russian word left on the screen, with a little of its context. */
 async function russianOnScreen(page: Page): Promise<string[]> {

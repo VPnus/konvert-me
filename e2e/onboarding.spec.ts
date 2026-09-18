@@ -13,6 +13,9 @@ async function passOnboarding(page: Page): Promise<number> {
   await page.goto('/overview');
   await expect(page).toHaveURL(/\/welcome$/);
 
+  // the first question is the country, and Russia is the answer already chosen
+  await act(() => page.getByTestId('onboarding-next').click());
+
   await act(() => page.getByTestId('onboarding-income').fill('150000'));
   await act(() => page.getByTestId('onboarding-next').click());
 
@@ -38,7 +41,7 @@ async function passOnboarding(page: Page): Promise<number> {
 }
 
 test.describe('onboarding', () => {
-  test('five steps give a dashboard that answers the main question', async ({ page }) => {
+  test('six steps give a dashboard that answers the main question', async ({ page }) => {
     const actions = await passOnboarding(page);
     expect(actions).toBeLessThanOrEqual(25);
 

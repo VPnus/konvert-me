@@ -7,7 +7,13 @@ import { strings } from '@/i18n';
 import { setCurrentCountry } from '@/i18n/country';
 import { en } from '@/i18n/en';
 import { inCurrency } from '@/i18n/format';
-import { LANGUAGE_STORAGE_KEY, readLanguage, setLanguageForTests, writeLanguage } from '@/i18n/locale';
+import {
+  LANGUAGE_STORAGE_KEY,
+  languageOfBrowser,
+  readLanguage,
+  setLanguageForTests,
+  writeLanguage,
+} from '@/i18n/locale';
 import { pluralForm } from '@/i18n/plural';
 import { ru } from '@/i18n/ru';
 
@@ -51,7 +57,15 @@ afterEach(() => {
 });
 
 describe('the language of the page', () => {
-  it('is Russian unless another one is saved on the device', () => {
+  it('follows the language of the browser when nothing is saved on the device', () => {
+    expect(languageOfBrowser(['en-GB', 'ru-RU'])).toBe('en');
+    expect(languageOfBrowser(['ru'])).toBe('ru');
+    // a language the app does not speak is passed over, and then there is none
+    expect(languageOfBrowser(['de-DE', 'fr'])).toBeNull();
+    expect(languageOfBrowser([])).toBeNull();
+  });
+
+  it('is the saved one first, the one of the browser after, and Russian at the end', () => {
     expect(readLanguage(memoryStorage())).toBe('ru');
     expect(readLanguage(memoryStorage({ [LANGUAGE_STORAGE_KEY]: 'en' }))).toBe('en');
     expect(readLanguage(memoryStorage({ [LANGUAGE_STORAGE_KEY]: 'de' }))).toBe('ru');

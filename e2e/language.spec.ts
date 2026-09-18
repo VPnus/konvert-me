@@ -3,8 +3,8 @@ import { expect, test, type Page } from '@playwright/test';
 import { skipOnboarding } from './helpers';
 
 /**
- * Stage 9: the words come from the language saved on the device. Nothing in the interface offers
- * English until stage 9.5, so these tests save it the way the switch will.
+ * Stage 9: the words come from the language saved on the device, and from the language of the
+ * browser when nothing is saved. The settings save it; these tests save it the same way.
  */
 const english = (page: Page) => page.addInitScript(() => localStorage.setItem('konvert-me.language', 'en'));
 
@@ -15,7 +15,7 @@ async function russianOnScreen(page: Page): Promise<string[]> {
 }
 
 test.describe('the language of the page', () => {
-  test('without a saved language the page is Russian', async ({ page }) => {
+  test('without a saved language the page follows the browser, Russian here', async ({ page }) => {
     await skipOnboarding(page);
 
     await expect(page.locator('html')).toHaveAttribute('lang', 'ru');
@@ -42,6 +42,9 @@ test.describe('the language of the page', () => {
     expect(await russianOnScreen(page)).toEqual([]);
 
     await page.goto('/welcome');
+    await expect(page.getByTestId('onboarding-country-us')).toBeVisible();
+    expect(await russianOnScreen(page)).toEqual([]);
+    await page.getByTestId('onboarding-next').click();
     await expect(page.getByTestId('onboarding-income')).toBeVisible();
     expect(await russianOnScreen(page)).toEqual([]);
   });
@@ -66,5 +69,31 @@ test.describe('the language of the page', () => {
       await expect(page.getByText(/Loading…|Counting…/)).toHaveCount(0);
       expect(await russianOnScreen(page), path).toEqual([]);
     }
+  });
+
+  test('the language is chosen in the settings and holds after a reload', async ({ page }) => {
+    await skipOnboarding(page);
+
+    await page.goto('/settings');
+    await expect(page.getByTestId('language-ru')).toHaveAttribute('aria-pressed', 'true');
+    await page.getByTestId('language-en').click();
+
+    await expect(page.getByRole('heading', { name: 'Settings', level: 1 })).toBeVisible();
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+    await page.reload();
+    await expect(page.getByTestId('language-en')).toHaveAttribute('aria-pressed', 'true');
+
+    await page.getByTestId('language-ru').click();
+    await expect(page.getByRole('heading', { name: 'Настройки', level: 1 })).toBeVisible();
+  });
+});
+
+test.describe('a browser that speaks English', () => {
+  test.use({ locale: 'en-US' });
+
+  test('gets the app in English without anything saved on the device', async ({ page }) => {
+    await page.goto('/welcome');
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+    await expect(page.getByRole('heading', { name: 'Where do you live?' })).toBeVisible();
   });
 });

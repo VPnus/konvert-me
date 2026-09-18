@@ -2,7 +2,7 @@ import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page, type TestInfo } from '@playwright/test';
 
 import { skipOnboarding } from './helpers';
 
@@ -193,8 +193,22 @@ async function addAccount(page: Page, name: string): Promise<void> {
 
 test.describe('10 000 operations', () => {
   test.setTimeout(180_000);
+  // One at a time: two runs of ten thousand operations side by side would measure each other.
+  test.describe.configure({ mode: 'serial' });
 
-  test('the budget opens and the overview is counted again within 500 ms', async ({ page }, testInfo) => {
+  // Both languages: the dictionary is a chunk of its own and the formats differ, so both are timed.
+  for (const language of ['ru', 'en'] as const) {
+    test(`the budget opens and the overview is counted again within 500 ms — ${language}`, async ({
+      page,
+    }, testInfo) => {
+      await page.addInitScript((value) => localStorage.setItem('konvert-me.language', value), language);
+      await runMeasurement(page, testInfo, language);
+    });
+  }
+});
+
+async function runMeasurement(page: Page, testInfo: TestInfo, language: 'ru' | 'en'): Promise<void> {
+  {
     await skipOnboarding(page);
     await page.goto('/balance');
     await addAccount(page, 'Карта');
@@ -223,7 +237,9 @@ test.describe('10 000 operations', () => {
 
     await page.getByTestId('backup-import').setInputFiles(file);
     await page.getByTestId('confirm-action').click();
-    await expect(page.getByTestId('backup-message')).toContainText('восстановлены', { timeout: 60_000 });
+    await expect(page.getByTestId('backup-message')).toContainText(/восстановлены|restored/, {
+      timeout: 60_000,
+    });
 
     await page.goto('/overview');
     await expect(page.getByTestId('widget-free-cash')).toContainText('₽');
@@ -262,8 +278,8 @@ test.describe('10 000 operations', () => {
     }
 
     const report = [
-      `Бюджет, мс: ${budget.map(Math.round).join(', ')}`,
-      `Обзор, мс: ${overview.map(Math.round).join(', ')}`,
+      `Бюджет (${language}), мс: ${budget.map(Math.round).join(', ')}`,
+      `Обзор (${language}), мс: ${overview.map(Math.round).join(', ')}`,
     ].join('\n');
     // In the terminal and in the HTML report of CI alike.
     process.stdout.write(`${report}\n`);
@@ -272,5 +288,5 @@ test.describe('10 000 operations', () => {
     // The requirement is a ceiling, so the slowest run is the one that has to fit.
     expect(Math.max(...budget), 'открытие «Бюджета»').toBeLessThanOrEqual(LIMIT_MS);
     expect(Math.max(...overview), 'пересчёт «Обзора»').toBeLessThanOrEqual(LIMIT_MS);
-  });
-});
+  }
+}

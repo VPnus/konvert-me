@@ -36,6 +36,9 @@ test.describe('the landing', () => {
     await page.getByTestId('landing-start').click();
 
     await expect(page).toHaveURL(/\/welcome$/);
+    // the first question is where the person lives; the money comes after it
+    await expect(page.getByTestId('onboarding-country-ru')).toBeVisible();
+    await page.getByTestId('onboarding-next').click();
     await expect(page.getByTestId('onboarding-income')).toBeVisible();
   });
 

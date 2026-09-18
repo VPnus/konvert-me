@@ -7,12 +7,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { account, RUB, seed, type BackupData } from './backup-seed';
 import { skipOnboarding } from './helpers';
 
-/**
- * Stage 9.3: the country of the data sets the currency, the norms and the tabs. Until stage 9.5 the
- * choice is hidden, so these tests show it the way the author does, with a key on the device.
- */
-const countryChoice = (page: Page) =>
-  page.addInitScript(() => localStorage.setItem('konvert-me.country-choice', 'on'));
+/** Stage 9.3: the country of the data sets the currency, the norms and the tabs. */
 const english = (page: Page) => page.addInitScript(() => localStorage.setItem('konvert-me.language', 'en'));
 
 const tabs = (page: Page) => page.getByRole('navigation', { name: /Разделы|Sections/ });
@@ -36,21 +31,21 @@ async function changeCountry(page: Page, country: 'ru' | 'us'): Promise<void> {
 }
 
 test.describe('the country of the data', () => {
-  test('until the release the choice of the country stays hidden', async ({ page }) => {
+  test('the country is the first question of the introduction and a card of the settings', async ({
+    page,
+  }) => {
     await page.goto('/welcome');
-    await expect(page.getByText('Шаг 1 из 5')).toBeVisible();
-    await expect(page.getByTestId('onboarding-income')).toBeVisible();
-    await expect(page.getByTestId('onboarding-country-us')).toHaveCount(0);
+    await expect(page.getByText('Шаг 1 из 6')).toBeVisible();
+    await expect(page.getByTestId('onboarding-country-us')).toBeVisible();
 
     await page.getByTestId('onboarding-skip').click();
     await expect(page).toHaveURL(/\/overview$/, { timeout: 15_000 });
     await page.goto('/settings');
-    await expect(page.getByTestId('backup-export')).toBeVisible();
-    await expect(page.getByTestId('country-card')).toHaveCount(0);
+    await expect(page.getByTestId('country-card')).toBeVisible();
+    await expect(page.getByTestId('country-ru')).toHaveAttribute('aria-pressed', 'true');
   });
 
   test('a newcomer from the United States answers in dollars and gets no deductions', async ({ page }) => {
-    await countryChoice(page);
     await page.goto('/welcome');
 
     await expect(page.getByText('Шаг 1 из 6')).toBeVisible();
@@ -86,7 +81,6 @@ test.describe('the country of the data', () => {
   test('another country changes the currency, the norms and the tabs, and converts no sum', async ({
     page,
   }) => {
-    await countryChoice(page);
     await skipOnboarding(page);
     await seed(page, (data: BackupData) => {
       data.accounts.push(
@@ -142,7 +136,6 @@ test.describe('the country of the data', () => {
   });
 
   test('an encrypted backup of another country names it once the password opens it', async ({ page }) => {
-    await countryChoice(page);
     await skipOnboarding(page);
     await changeCountry(page, 'us');
     const file = await exportBackup(page, 'secret-pass');
@@ -162,7 +155,6 @@ test.describe('the country of the data', () => {
 
   test('in English, the sums of the United States are written in dollars', async ({ page }) => {
     await english(page);
-    await countryChoice(page);
     await page.goto('/welcome');
 
     await page.getByTestId('onboarding-country-us').click();

@@ -17,10 +17,9 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { CheckCircle2, GripVertical, Pause, Pencil, Play, Plus, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 
 import { formatForecast } from '@/core/money';
-import { StackedBar } from '@/components/common/stacked-bar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -35,6 +34,8 @@ import { monthsLabel } from '@/features/goals/months-label';
 import { useDataVersion } from '@/hooks/use-data-version';
 import { fill, strings } from '@/i18n';
 import { cn } from '@/lib/utils';
+
+const DonutChart = lazy(() => import('@/components/common/donut-chart'));
 
 function statusOf(view: GoalView): string {
   if (view.goal.status === 'done') return strings.goals.statusDone;
@@ -274,30 +275,32 @@ function AllocationCard({ data }: { data: GoalsData }) {
         </div>
 
         {data.freeCashMinor > 0 ? (
-          <StackedBar
-            testId="allocation-bar"
-            caption={strings.goals.allocationTitle}
-            parts={[
-              {
-                key: 'principal',
-                label: strings.goals.allocationPrincipal,
-                amountMinor: Math.max(0, Math.round(data.principalDueMinor)),
-              },
-              {
-                key: 'goals',
-                label: strings.goals.allocationToGoals,
-                amountMinor: Math.max(
-                  0,
-                  Math.round(data.availableMinor) - Math.max(0, Math.round(data.leftoverMinor)),
-                ),
-              },
-              {
-                key: 'leftover',
-                label: strings.goals.allocationLeftover,
-                amountMinor: Math.max(0, Math.round(data.leftoverMinor)),
-              },
-            ].filter((part) => part.amountMinor > 0)}
-          />
+          <Suspense fallback={<p className="text-sm text-muted-foreground">{strings.common.loading}</p>}>
+            <DonutChart
+              testId="allocation-chart"
+              caption={strings.goals.allocationTitle}
+              parts={[
+                {
+                  key: 'principal',
+                  label: strings.goals.allocationPrincipal,
+                  amountMinor: Math.max(0, Math.round(data.principalDueMinor)),
+                },
+                {
+                  key: 'goals',
+                  label: strings.goals.allocationToGoals,
+                  amountMinor: Math.max(
+                    0,
+                    Math.round(data.availableMinor) - Math.max(0, Math.round(data.leftoverMinor)),
+                  ),
+                },
+                {
+                  key: 'leftover',
+                  label: strings.goals.allocationLeftover,
+                  amountMinor: Math.max(0, Math.round(data.leftoverMinor)),
+                },
+              ].filter((part) => part.amountMinor > 0)}
+            />
+          </Suspense>
         ) : null}
 
         {data.allocations.length === 0 ? (

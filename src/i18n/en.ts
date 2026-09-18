@@ -396,6 +396,7 @@ export const en: Dictionary = {
       hint: 'Expenses by category over the chosen period. Tap a row and the list below shows it.',
       rest: 'The rest',
       empty: 'Nothing to show yet: no expenses in this period.',
+      spent: 'Spent',
       noCategory: 'No category',
       yearTitle: 'Income and expenses by month',
       yearHint: 'The bars are the income and the expenses of a month, the line is what is left.',

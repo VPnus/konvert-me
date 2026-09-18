@@ -14,7 +14,6 @@ import { loadBudgetMonth, loadBudgetYear } from '@/features/budget/budget-data';
 import { loadOperations } from '@/features/budget/operations-data';
 import { isCurrentMonth, monthLabel } from '@/features/budget/month-label';
 import { CategoriesCard } from '@/features/budget/categories-card';
-import { CategoryChart } from '@/features/budget/category-chart';
 import { ImportCard } from '@/features/budget/import/import-card';
 import { PlanFactTable } from '@/features/budget/plan-fact-table';
 import { toggleId } from '@/features/budget/transaction-filter';
@@ -33,6 +32,7 @@ import { strings } from '@/i18n';
 
 // Recharts is heavy and only the year view needs it: it arrives when that view is opened.
 const YearChart = lazy(() => import('@/features/budget/year-chart'));
+const CategoryChart = lazy(() => import('@/features/budget/category-chart'));
 
 type Tab = 'month' | 'year';
 
@@ -291,17 +291,21 @@ export default function BudgetPage() {
                 </CardHeader>
                 <CardContent className="pt-3">
                   {operations && operations.expenses.length > 0 ? (
-                    <CategoryChart
-                      expenses={operations.expenses}
-                      categories={monthData.categories}
-                      chosen={filter.categoryIds}
-                      onPick={(categoryId) =>
-                        changeFilter((current) => ({
-                          ...current,
-                          categoryIds: toggleId(current.categoryIds, categoryId),
-                        }))
-                      }
-                    />
+                    <Suspense
+                      fallback={<p className="text-sm text-muted-foreground">{strings.common.loading}</p>}
+                    >
+                      <CategoryChart
+                        expenses={operations.expenses}
+                        categories={monthData.categories}
+                        chosen={filter.categoryIds}
+                        onPick={(categoryId: string) =>
+                          changeFilter((current) => ({
+                            ...current,
+                            categoryIds: toggleId(current.categoryIds, categoryId),
+                          }))
+                        }
+                      />
+                    </Suspense>
                   ) : (
                     <p className="text-sm text-muted-foreground" data-testid="category-chart-empty">
                       {strings.budget.chart.empty}

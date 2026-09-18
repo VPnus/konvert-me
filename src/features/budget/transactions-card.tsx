@@ -66,6 +66,53 @@ function Chip({
   );
 }
 
+/**
+ * The two dates of a period of one's own. They are typed one after another, and each of them is a
+ * separate change of the address of the page: if the fields were driven by the address, the second
+ * date could be typed before the first one came back, and the first would be wiped. So while this
+ * panel is open the fields hold their own value and the address only follows them.
+ */
+function CustomDates({
+  from,
+  to,
+  onChange,
+}: {
+  readonly from?: string;
+  readonly to?: string;
+  readonly onChange: (from: string | undefined, to: string | undefined) => void;
+}) {
+  const [draft, setDraft] = useState({ from: from ?? '', to: to ?? '' });
+
+  return (
+    <form
+      className="grid gap-2 sm:grid-cols-2"
+      onChange={(event) => {
+        const typed = new FormData(event.currentTarget);
+        const next = { from: String(typed.get('from') ?? ''), to: String(typed.get('to') ?? '') };
+        setDraft(next);
+        onChange(next.from || undefined, next.to || undefined);
+      }}
+    >
+      <Input
+        type="date"
+        name="from"
+        value={draft.from}
+        aria-label={strings.operations.period.from}
+        data-testid="period-from"
+        onChange={() => undefined}
+      />
+      <Input
+        type="date"
+        name="to"
+        value={draft.to}
+        aria-label={strings.operations.period.to}
+        data-testid="period-to"
+        onChange={() => undefined}
+      />
+    </form>
+  );
+}
+
 interface TransactionsCardProps {
   readonly categories: readonly Category[];
   readonly accounts: readonly Account[];
@@ -158,32 +205,13 @@ export function TransactionsCard({
         </div>
 
         {filter.period.kind === 'custom' ? (
-          <div className="grid gap-2 sm:grid-cols-2">
-            <Input
-              type="date"
-              value={filter.period.from ?? ''}
-              aria-label={strings.operations.period.from}
-              data-testid="period-from"
-              onChange={(event) =>
-                onFilterChange((current) => ({
-                  ...current,
-                  period: { kind: 'custom', from: event.target.value, to: current.period.to },
-                }))
-              }
-            />
-            <Input
-              type="date"
-              value={filter.period.to ?? ''}
-              aria-label={strings.operations.period.to}
-              data-testid="period-to"
-              onChange={(event) =>
-                onFilterChange((current) => ({
-                  ...current,
-                  period: { kind: 'custom', from: current.period.from, to: event.target.value },
-                }))
-              }
-            />
-          </div>
+          <CustomDates
+            from={filter.period.from}
+            to={filter.period.to}
+            onChange={(from, to) =>
+              onFilterChange((current) => ({ ...current, period: { kind: 'custom', from, to } }))
+            }
+          />
         ) : null}
 
         <Input

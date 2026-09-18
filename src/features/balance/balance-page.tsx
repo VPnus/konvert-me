@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ErrorBoundary } from '@/components/common/error-boundary';
-import { StackedBar } from '@/components/common/stacked-bar';
 import { AccountForm } from '@/features/balance/account-form';
 import { loadBalance, type BalanceData } from '@/features/balance/balance-data';
 import { accountDetails, cardStatus, fullDateLabel, limitStatus } from '@/features/balance/card-view';
@@ -25,6 +24,7 @@ import { cn } from '@/lib/utils';
 
 // Recharts is a chunk of its own: the balance screen is useful long before it draws.
 const CapitalChart = lazy(() => import('@/features/balance/capital-chart'));
+const DonutChart = lazy(() => import('@/components/common/donut-chart'));
 
 const RANGES: readonly { readonly months?: number; readonly label: string }[] = [
   { months: 12, label: strings.capital.range12 },
@@ -197,18 +197,22 @@ function MixCard({ data }: { data: BalanceData }) {
         <p className="text-sm text-muted-foreground">{strings.capital.mixHint}</p>
       </CardHeader>
       <CardContent className="flex flex-col gap-4 pt-3">
-        {assets.length > 0 ? (
-          <div className="flex flex-col gap-2">
-            <p className="text-xs font-medium text-muted-foreground">{strings.capital.assets}</p>
-            <StackedBar parts={assets} caption={strings.capital.assets} testId="mix-assets" />
+        <Suspense fallback={<p className="text-sm text-muted-foreground">{strings.common.loading}</p>}>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {assets.length > 0 ? (
+              <div className="flex flex-col gap-1">
+                <p className="text-xs font-medium text-muted-foreground">{strings.capital.assets}</p>
+                <DonutChart parts={assets} caption={strings.capital.assets} testId="mix-assets" />
+              </div>
+            ) : null}
+            {debts.length > 0 ? (
+              <div className="flex flex-col gap-1">
+                <p className="text-xs font-medium text-muted-foreground">{strings.capital.liabilities}</p>
+                <DonutChart parts={debts} caption={strings.capital.liabilities} testId="mix-debts" />
+              </div>
+            ) : null}
           </div>
-        ) : null}
-        {debts.length > 0 ? (
-          <div className="flex flex-col gap-2">
-            <p className="text-xs font-medium text-muted-foreground">{strings.capital.liabilities}</p>
-            <StackedBar parts={debts} caption={strings.capital.liabilities} testId="mix-debts" />
-          </div>
-        ) : null}
+        </Suspense>
       </CardContent>
     </Card>
   );

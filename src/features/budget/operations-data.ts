@@ -22,9 +22,10 @@ export interface OperationsData {
   /** How many the period holds without the other conditions: an empty list needs the right words. */
   readonly inPeriod: number;
   /**
-   * Where the expenses went, over everything found and not only over the page: the biggest
-   * categories by name and the tail as one. Counted from the same rows the list shows, so the
-   * picture and the list can never tell two different stories.
+   * Where the expenses went over the period: the biggest categories by name and the tail as one.
+   * Every condition of the filter is counted in but the chosen categories themselves — a category
+   * picked on the chart has to stay next to the others, or the picture would collapse to one bar
+   * and there would be nothing left to compare it with.
    */
   readonly expenses: Slice[];
 }
@@ -41,12 +42,14 @@ export interface OperationsOptions {
 
 export async function loadOperations({ filter, anchor, limit }: OperationsOptions): Promise<OperationsData> {
   const range = rangeOfPeriod(filter.period, anchor);
-  const [found, everything] = await Promise.all([
-    findTransactions({ ...filterToQuery(filter), ...range }),
+  const query = filterToQuery(filter);
+  const [found, everything, forChart] = await Promise.all([
+    findTransactions({ ...query, ...range }),
     findTransactions(range),
+    query.categoryIds ? findTransactions({ ...query, categoryIds: undefined, ...range }) : null,
   ]);
 
-  const byCategory = [...totalsByCategoryOf(found, 'expense')].map(([key, amountMinor]) => ({
+  const byCategory = [...totalsByCategoryOf(forChart ?? found, 'expense')].map(([key, amountMinor]) => ({
     key,
     amountMinor,
   }));

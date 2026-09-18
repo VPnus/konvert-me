@@ -45,11 +45,11 @@ test.describe('the charts', () => {
   test('the expenses by category add up to the total of the table', async ({ page }) => {
     await page.goto('/budget');
 
-    const rows = page.getByTestId('category-chart').getByRole('listitem');
-    await expect(rows).toHaveCount(4);
-    // the biggest category comes first
-    await expect(rows.first()).toContainText('Жильё и ЖКУ');
-    await expect(page.getByTestId('chart-row-housing')).toContainText(/25\s?000/);
+    await expect(page.getByTestId('category-chart')).toBeVisible();
+    // four categories, the biggest of them named on the axis
+    await expect(page.getByTestId('chart-pick-housing')).toBeVisible();
+    await expect(page.getByTestId('chart-pick-groceries')).toBeVisible();
+    await expect(page.getByTestId('category-chart')).toContainText('Жильё и ЖКУ');
 
     // 25 000 + 18 000 + 7 000 + 3 000 is what the table calls the expenses of the month
     await expect(page.getByTestId('total-expense')).toHaveText(/53\s?000/);
@@ -61,7 +61,9 @@ test.describe('the charts', () => {
     await page.getByTestId('chart-pick-cafe').click();
     await expect(page).toHaveURL(/category=cafe/);
     await expect(page.getByTestId('operation-row')).toHaveCount(1);
-    await expect(page.getByTestId('chart-pick-cafe')).toHaveAttribute('aria-pressed', 'true');
+    // the bar that is filtered by stands out, and the others stay to compare it with
+    await expect(page.getByTestId('chart-pick-cafe')).toHaveAttribute('fill-opacity', '1');
+    await expect(page.getByTestId('chart-pick-housing')).toHaveAttribute('fill-opacity', '0.62');
 
     // and off again
     await page.getByTestId('chart-pick-cafe').click();
@@ -79,7 +81,7 @@ test.describe('the charts', () => {
   test('the dashboard shows the shape of the year', async ({ page }) => {
     await page.goto('/overview');
 
-    await expect(page.getByTestId('trend-spark')).toBeVisible();
+    await expect(page.getByTestId('trend-chart')).toBeVisible();
     // 90 000 in, 53 000 out
     await expect(page.getByTestId('trend-this-month')).toHaveText(/37\s?000/);
   });
@@ -87,8 +89,8 @@ test.describe('the charts', () => {
   test('the free money of the month is drawn as one bar', async ({ page }) => {
     await page.goto('/goals');
 
-    await expect(page.getByTestId('allocation-bar')).toBeVisible();
-    await expect(page.getByTestId('allocation-bar')).toContainText('Резерв и цели');
+    await expect(page.getByTestId('allocation-chart')).toBeVisible();
+    await expect(page.getByTestId('allocation-chart')).toContainText('Резерв и цели');
   });
 
   test('the capital is shown as what it is made of', async ({ page }) => {

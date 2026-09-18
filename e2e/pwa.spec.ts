@@ -35,6 +35,8 @@ test.describe('installable and offline', () => {
   });
 
   test('the app still opens with the network switched off', async ({ page, context }) => {
+    // Two loads, a worker to install and a precache to fill: more than the usual half minute.
+    test.setTimeout(90_000);
     await skipOnboarding(page);
 
     await page.waitForFunction(
@@ -46,8 +48,10 @@ test.describe('installable and offline', () => {
       { timeout: 30_000 },
     );
 
-    // Give the precache a moment to finish before cutting the network off.
-    await page.waitForTimeout(1_000);
+    // The precache has to finish before the network goes away. Its size grew with the charts, and
+    // a second of waiting turned out to be short of it on a loaded machine.
+    await page.waitForTimeout(5_000);
+
     await context.setOffline(true);
     await page.reload();
 

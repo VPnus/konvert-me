@@ -18,11 +18,11 @@ import {
 import type { IsoMonth } from '@/core/time';
 import type { CoreCategory } from '@/core/types';
 import { db } from '@/db/db';
-import type { Account, BudgetPlan, Category, Transaction } from '@/db/models';
+import type { Account, BudgetPlan, Category } from '@/db/models';
 import { listAccounts } from '@/db/repositories/accounts';
 import { listPlansOfMonth, listPlansOfYear } from '@/db/repositories/budget-plans';
 import { listCategories } from '@/db/repositories/categories';
-import { listTransactions, type TransactionFilter } from '@/db/repositories/transactions';
+import { listTransactions } from '@/db/repositories/transactions';
 
 export function toCoreCategories(categories: readonly Category[]): CoreCategory[] {
   return categories.map((category) => ({
@@ -37,10 +37,6 @@ export interface BudgetMonthData {
   readonly categories: Category[];
   readonly accounts: Account[];
   readonly plans: BudgetPlan[];
-  /** Operations of the month, already filtered and sorted for the list. */
-  readonly transactions: Transaction[];
-  /** How many operations the month has in total, whatever the filters show. */
-  readonly totalCount: number;
   readonly rows: PlanFactRow[];
   readonly fact: MonthTotals;
   readonly plan: MonthTotals;
@@ -50,19 +46,17 @@ export interface BudgetMonthData {
 export interface BudgetMonthOptions {
   /** Keep a row for every category, so a plan can be typed into an empty one. */
   readonly includeEmpty?: boolean;
-  readonly filter?: Omit<TransactionFilter, 'month' | 'year'>;
 }
 
 export async function loadBudgetMonth(
   month: IsoMonth,
   options: BudgetMonthOptions = {},
 ): Promise<BudgetMonthData> {
-  const [categories, accounts, plans, monthTransactions, filtered] = await Promise.all([
+  const [categories, accounts, plans, monthTransactions] = await Promise.all([
     listCategories(),
     listAccounts({ includeArchived: true }),
     listPlansOfMonth(month),
     listTransactions({ month }),
-    options.filter ? listTransactions({ ...options.filter, month }) : null,
   ]);
 
   const coreCategories = toCoreCategories(categories);
@@ -72,8 +66,6 @@ export async function loadBudgetMonth(
     categories,
     accounts,
     plans,
-    transactions: filtered ?? monthTransactions,
-    totalCount: monthTransactions.length,
     rows: planVsFact(plans, monthTransactions, month, coreCategories, {
       includeEmpty: options.includeEmpty,
     }),

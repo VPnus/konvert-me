@@ -123,7 +123,8 @@ test.describe('budget', () => {
     await page.getByTestId('filter-reset').click();
     await expect(page.getByTestId('operation-row')).toHaveCount(2);
 
-    await page.getByTestId('filter-category').selectOption('fun');
+    await page.getByTestId('filter-more').click();
+    await page.getByTestId('filter-category-fun').click();
     await expect(page.getByTestId('operation-row')).toHaveCount(1);
     await page.getByTestId('filter-reset').click();
 

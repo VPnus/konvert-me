@@ -18,6 +18,8 @@ import { skipOnboarding } from './helpers';
 const OPERATIONS = 10_000;
 const MONTHS = 36;
 const LIMIT_MS = 500;
+/** Stage 4c: the answer of a filter is a step inside an open screen, not the opening of one. */
+const FILTER_LIMIT_MS = 300;
 const RUNS = 5;
 
 const INCOME = ['salary', 'advance'] as const;
@@ -277,9 +279,33 @@ async function runMeasurement(page: Page, testInfo: TestInfo, language: 'ru' | '
       await expect(page.getByTestId('quick-amount')).toHaveValue('');
     }
 
+    // Stage 4c: a category over a whole year, on the same 10 000 operations. The list has to
+    // answer while the finger is still on the screen, so it gets a lower ceiling of its own.
+    await page.getByTestId('tab-bar').locator('a[href="/budget"]').click();
+    await expect(page.getByTestId('operations-count')).toContainText(':');
+    await page.getByTestId('period-year').click();
+    await page.getByTestId('filter-more').click();
+    await expect(page.getByTestId('filter-panel')).toBeVisible();
+
+    const filtering: number[] = [];
+    for (let run = 0; run < RUNS; run += 1) {
+      await settle(page);
+      const before = (await page.getByTestId('operations-count').textContent()) ?? '';
+      filtering.push(
+        await timeClick(page, '[data-testid="filter-category-groceries"]', {
+          selector: '[data-testid="operations-count"]',
+          differsFrom: before,
+        }),
+      );
+      // off again, so the next run measures the same step
+      await page.getByTestId('filter-category-groceries').click();
+      await expect(page.getByTestId('operations-count')).toHaveText(before);
+    }
+
     const report = [
       `Бюджет (${language}), мс: ${budget.map(Math.round).join(', ')}`,
       `Обзор (${language}), мс: ${overview.map(Math.round).join(', ')}`,
+      `Отбор по категории за год (${language}), мс: ${filtering.map(Math.round).join(', ')}`,
     ].join('\n');
     // In the terminal and in the HTML report of CI alike.
     process.stdout.write(`${report}\n`);
@@ -288,5 +314,6 @@ async function runMeasurement(page: Page, testInfo: TestInfo, language: 'ru' | '
     // The requirement is a ceiling, so the slowest run is the one that has to fit.
     expect(Math.max(...budget), 'открытие «Бюджета»').toBeLessThanOrEqual(LIMIT_MS);
     expect(Math.max(...overview), 'пересчёт «Обзора»').toBeLessThanOrEqual(LIMIT_MS);
+    expect(Math.max(...filtering), 'отбор по категории за год').toBeLessThanOrEqual(FILTER_LIMIT_MS);
   }
 }

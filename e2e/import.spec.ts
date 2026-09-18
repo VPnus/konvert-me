@@ -129,7 +129,8 @@ test.describe('import', () => {
     await expect(page.getByTestId('import-done')).toContainText('3');
     await page.getByTestId('import-close').click();
 
-    await page.getByTestId('filter-category').selectOption('cafe');
+    await page.getByTestId('filter-more').click();
+    await page.getByTestId('filter-category-cafe').click();
     await expect(page.getByTestId('operation-row')).toHaveCount(2);
   });
 

@@ -24,13 +24,17 @@ export interface MonthTotals {
 const EMPTY_TOTALS: MonthTotals = { incomeMinor: 0, expenseMinor: 0, freeCashMinor: 0 };
 
 /** Formula 7: income - (expenses - refunds). */
-export function monthTotals(transactions: readonly CoreTransaction[], month: IsoMonth): MonthTotals {
+/**
+ * Formula 7 over whatever list it is given — a month, a quarter, everything a filter found. The
+ * screen that shows a total under a filtered list and the one that shows a month use the same
+ * arithmetic, so the two can never disagree.
+ */
+export function totalsOf(transactions: readonly CoreTransaction[]): MonthTotals {
   let incomeMinor = 0;
   let expenseMinor = 0;
 
   for (const transaction of transactions) {
     if (!affectsCashFlow(transaction.kind)) continue;
-    if (monthOfDate(transaction.date) !== month) continue;
 
     if (transaction.kind === 'income') incomeMinor += transaction.amountMinor;
     else if (transaction.kind === 'expense') expenseMinor += transaction.amountMinor;
@@ -38,6 +42,10 @@ export function monthTotals(transactions: readonly CoreTransaction[], month: Iso
   }
 
   return { incomeMinor, expenseMinor, freeCashMinor: incomeMinor - expenseMinor };
+}
+
+export function monthTotals(transactions: readonly CoreTransaction[], month: IsoMonth): MonthTotals {
+  return totalsOf(transactions.filter((transaction) => monthOfDate(transaction.date) === month));
 }
 
 export function freeCashMinor(transactions: readonly CoreTransaction[], month: IsoMonth): number {
@@ -63,16 +71,19 @@ export function yearTotals(transactions: readonly CoreTransaction[], year: numbe
   return { incomeMinor, expenseMinor, freeCashMinor: incomeMinor - expenseMinor, byMonth };
 }
 
-function totalsByCategory(
+/**
+ * What every category took, over whatever list it is given. A refund lowers the category it came
+ * back to, and an operation without a category stays out: the chart of the categories draws only
+ * what has a name.
+ */
+export function totalsByCategoryOf(
   transactions: readonly CoreTransaction[],
-  month: IsoMonth,
   kind: 'income' | 'expense',
 ): Map<string, number> {
   const totals = new Map<string, number>();
 
   for (const transaction of transactions) {
     if (!affectsCashFlow(transaction.kind)) continue;
-    if (monthOfDate(transaction.date) !== month) continue;
     if (!transaction.categoryId) continue;
 
     const isIncomeSide = transaction.kind === 'income';
@@ -83,6 +94,17 @@ function totalsByCategory(
   }
 
   return totals;
+}
+
+function totalsByCategory(
+  transactions: readonly CoreTransaction[],
+  month: IsoMonth,
+  kind: 'income' | 'expense',
+): Map<string, number> {
+  return totalsByCategoryOf(
+    transactions.filter((transaction) => monthOfDate(transaction.date) === month),
+    kind,
+  );
 }
 
 /** Expenses of a month per category, refunds already subtracted. */

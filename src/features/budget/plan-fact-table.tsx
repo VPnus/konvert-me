@@ -120,10 +120,12 @@ function groupsOf(categories: readonly Category[]): GroupRow[] {
 
 interface PlanFactTableProps {
   readonly data: BudgetMonthData;
+  /** Given, the name of a category becomes a button that filters the list below by it. */
+  readonly onPickCategory?: (categoryId: string) => void;
 }
 
 /** The month as the template of lesson 2.9 shows it: the plan, the fact and what is left. */
-export function PlanFactTable({ data }: PlanFactTableProps) {
+export function PlanFactTable({ data, onPickCategory }: PlanFactTableProps) {
   const byId = new Map(data.rows.map((row) => [row.categoryId, row]));
   const visible = data.categories.filter((category) => byId.has(category.id));
   const groups = groupsOf(visible).filter((group) => group.categories.length > 0);
@@ -175,9 +177,21 @@ export function PlanFactTable({ data }: PlanFactTableProps) {
               return (
                 <tr key={category.id} className="border-b border-border/40">
                   <td className="py-1 pr-2">
-                    <span className="block truncate" title={category.name}>
-                      {category.name}
-                    </span>
+                    {onPickCategory ? (
+                      <button
+                        type="button"
+                        className="block w-full truncate text-left underline-offset-2 hover:underline"
+                        title={category.name}
+                        data-testid={`pick-${category.id}`}
+                        onClick={() => onPickCategory(category.id)}
+                      >
+                        {category.name}
+                      </button>
+                    ) : (
+                      <span className="block truncate" title={category.name}>
+                        {category.name}
+                      </span>
+                    )}
                   </td>
                   <td className="py-1 pr-1">
                     <PlanCell

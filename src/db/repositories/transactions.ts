@@ -3,7 +3,7 @@
  * expense, so transfers stay out of income and expenses (formula 7).
  */
 
-import { monthOfDate, yearOfMonth, type IsoMonth } from '@/core/time';
+import { monthOfDate, yearOfMonth, type IsoDate, type IsoMonth } from '@/core/time';
 import { db } from '@/db/db';
 import { RepositoryError } from '@/db/errors';
 import { transactionSchema, type Transaction } from '@/db/models';
@@ -121,13 +121,23 @@ export async function deleteTransaction(id: string): Promise<void> {
 export interface TransactionFilter {
   readonly month?: IsoMonth;
   readonly year?: number;
+  /** Both ends inclusive; an absent end leaves that side open. */
+  readonly from?: IsoDate;
+  readonly to?: IsoDate;
   readonly kinds?: readonly Transaction['kind'][];
   readonly categoryId?: string;
+  /** Several categories at once: an empty list means every category. */
+  readonly categoryIds?: readonly string[];
   /** Matches either side of a transfer. */
   readonly accountId?: string;
+  readonly accountIds?: readonly string[];
+  readonly minAmountMinor?: number;
+  readonly maxAmountMinor?: number;
   /** Free text: a word of the note or a piece of the amount. */
   readonly query?: string;
   readonly limit?: number;
+  /** Rows to skip before the limit: the list shows a long answer in parts. */
+  readonly offset?: number;
 }
 
 function matchesQuery(transaction: Transaction, query: string): boolean {
@@ -144,26 +154,70 @@ function byDateDesc(a: Transaction, b: Transaction): number {
   return b.date.localeCompare(a.date) || b.createdAt - a.createdAt;
 }
 
-export async function listTransactions(filter: TransactionFilter = {}): Promise<Transaction[]> {
-  const all = await db.transactions.toArray();
+/**
+ * The dates a filter asks for, as one range. A month and a year are ranges too, so the same index
+ * answers all three and the whole table is read only when no date is named at all.
+ */
+function rangeOf(filter: TransactionFilter): { from?: IsoDate; to?: IsoDate } {
+  if (filter.month) return { from: `${filter.month}-01`, to: `${filter.month}-31` };
+  if (filter.year !== undefined) {
+    const year = String(filter.year).padStart(4, '0');
+    return { from: `${year}-01-01`, to: `${year}-12-31` };
+  }
+  return { from: filter.from, to: filter.to };
+}
 
-  const found = all.filter((transaction) => {
-    if (filter.month && monthOfDate(transaction.date) !== filter.month) return false;
-    if (filter.year !== undefined && yearOfMonth(monthOfDate(transaction.date)) !== filter.year) return false;
-    if (filter.kinds && filter.kinds.length > 0 && !filter.kinds.includes(transaction.kind)) return false;
-    if (filter.categoryId && transaction.categoryId !== filter.categoryId) return false;
-    if (
-      filter.accountId &&
-      transaction.accountId !== filter.accountId &&
-      transaction.toAccountId !== filter.accountId
-    ) {
-      return false;
-    }
-    return filter.query ? matchesQuery(transaction, filter.query) : true;
-  });
+function matches(transaction: Transaction, filter: TransactionFilter): boolean {
+  if (filter.month && monthOfDate(transaction.date) !== filter.month) return false;
+  if (filter.year !== undefined && yearOfMonth(monthOfDate(transaction.date)) !== filter.year) return false;
+  if (filter.from && transaction.date < filter.from) return false;
+  if (filter.to && transaction.date > filter.to) return false;
+  if (filter.kinds && filter.kinds.length > 0 && !filter.kinds.includes(transaction.kind)) return false;
+  if (filter.categoryId && transaction.categoryId !== filter.categoryId) return false;
+  if (filter.categoryIds && filter.categoryIds.length > 0) {
+    if (!transaction.categoryId || !filter.categoryIds.includes(transaction.categoryId)) return false;
+  }
+  if (
+    filter.accountId &&
+    transaction.accountId !== filter.accountId &&
+    transaction.toAccountId !== filter.accountId
+  ) {
+    return false;
+  }
+  if (filter.accountIds && filter.accountIds.length > 0) {
+    const onThisSide = filter.accountIds.includes(transaction.accountId);
+    const onThatSide = transaction.toAccountId ? filter.accountIds.includes(transaction.toAccountId) : false;
+    if (!onThisSide && !onThatSide) return false;
+  }
+  if (filter.minAmountMinor !== undefined && transaction.amountMinor < filter.minAmountMinor) return false;
+  if (filter.maxAmountMinor !== undefined && transaction.amountMinor > filter.maxAmountMinor) return false;
+  return filter.query ? matchesQuery(transaction, filter.query) : true;
+}
 
+/** Everything a filter finds, newest first, whatever the limit of the page is. */
+export async function findTransactions(filter: TransactionFilter = {}): Promise<Transaction[]> {
+  const { from, to } = rangeOf(filter);
+
+  // The index of the date answers a range without reading the rest of the table; with no date in
+  // the filter there is nothing to narrow by, and the whole table is the answer anyway.
+  const source =
+    from || to
+      ? await db.transactions
+          .where('date')
+          .between(from ?? '0000-01-01', to ?? '9999-12-31', true, true)
+          .toArray()
+      : await db.transactions.toArray();
+
+  const found = source.filter((transaction) => matches(transaction, filter));
   found.sort(byDateDesc);
-  return filter.limit === undefined ? found : found.slice(0, filter.limit);
+  return found;
+}
+
+export async function listTransactions(filter: TransactionFilter = {}): Promise<Transaction[]> {
+  const found = await findTransactions(filter);
+  const offset = filter.offset ?? 0;
+  if (offset === 0 && filter.limit === undefined) return found;
+  return found.slice(offset, filter.limit === undefined ? undefined : offset + filter.limit);
 }
 
 export async function listTransactionsOfMonth(month: IsoMonth): Promise<Transaction[]> {

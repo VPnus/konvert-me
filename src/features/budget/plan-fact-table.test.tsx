@@ -24,8 +24,6 @@ const month: BudgetMonthData = {
   categories: [category('salary', 'income'), category('groceries', 'expense', 'variable')],
   accounts: [],
   plans: [],
-  transactions: [],
-  totalCount: 2,
   rows: [
     {
       categoryId: 'salary',

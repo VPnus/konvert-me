@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { ChevronLeft, ChevronRight, CopyPlus } from 'lucide-react';
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useMemo, useRef, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 
 import { addMonths, currentMonth, yearOfMonth, type IsoMonth } from '@/core/time';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -11,18 +11,28 @@ import type { Transaction } from '@/db/models';
 import { copyPlanFromPreviousMonth } from '@/db/repositories/budget-plans';
 import { deleteTransaction } from '@/db/repositories/transactions';
 import { loadBudgetMonth, loadBudgetYear } from '@/features/budget/budget-data';
+import { loadOperations } from '@/features/budget/operations-data';
 import { isCurrentMonth, monthLabel } from '@/features/budget/month-label';
 import { CategoriesCard } from '@/features/budget/categories-card';
 import { ImportCard } from '@/features/budget/import/import-card';
 import { PlanFactTable } from '@/features/budget/plan-fact-table';
 import { TransactionForm } from '@/features/budget/transaction-form';
-import { EMPTY_FILTER, type TransactionFilterState } from '@/features/budget/transaction-filter';
+import {
+  filterFromSearch,
+  filterToSearch,
+  readPeriod,
+  writePeriod,
+  type TransactionFilterState,
+} from '@/features/budget/transaction-filter';
 import { TransactionsCard } from '@/features/budget/transactions-card';
 import { YearTable } from '@/features/budget/year-table';
 import { useDataVersion } from '@/hooks/use-data-version';
 import { strings } from '@/i18n';
 
 type Tab = 'month' | 'year';
+
+/** How many operations a page of the list holds; "show more" adds another page. */
+const PAGE = 50;
 
 function PeriodSwitcher({
   label,
@@ -54,27 +64,41 @@ function PeriodSwitcher({
 
 export default function BudgetPage() {
   const dataVersion = useDataVersion();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [month, setMonth] = useState<IsoMonth>(() => currentMonth());
   const [tab, setTab] = useState<Tab>('month');
-  const [filter, setFilter] = useState<TransactionFilterState>(EMPTY_FILTER);
+  const listRef = useRef<HTMLDivElement>(null);
+  // The period the device remembers is the fallback of a page opened without one in the address.
+  const [remembered] = useState(readPeriod);
+  // How much of the answer is shown, and which answer it belongs to: a new filter or another month
+  // starts from the first page again, without an effect that sets state after the render.
+  const [page, setPage] = useState({ key: '', limit: PAGE });
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Transaction | undefined>();
   const [pendingDelete, setPendingDelete] = useState<Transaction | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [copyNote, setCopyNote] = useState<string | null>(null);
 
-  const monthData = useLiveQuery(
-    () =>
-      loadBudgetMonth(month, {
-        includeEmpty: true,
-        filter: {
-          query: filter.query || undefined,
-          kinds: filter.kind ? [filter.kind] : undefined,
-          categoryId: filter.categoryId || undefined,
-          accountId: filter.accountId || undefined,
-        },
-      }),
-    [month, filter.query, filter.kind, filter.categoryId, filter.accountId, dataVersion],
+  // The filter lives in the address: a search can be kept as a link and survives a reload.
+  const search = searchParams.toString();
+  const filter = useMemo(
+    () => filterFromSearch(new URLSearchParams(search), remembered),
+    [search, remembered],
+  );
+
+  const setFilter = (next: TransactionFilterState) => {
+    writePeriod(next.period);
+    setSearchParams(filterToSearch(next), { replace: true });
+  };
+
+  const pageKey = `${search}|${month}`;
+  const limit = page.key === pageKey ? page.limit : PAGE;
+
+  const monthData = useLiveQuery(() => loadBudgetMonth(month, { includeEmpty: true }), [month, dataVersion]);
+
+  const operations = useLiveQuery(
+    () => loadOperations({ filter, anchor: month, limit }),
+    [search, month, limit, dataVersion],
   );
 
   const year = yearOfMonth(month);
@@ -104,6 +128,12 @@ export default function BudgetPage() {
     } catch (cause) {
       setDeleteError(cause instanceof Error ? cause.message : strings.common.error);
     }
+  };
+
+  /** A category of the table above filters the list below, and the screen scrolls to it. */
+  const pickCategory = (categoryId: string) => {
+    setFilter({ ...filter, categoryIds: [categoryId] });
+    listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const openAdd = () => {
@@ -213,7 +243,7 @@ export default function BudgetPage() {
                 ) : null}
               </div>
 
-              <PlanFactTable data={monthData} />
+              <PlanFactTable data={monthData} onPickCategory={pickCategory} />
             </CardContent>
           </Card>
 
@@ -228,14 +258,20 @@ export default function BudgetPage() {
             </Card>
           ) : (
             <>
-              <TransactionsCard
-                data={monthData}
-                filter={filter}
-                onFilterChange={setFilter}
-                onAdd={openAdd}
-                onEdit={openEdit}
-                onDelete={setPendingDelete}
-              />
+              <div ref={listRef}>
+                <TransactionsCard
+                  categories={monthData.categories}
+                  accounts={monthData.accounts}
+                  operations={operations}
+                  filter={filter}
+                  onFilterChange={setFilter}
+                  limit={limit}
+                  onShowMore={() => setPage({ key: pageKey, limit: limit + PAGE })}
+                  onAdd={openAdd}
+                  onEdit={openEdit}
+                  onDelete={setPendingDelete}
+                />
+              </div>
 
               <ImportCard
                 accounts={monthData.accounts.filter((account) => !account.archived)}

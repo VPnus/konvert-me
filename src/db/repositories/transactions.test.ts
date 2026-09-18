@@ -13,6 +13,7 @@ import { createGoal, setEnvelope } from '@/db/repositories/goals';
 import {
   createTransaction,
   deleteTransaction,
+  findTransactions,
   listRecentTransactions,
   listTransactions,
   listTransactionsOfMonth,
@@ -447,5 +448,124 @@ describe('transactions: importing a statement', () => {
       RepositoryError,
     );
     expect(await db.transactions.count()).toBe(0);
+  });
+});
+
+describe('the filter of the operations list', () => {
+  const RUB = 100;
+
+  async function months(): Promise<string> {
+    await seedDefaultCategories();
+    const card = await createAccount({
+      name: 'Карта',
+      side: 'asset',
+      type: 'debit',
+      openingBalanceMinor: 900_000 * RUB,
+    });
+    const cash = await createAccount({
+      name: 'Наличные',
+      side: 'asset',
+      type: 'cash',
+      openingBalanceMinor: 100_000 * RUB,
+    });
+
+    for (const [date, amount, categoryId, accountId] of [
+      ['2026-06-12', 4_000, 'groceries', card.id],
+      ['2026-07-12', 5_000, 'groceries', card.id],
+      ['2026-08-12', 6_000, 'groceries', cash.id],
+      ['2026-09-12', 7_000, 'groceries', card.id],
+      ['2026-09-14', 1_200, 'cafe', cash.id],
+    ] as const) {
+      await createTransaction({
+        date,
+        amountMinor: amount * RUB,
+        kind: 'expense',
+        accountId,
+        categoryId,
+      });
+    }
+    await createTransaction({
+      date: '2026-09-10',
+      amountMinor: 90_000 * RUB,
+      kind: 'income',
+      accountId: card.id,
+      categoryId: 'salary',
+    });
+    return card.id;
+  }
+
+  it('finds an operation three months back without walking the months', async () => {
+    await months();
+    const found = await listTransactions({
+      from: '2026-06-01',
+      to: '2026-09-30',
+      categoryIds: ['groceries'],
+    });
+
+    expect(found.map((transaction) => transaction.date)).toEqual([
+      '2026-09-12',
+      '2026-08-12',
+      '2026-07-12',
+      '2026-06-12',
+    ]);
+  });
+
+  it('holds both ends of the range inside', async () => {
+    await months();
+    const found = await listTransactions({ from: '2026-07-12', to: '2026-08-12' });
+    expect(found.map((transaction) => transaction.date)).toEqual(['2026-08-12', '2026-07-12']);
+  });
+
+  it('takes several categories at once', async () => {
+    await months();
+    const found = await listTransactions({
+      from: '2026-09-01',
+      to: '2026-09-30',
+      categoryIds: ['groceries', 'cafe'],
+    });
+    expect(found).toHaveLength(2);
+  });
+
+  it('takes several accounts, either side of a transfer', async () => {
+    const cardId = await months();
+    const found = await listTransactions({ accountIds: [cardId] });
+    expect(found.every((transaction) => transaction.accountId === cardId)).toBe(true);
+    expect(found).toHaveLength(4);
+  });
+
+  it('cuts by the amount from both sides', async () => {
+    await months();
+    const found = await listTransactions({
+      minAmountMinor: 5_000 * RUB,
+      maxAmountMinor: 7_000 * RUB,
+    });
+    expect(found.map((transaction) => transaction.amountMinor)).toEqual([
+      7_000 * RUB,
+      6_000 * RUB,
+      5_000 * RUB,
+    ]);
+  });
+
+  it('shows a long answer in parts', async () => {
+    await months();
+    const first = await listTransactions({ limit: 2 });
+    const second = await listTransactions({ limit: 2, offset: 2 });
+
+    expect(first).toHaveLength(2);
+    expect(second).toHaveLength(2);
+    expect(first.map((transaction) => transaction.id)).not.toEqual(
+      second.map((transaction) => transaction.id),
+    );
+  });
+
+  it('counts everything the filter found, whatever the page shows', async () => {
+    await months();
+    expect(await findTransactions({ categoryIds: ['groceries'] })).toHaveLength(4);
+    expect(await listTransactions({ categoryIds: ['groceries'], limit: 2 })).toHaveLength(2);
+  });
+
+  it('an empty list of categories means every category', async () => {
+    await months();
+    expect(await listTransactions({ categoryIds: [], accountIds: [] })).toHaveLength(6);
   });
 });

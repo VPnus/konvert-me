@@ -20,7 +20,9 @@ function normsOf(rules: YearRules): [string, Norm<unknown>][] {
 
 describe('rules', () => {
   it('gives every norm of every year in every country a source and the date it was checked', () => {
-    for (const rules of COUNTRIES.flatMap((country) => BY_COUNTRY[country])) {
+    const everyYear: YearRules[] = COUNTRIES.flatMap((country) => [...BY_COUNTRY[country]]);
+
+    for (const rules of everyYear) {
       const norms = normsOf(rules);
       expect(norms.length).toBeGreaterThan(0);
 
@@ -56,6 +58,49 @@ describe('rules', () => {
     expect(US_RULES_2026.depositInsuranceLimitMinor.value).toBe(250_000 * 100);
     expect(US_RULES_2026.depositInsuranceLimitMinor.source).toMatch(/^https:\/\/www\.fdic\.gov\//);
     expect(US_RULES_2026.depositInsuranceLimitMinor.note).toMatch(/ownership category/);
+  });
+
+  describe('the tax advantaged accounts of the United States', () => {
+    const rules = US_RULES_2026;
+
+    it('lets a person defer 24 500 of their pay in 2026, and more from 50 and from 60 to 63', () => {
+      expect(rules.deferralLimits.value).toEqual({
+        electiveDeferralMinor: 24_500 * 100,
+        catchUpFrom50Minor: 8_000 * 100,
+        catchUpFrom60To63Minor: 11_250 * 100,
+      });
+      expect(rules.deferralLimits.source).toMatch(/^https:\/\/www\.irs\.gov\//);
+    });
+
+    it('gives every IRA of a person one limit of 7 500, and 1 100 more from 50', () => {
+      expect(rules.iraLimits.value).toEqual({
+        contributionMinor: 7_500 * 100,
+        catchUpFrom50Minor: 1_100 * 100,
+      });
+      expect(rules.iraLimits.note).toMatch(/traditional and Roth together/);
+    });
+
+    it('allows an HSA 4 400 alone and 8 750 for a family, and 1 000 more from 55', () => {
+      expect(rules.hsaLimits.value).toMatchObject({
+        selfOnlyMinor: 4_400 * 100,
+        familyMinor: 8_750 * 100,
+        catchUpFrom55Minor: 1_000 * 100,
+      });
+      // a plan below these deductibles is not a high deductible one, and its holder may not contribute
+      expect(rules.hsaLimits.value.minimumDeductibleSelfOnlyMinor).toBe(1_700 * 100);
+      expect(rules.hsaLimits.value.minimumDeductibleFamilyMinor).toBe(3_400 * 100);
+    });
+
+    it('measures a 529 by the gift exclusion of 19 000, since the federal law sets it no limit', () => {
+      expect(rules.giftExclusionMinor.value).toBe(19_000 * 100);
+      expect(rules.giftExclusionMinor.note).toMatch(/no federal contribution limit/);
+    });
+
+    it('says what every limit leaves to the person: the income, the cover, the plan at work', () => {
+      for (const norm of [rules.deferralLimits, rules.iraLimits, rules.hsaLimits]) {
+        expect(norm.note).toBeTruthy();
+      }
+    });
   });
 
   describe('finding the rules of a year', () => {

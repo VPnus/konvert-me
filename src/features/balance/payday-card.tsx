@@ -3,7 +3,13 @@ import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 import { formatForecast, minorToRubles, rublesToMinor } from '@/core/money';
-import type { PaydayOf } from '@/core/payday';
+import {
+  PAY_SCHEDULE_KINDS,
+  monthlyTotalMinor,
+  type PaydayOf,
+  type PaySchedule,
+  type PayScheduleKind,
+} from '@/core/payday';
 import { todayIso } from '@/core/time';
 import { daysLabel } from '@/features/balance/days-label';
 import { Button } from '@/components/ui/button';
@@ -12,6 +18,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { NumberInput } from '@/components/ui/number-input';
+import { Select } from '@/components/ui/select';
 import type { IncomeSource } from '@/db/models';
 import {
   createIncomeSource,
@@ -34,18 +41,46 @@ function humanDate(iso: string): string {
 
 interface FormState {
   name: string;
+  kind: PayScheduleKind;
   day: string;
+  secondDay: string;
+  firstDate: string;
   amount: string;
 }
 
-const EMPTY_FORM: FormState = { name: '', day: '', amount: '' };
+const EMPTY_FORM: FormState = {
+  name: '',
+  kind: 'monthly',
+  day: '',
+  secondDay: '',
+  firstDate: '',
+  amount: '',
+};
 
 function formOf(source: IncomeSource): FormState {
+  const schedule = source.schedule;
   return {
+    ...EMPTY_FORM,
     name: source.name,
-    day: String(source.dayOfMonth),
+    kind: schedule.kind,
+    day: schedule.kind === 'biweekly' ? '' : String(schedule.dayOfMonth),
+    secondDay: schedule.kind === 'semimonthly' ? String(schedule.secondDayOfMonth) : '',
+    firstDate: schedule.kind === 'biweekly' ? schedule.firstDate : '',
     amount: source.amountMinor ? String(minorToRubles(source.amountMinor)) : '',
   };
+}
+
+/** What the form says the payments repeat like. The schema refuses whatever is still missing. */
+function scheduleOf(form: FormState): PaySchedule {
+  if (form.kind === 'biweekly') return { kind: 'biweekly', firstDate: form.firstDate };
+  if (form.kind === 'semimonthly') {
+    return {
+      kind: 'semimonthly',
+      dayOfMonth: Number(form.day),
+      secondDayOfMonth: Number(form.secondDay),
+    };
+  }
+  return { kind: 'monthly', dayOfMonth: Number(form.day) };
 }
 
 /**
@@ -88,7 +123,7 @@ export function PaydayCard() {
 
     const payload = {
       name: form.name,
-      dayOfMonth: Number(form.day),
+      schedule: scheduleOf(form),
       amountMinor: form.amount ? rublesToMinor(parseNumericInput(form.amount)) : undefined,
     };
 
@@ -107,7 +142,10 @@ export function PaydayCard() {
     setPendingDelete(null);
   };
 
-  const monthTotalMinor = paydays.reduce((total, payday) => total + (payday.source.amountMinor ?? 0), 0);
+  const sources = paydays.map((payday) => payday.source);
+  const monthTotalMinor = monthlyTotalMinor(sources);
+  // Two months of every year bring a third fortnightly payment, so the month total is an average.
+  const spreadOverMonths = sources.some((source) => source.schedule.kind === 'biweekly');
 
   const renderForm = () => (
     <form
@@ -129,19 +167,67 @@ export function PaydayCard() {
           )}
         </Field>
 
-        <Field label={strings.income.day} hint={strings.income.dayHint}>
+        <Field label={strings.income.frequency}>
           {(id) => (
-            <NumberInput
+            <Select
               id={id}
-              required
-              integer
-              value={form.day}
-              inputMode="numeric"
-              data-testid="income-day"
-              onValueChange={(day) => setForm({ ...form, day })}
-            />
+              value={form.kind}
+              data-testid="income-frequency"
+              onChange={(event) => setForm({ ...form, kind: event.target.value as PayScheduleKind })}
+            >
+              {PAY_SCHEDULE_KINDS.map((kind) => (
+                <option key={kind} value={kind}>
+                  {strings.income.frequencies[kind]}
+                </option>
+              ))}
+            </Select>
           )}
         </Field>
+
+        {form.kind === 'biweekly' ? (
+          <Field label={strings.income.firstDate} hint={strings.income.firstDateHint}>
+            {(id) => (
+              <Input
+                id={id}
+                required
+                type="date"
+                value={form.firstDate}
+                data-testid="income-first-date"
+                onChange={(event) => setForm({ ...form, firstDate: event.target.value })}
+              />
+            )}
+          </Field>
+        ) : (
+          <Field label={strings.income.day} hint={strings.income.dayHint}>
+            {(id) => (
+              <NumberInput
+                id={id}
+                required
+                integer
+                value={form.day}
+                inputMode="numeric"
+                data-testid="income-day"
+                onValueChange={(day) => setForm({ ...form, day })}
+              />
+            )}
+          </Field>
+        )}
+
+        {form.kind === 'semimonthly' ? (
+          <Field label={strings.income.secondDay} hint={strings.income.dayHint}>
+            {(id) => (
+              <NumberInput
+                id={id}
+                required
+                integer
+                value={form.secondDay}
+                inputMode="numeric"
+                data-testid="income-second-day"
+                onValueChange={(secondDay) => setForm({ ...form, secondDay })}
+              />
+            )}
+          </Field>
+        ) : null}
 
         <Field label={inCurrency(strings.income.amount)} hint={strings.income.amountHint}>
           {(id) => (
@@ -205,6 +291,9 @@ export function PaydayCard() {
                     <p className="truncate text-sm font-medium">{payday.source.name}</p>
                     <p className="truncate text-xs text-muted-foreground">
                       {humanDate(payday.date)}
+                      {payday.source.schedule.kind === 'monthly'
+                        ? ''
+                        : ` · ${strings.income.frequencies[payday.source.schedule.kind].toLocaleLowerCase(currentLocale())}`}
                       {payday.source.amountMinor ? ` · ${formatForecast(payday.source.amountMinor)}` : ''}
                     </p>
                   </div>
@@ -248,6 +337,9 @@ export function PaydayCard() {
           <p className="text-sm" data-testid="payday-total">
             {strings.income.monthTotal}:{' '}
             <span className="font-semibold tabular-nums">{formatForecast(monthTotalMinor)}</span>
+            {spreadOverMonths ? (
+              <span className="block text-xs text-muted-foreground">{strings.income.monthTotalSpread}</span>
+            ) : null}
           </p>
         ) : null}
 

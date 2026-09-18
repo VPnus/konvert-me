@@ -24,7 +24,7 @@ import type {
   TaxDocument,
   Transaction,
 } from '@/db/models';
-import { categoriesOfSchema8, upgradeDeductionYear } from '@/db/upgrades';
+import { categoriesOfSchema8, upgradeDeductionYear, upgradeIncomeSource } from '@/db/upgrades';
 
 export const DATABASE_NAME = 'konvert-me';
 
@@ -128,6 +128,23 @@ export class KonvertDatabase extends Dexie {
           .toCollection()
           .modify((record: Record<string, unknown>) => {
             if (record.country === undefined) record.country = DEFAULT_COUNTRY;
+          }),
+      );
+
+    // v10 gives a source of income a schedule instead of one day of a month: a pay every fourteen
+    // days fits no day. What repeated on a day becomes a monthly schedule of that day.
+    this.version(10)
+      .stores({})
+      .upgrade((transaction) =>
+        transaction
+          .table('incomeSources')
+          .toCollection()
+          .modify((record: Record<string, unknown>) => {
+            const upgraded = upgradeIncomeSource(record) as Record<string, unknown>;
+            if (upgraded !== record) {
+              record.schedule = upgraded.schedule;
+              delete record.dayOfMonth;
+            }
           }),
       );
   }

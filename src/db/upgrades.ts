@@ -56,3 +56,17 @@ export function categoriesOfSchema8<T extends StoredCategory>(existing: readonly
     (category) => CATEGORIES_OF_SCHEMA_8.includes(category.id) && !ids.has(category.id),
   ).map((category) => ({ ...category, sortOrder: sortOrder++, archived: false }));
 }
+
+/**
+ * Schema 10: a source of income that repeated on one day of a month now carries a schedule, since
+ * a fortnightly pay fits no day of the month. A source already upgraded, and anything the upgrade
+ * cannot read, is given back as it is: the schema refuses it on import instead of the upgrade breaking.
+ */
+export function upgradeIncomeSource(record: unknown): unknown {
+  if (!isObject(record) || record.schedule !== undefined || typeof record.dayOfMonth !== 'number') {
+    return record;
+  }
+
+  const { dayOfMonth, ...rest } = record;
+  return { ...rest, schedule: { kind: 'monthly', dayOfMonth } };
+}

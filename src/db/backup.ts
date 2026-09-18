@@ -10,7 +10,7 @@ import { COUNTRY_CURRENCY, DEFAULT_COUNTRY, type Country } from '@/core/country'
 import { db } from '@/db/db';
 import { RepositoryError } from '@/db/errors';
 import { SCHEMA_VERSION, TABLE_NAMES, TABLE_SCHEMAS, type TableName } from '@/db/models';
-import { categoriesOfSchema8, upgradeDeductionYear } from '@/db/upgrades';
+import { categoriesOfSchema8, upgradeDeductionYear, upgradeIncomeSource } from '@/db/upgrades';
 import { parseOrThrow } from '@/db/validate';
 import { fill, strings } from '@/i18n';
 import { decryptText, encryptText, fromBase64, toBase64, type EncryptedPayload } from '@/lib/crypto';
@@ -47,8 +47,10 @@ const backupDataSchema = z
     dashboardLayouts: z.array(TABLE_SCHEMAS.dashboardLayouts),
     // Added in schema 2: a file written by schema 1 simply has none of them.
     links: z.array(TABLE_SCHEMAS.links).default([]),
-    // Added in schema 3.
-    incomeSources: z.array(TABLE_SCHEMAS.incomeSources).default([]),
+    // Added in schema 3; a source of schemas 3 to 9 repeats on one day of a month instead of a schedule.
+    incomeSources: z
+      .array(z.preprocess(upgradeIncomeSource, TABLE_SCHEMAS.incomeSources))
+      .default([]),
     // Added in schema 4.
     policies: z.array(TABLE_SCHEMAS.policies).default([]),
     // Added in schema 5; a year of schemas 5 and 6 keeps what earlier returns took of a home as one sum.

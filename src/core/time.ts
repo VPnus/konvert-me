@@ -138,6 +138,15 @@ export function withDayOfMonth(month: IsoMonth, day: number): IsoDate {
   return `${month}-${String(clamped).padStart(2, '0')}`;
 }
 
+/** The same calendar day some days later or earlier. */
+export function addDays(date: IsoDate, days: number): IsoDate {
+  assertIsoDate(date);
+  if (!Number.isInteger(days)) throw new TimeError(`days: a whole number expected, got ${String(days)}`);
+
+  const moved = new Date(daysFromEpoch(date) * 86_400_000 + days * 86_400_000);
+  return moved.toISOString().slice(0, 10);
+}
+
 /** The same day some months later or earlier; a day the month does not have becomes its last. */
 export function addMonthsToDate(date: IsoDate, months: number): IsoDate {
   return withDayOfMonth(addMonths(monthOfDate(date), months), dayOfMonth(date));

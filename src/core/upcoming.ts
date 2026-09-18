@@ -6,7 +6,7 @@
 
 import { minimumPaymentMinor } from './balance';
 import type { CardGrace } from './credit-card';
-import { nextPayday } from './payday';
+import { monthlyOn, nextPayday } from './payday';
 import { daysBetween, type IsoDate } from './time';
 
 export type UpcomingKind =
@@ -95,7 +95,7 @@ export function upcomingEvents({
       });
     } else if (debt && account.paymentDay && !(account.statementDay && grace?.kind !== 'missed')) {
       // a card with statements asks by its statement; once one is missed, it pays like any debt
-      const payday = nextPayday(today, account.paymentDay);
+      const payday = nextPayday(today, monthlyOn(account.paymentDay));
       add({
         kind: 'debt-payment',
         id: account.id,

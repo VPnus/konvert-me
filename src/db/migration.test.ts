@@ -344,6 +344,53 @@ describe('schema migration', () => {
     expect(await v9.accounts.get('a1')).toEqual(account);
   });
 
+  it('gives a source of income a schedule when schema 10 arrives, and keeps its day', async () => {
+    const schema9 = (database: Dexie) => {
+      database.version(1).stores(V1_STORES);
+      database
+        .version(2)
+        .stores({ links: 'id, sortOrder', feeds: 'id, enabled', feedItems: 'id, feedId, publishedAt' });
+      database.version(3).stores({ incomeSources: 'id, sortOrder, archived' });
+      database.version(4).stores({ policies: 'id, endDate, archived' });
+      database
+        .version(5)
+        .stores({ deductionYears: 'year, status', documents: 'id, year, category', documentFiles: 'id' });
+      database.version(6).stores({ financialPlans: 'id' });
+      database.version(7).stores({});
+      database.version(8).stores({});
+      database.version(9).stores({});
+    };
+    const salary = {
+      id: 's1',
+      name: 'Зарплата',
+      dayOfMonth: 5,
+      amountMinor: 90_000_00,
+      archived: false,
+      sortOrder: 0,
+      createdAt: 1,
+    };
+
+    const name = `konvert-me-v10-${crypto.randomUUID()}`;
+    const v9 = open(name, schema9);
+    await v9.table('incomeSources').add(salary);
+    v9.close();
+
+    const v10 = new KonvertDatabase(name);
+    opened.push(v10);
+    await v10.open();
+    expect(v10.verno).toBeGreaterThanOrEqual(10);
+
+    expect(await v10.incomeSources.get('s1')).toEqual({
+      id: salary.id,
+      name: salary.name,
+      amountMinor: salary.amountMinor,
+      archived: salary.archived,
+      sortOrder: salary.sortOrder,
+      createdAt: salary.createdAt,
+      schedule: { kind: 'monthly', dayOfMonth: 5 },
+    });
+  });
+
   it('closes the old connection when another tab upgrades the schema', async () => {
     const name = `konvert-me-versionchange-${crypto.randomUUID()}`;
 

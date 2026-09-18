@@ -1,10 +1,10 @@
 /**
- * Sources of income that repeat every month: a salary, an advance, rent from a flat.
+ * Sources of income that repeat on a schedule: a salary, an advance, rent from a flat.
  * They hold no money of their own — the balance screen only counts the days to the
  * next payment, so nothing here touches accounts or operations.
  */
 
-import { nextPaydays, type PaydayOf } from '@/core/payday';
+import { nextPaydays, type PaydayOf, type PaySchedule } from '@/core/payday';
 import { todayIso, type IsoDate } from '@/core/time';
 import { db } from '@/db/db';
 import { RepositoryError } from '@/db/errors';
@@ -15,7 +15,7 @@ import { publishAppEvent } from '@/lib/broadcast';
 
 export interface IncomeSourceInput {
   name: string;
-  dayOfMonth: number;
+  schedule: PaySchedule;
   amountMinor?: number;
   note?: string;
 }
@@ -74,3 +74,4 @@ export async function deleteIncomeSource(id: string): Promise<void> {
 export async function listNextPaydays(today: IsoDate = todayIso()): Promise<PaydayOf<IncomeSource>[]> {
   return nextPaydays(today, await listIncomeSources());
 }
+

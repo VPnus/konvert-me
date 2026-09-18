@@ -15,7 +15,7 @@ import { fill, strings } from '@/i18n';
 /** The refusals of the checks, in the language of the page. */
 const invalid = strings.data.validation;
 
-export const SCHEMA_VERSION = 9;
+export const SCHEMA_VERSION = 10;
 
 const isoDate = z.string().refine(isIsoDate, { message: invalid.date });
 const isoMonth = z.string().refine(isIsoMonth, { message: invalid.month });
@@ -146,13 +146,24 @@ export const transactionSchema = z
   });
 
 /**
- * A source of income that repeats on the same day of every month: a salary, an
- * advance, rent from a flat. The balance screen counts the days to the next one.
+ * Schema 10: how the payments of a source repeat. Once a month on the same day, twice a month on
+ * two days, or every fourteen days — the last one belongs to the United States, where a fortnightly
+ * pay brings 26 payments a year instead of 12.
+ */
+export const payScheduleSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('monthly'), dayOfMonth }),
+  z.object({ kind: z.literal('semimonthly'), dayOfMonth, secondDayOfMonth: dayOfMonth }),
+  z.object({ kind: z.literal('biweekly'), firstDate: isoDate }),
+]);
+
+/**
+ * A source of income that repeats on a schedule: a salary, an advance, rent from a flat.
+ * The balance screen counts the days to the next one.
  */
 export const incomeSourceSchema = z.object({
   id,
   name,
-  dayOfMonth: z.number().int(invalid.dayWhole).min(1, invalid.dayRange).max(31, invalid.dayRange),
+  schedule: payScheduleSchema,
   /** Optional: not every income is known in advance to the kopeck. */
   amountMinor: nonNegativeMinor.optional(),
   archived: z.boolean(),

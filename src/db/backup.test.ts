@@ -169,6 +169,17 @@ describe('backup: a broken file never reaches the database', () => {
     expect(bare.data.categories).toEqual([]);
   });
 
+  it('gives a source of income of schema 9 a monthly schedule of its day', async () => {
+    await seed();
+    const backup = await collectBackup();
+    const older = { id: 's1', name: 'Зарплата', dayOfMonth: 5, archived: false, sortOrder: 0, createdAt: 1 };
+
+    const parsed = await parseBackup(
+      JSON.stringify({ ...backup, schemaVersion: 9, data: { ...backup.data, incomeSources: [older] } }),
+    );
+    expect(parsed.data.incomeSources[0].schedule).toEqual({ kind: 'monthly', dayOfMonth: 5 });
+  });
+
   it('puts a file of schema 8 in Russia, and a file without settings too', async () => {
     await seed();
     const backup = await collectBackup();

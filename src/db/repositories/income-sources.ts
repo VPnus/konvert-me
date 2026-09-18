@@ -74,4 +74,3 @@ export async function deleteIncomeSource(id: string): Promise<void> {
 export async function listNextPaydays(today: IsoDate = todayIso()): Promise<PaydayOf<IncomeSource>[]> {
   return nextPaydays(today, await listIncomeSources());
 }
-

@@ -48,9 +48,7 @@ const backupDataSchema = z
     // Added in schema 2: a file written by schema 1 simply has none of them.
     links: z.array(TABLE_SCHEMAS.links).default([]),
     // Added in schema 3; a source of schemas 3 to 9 repeats on one day of a month instead of a schedule.
-    incomeSources: z
-      .array(z.preprocess(upgradeIncomeSource, TABLE_SCHEMAS.incomeSources))
-      .default([]),
+    incomeSources: z.array(z.preprocess(upgradeIncomeSource, TABLE_SCHEMAS.incomeSources)).default([]),
     // Added in schema 4.
     policies: z.array(TABLE_SCHEMAS.policies).default([]),
     // Added in schema 11: the tax advantaged accounts of the United States.

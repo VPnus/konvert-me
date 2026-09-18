@@ -9,8 +9,10 @@
  */
 
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
+import { basename, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { spawnSync } from 'node:child_process';
 
 import { chromium } from '@playwright/test';
 import { createServer } from 'vite';
@@ -188,11 +190,44 @@ function card(lines, { catSvg }) {
 </body></html>`;
 }
 
+/**
+ * Playwright films in webm, and the editors of a phone want H.264 in mp4. The conversion needs
+ * ffmpeg of the system: the one that comes with Playwright encodes VP8 only. Without ffmpeg the
+ * webm stays and the run says so.
+ */
+function toMp4(webm) {
+  const mp4 = webm.replace(/\.webm$/, '.mp4');
+  const done = spawnSync(
+    'ffmpeg',
+    // faststart puts the index first, so the file starts playing before it is fully read
+    [
+      '-y',
+      '-i',
+      webm,
+      '-c:v',
+      'libx264',
+      '-preset',
+      'slow',
+      '-crf',
+      '20',
+      '-pix_fmt',
+      'yuv420p',
+      '-movflags',
+      '+faststart',
+      mp4,
+    ],
+    { stdio: 'ignore' },
+  );
+  if (done.error?.code === 'ENOENT') return { mp4: null, missing: true };
+  return { mp4: done.status === 0 ? mp4 : null, missing: false };
+}
+
 // ── the run ──────────────────────────────────────────────────────────────────
 
 await rm(OUT, { recursive: true, force: true });
 await mkdir(SHOTS, { recursive: true });
 await mkdir(VIDEO, { recursive: true });
+const clips = [];
 
 // The browser profile and the video live under promo/: without this the watcher of the dev
 // server would see every write of the profile and reload the page under the camera.
@@ -266,7 +301,11 @@ const common = {
   }
   const clip = await page.video()?.path();
   await context.close();
-  if (clip) await rename(clip, resolve(VIDEO, 'clip-1-знакомство.webm'));
+  if (clip) {
+    const named = resolve(VIDEO, 'clip-1-знакомство.webm');
+    await rename(clip, named);
+    clips.push(named);
+  }
 }
 
 // 2. The same profile, now filmed.
@@ -376,7 +415,26 @@ await page.screenshot({ path: resolve(SHOTS, '99-outro.png') });
 
 const clip = await page.video()?.path();
 await context.close();
-if (clip) await rename(clip, resolve(VIDEO, 'clip-2-приложение.webm'));
+if (clip) {
+  const named = resolve(VIDEO, 'clip-2-приложение.webm');
+  await rename(clip, named);
+  clips.push(named);
+}
+
+let missingFfmpeg = false;
+for (const webm of clips) {
+  const { mp4, missing } = toMp4(webm);
+  missingFfmpeg ||= missing;
+  if (mp4) {
+    await rm(webm, { force: true });
+    console.warn(`  video/${basename(mp4)}`);
+  } else {
+    console.warn(`  video/${basename(webm)}`);
+  }
+}
+if (missingFfmpeg) {
+  console.warn('  mp4 не собран: нет ffmpeg. Поставьте его (sudo apt install ffmpeg) и запустите снова.');
+}
 await vite.close();
 await rm(PROFILE, { recursive: true, force: true });
 console.warn(`✓ promo/screens (${PIXELS.width}×${PIXELS.height}) и promo/video`);

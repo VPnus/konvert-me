@@ -13,3 +13,6 @@ blob-report/
 *.tsbuildinfo
 .env
 .env.*
+
+# The pictures and the clips of the announcement: made by npm run promo, not kept in git.
+/promo

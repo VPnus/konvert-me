@@ -166,4 +166,42 @@ test.describe('import', () => {
     await expect(page.getByTestId('operations-count')).toContainText('1');
     await expect(page.getByTestId('import-batches-empty')).toBeVisible();
   });
+
+  test('a statement of a bank of the United States: month first, a point in the sums', async ({ page }) => {
+    // the country of the data is chosen in the settings; the statement is read the way it is printed
+    await page.goto('/settings');
+    await page.getByTestId('country-us').click();
+    await page.getByTestId('confirm-action').click();
+    await expect(page.getByTestId('country-us')).toHaveAttribute('aria-pressed', 'true');
+
+    const american = [
+      'Transaction Date,Post Date,Description,Category,Type,Amount',
+      '09/05/2026,09/06/2026,BLUE BOTTLE COFFEE,Food & Drink,Sale,-12.75',
+      '09/06/2026,09/06/2026,ACME INC PAYROLL,,Payment,2450.00',
+      '12/31/2026,12/31/2026,ANNUAL FEE,Fees,Fee,-95.00',
+    ].join('\r\n');
+
+    await openImport(page);
+    await uploadStatement(page, Buffer.from(american, 'utf8'), 'activity.csv');
+    await page.getByTestId('import-next').click();
+    await expect(page.getByTestId('import-column-date')).toHaveValue('0');
+    await expect(page.getByTestId('import-column-note')).toHaveValue('2');
+    await page.getByTestId('import-next').click();
+
+    const rows = page.getByTestId('import-row');
+    await expect(rows).toHaveCount(3);
+    // September 5, not May 9
+    await expect(rows.first()).toContainText('BLUE BOTTLE COFFEE');
+    await expect(rows.first()).toContainText('2026-09-05');
+    await expect(rows.nth(1)).toContainText('2026-09-06');
+    await expect(rows.nth(2)).toContainText('2026-12-31');
+
+    await page.getByTestId('import-confirm').click();
+    await expect(page.getByTestId('import-done')).toContainText('3');
+    await page.getByTestId('import-close').click();
+
+    // the cents after the point survived: 12,75 and 95,00 out, 2 450,00 in
+    await expect(page.getByTestId('total-income')).toHaveText(/2\s?450/);
+    await expect(page.getByTestId('total-expense')).toHaveText(/12,75|13/);
+  });
 });

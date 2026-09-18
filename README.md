@@ -21,7 +21,7 @@
 <img src="https://img.shields.io/badge/React-18-149eca?style=flat-square&logo=react&logoColor=white" alt="React 18">
 <img src="https://img.shields.io/badge/Vite-8-646cff?style=flat-square&logo=vite&logoColor=white" alt="Vite 8">
 <img src="https://img.shields.io/badge/%D0%9C%D0%BE%D0%B4%D1%83%D0%BB%D1%8C%D0%BD%D1%8B%D1%85_%D1%82%D0%B5%D1%81%D1%82%D0%BE%D0%B2-799-2b9246?style=flat-square&logo=vitest&logoColor=white" alt="799 модульных тестов">
-<img src="https://img.shields.io/badge/E2E-231_%D0%BF%D1%80%D0%BE%D0%B3%D0%BE%D0%BD%D0%B0-2b9246?style=flat-square&logo=playwright&logoColor=white" alt="231 e2e-прогон">
+<img src="https://img.shields.io/badge/E2E-235_%D0%BF%D1%80%D0%BE%D0%B3%D0%BE%D0%BD%D0%BE%D0%B2-2b9246?style=flat-square&logo=playwright&logoColor=white" alt="235 e2e-прогонов">
 <img src="https://img.shields.io/badge/%D0%90%D0%BD%D0%B0%D0%BB%D0%B8%D1%82%D0%B8%D0%BA%D0%B0-%D0%BD%D0%B5%D1%82-555555?style=flat-square" alt="Аналитики нет">
 
 </div>

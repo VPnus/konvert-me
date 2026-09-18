@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { monthlyAmountMinor, monthlyOn, nextPayday, nextPaydays, type PaySchedule } from './payday';
+import {
+  monthlyAmountMinor,
+  monthlyOn,
+  monthlyTotalMinor,
+  nextPayday,
+  nextPaydays,
+  type PaySchedule,
+} from './payday';
 
 describe('payday: once a month', () => {
   it('waits for the day of this month while it is still ahead', () => {
@@ -43,6 +50,11 @@ describe('payday: twice a month', () => {
   it('moves to the earlier day of the next month once both have passed', () => {
     expect(nextPayday('2026-10-31', twice)).toEqual({ date: '2026-10-31', inDays: 0 });
     expect(nextPayday('2026-11-01', twice)).toEqual({ date: '2026-11-15', inDays: 14 });
+  });
+
+  it('goes to the next month once both days of this one have passed', () => {
+    const early: PaySchedule = { kind: 'semimonthly', dayOfMonth: 15, secondDayOfMonth: 20 };
+    expect(nextPayday('2026-09-21', early)).toEqual({ date: '2026-10-15', inDays: 24 });
   });
 
   it('pays the last day of a short month for a day it does not have', () => {
@@ -102,6 +114,22 @@ describe('payday: what a payment is worth in an ordinary month', () => {
   });
 });
 
+describe('payday: what every source brings in a month together', () => {
+  it('adds the sources up, each by its own schedule', () => {
+    expect(
+      monthlyTotalMinor([
+        { amountMinor: 1_000_00, schedule: { kind: 'biweekly', firstDate: '2026-09-04' } },
+        { amountMinor: 30_000_00, schedule: monthlyOn(5) },
+      ]),
+    ).toBe(32_166_67);
+  });
+
+  it('counts a source with no amount as nothing, and an empty list as zero', () => {
+    expect(monthlyTotalMinor([{ schedule: monthlyOn(5) }])).toBe(0);
+    expect(monthlyTotalMinor([])).toBe(0);
+  });
+});
+
 describe('payday: several sources at once', () => {
   const sources = [
     { id: 'salary', schedule: monthlyOn(5) },
@@ -127,6 +155,14 @@ describe('payday: several sources at once', () => {
       ['rent-out', '2026-09-25'],
       ['salary', '2026-10-02'],
     ]);
+  });
+
+  it('sorts two payments of the same day by the source, so the order never wobbles', () => {
+    const same = [
+      { id: 'rent-out', schedule: monthlyOn(25) },
+      { id: 'advance', schedule: monthlyOn(25) },
+    ];
+    expect(nextPaydays('2026-09-21', same).map((item) => item.source.id)).toEqual(['advance', 'rent-out']);
   });
 
   it('returns nothing for a list of nothing', () => {

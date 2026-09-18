@@ -109,6 +109,15 @@ describe('what the limits of a year have taken', () => {
     expect(view.limitMinor).toBe(8_600 * DOLLAR);
   });
 
+  it('takes the larger catch-up of a plan at work when one of its accounts claims it', () => {
+    const [view] = limitsOfYear(
+      [account('old', '401k', { catchUp: 'enhanced' }), account('new', '401k')],
+      put({}),
+      RULES,
+    );
+    expect(view.limitMinor).toBe(35_750 * DOLLAR);
+  });
+
   it('says how much has gone over a limit instead of showing a negative remainder', () => {
     const [view] = limitsOfYear(
       [account('plan', '401k')],

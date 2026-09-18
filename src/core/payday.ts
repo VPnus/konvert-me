@@ -59,13 +59,11 @@ function nextMonthly(today: IsoDate, dayOfMonth: number): IsoDate {
 
 function nextSemimonthly(today: IsoDate, first: number, second: number): IsoDate {
   const month = monthOfDate(today);
-  const dates = [
-    withDayOfMonth(month, first),
-    withDayOfMonth(month, second),
-    withDayOfMonth(addMonths(month, 1), Math.min(first, second)),
-  ].sort();
+  const thisMonth = [withDayOfMonth(month, first), withDayOfMonth(month, second)].sort();
+  // Both days of this month have passed: the earlier day of the next one is the answer.
+  const nextMonth = withDayOfMonth(addMonths(month, 1), Math.min(first, second));
 
-  return dates.find((date) => date >= today) ?? dates[dates.length - 1];
+  return thisMonth.find((date) => date >= today) ?? nextMonth;
 }
 
 function nextBiweekly(today: IsoDate, firstDate: IsoDate): IsoDate {

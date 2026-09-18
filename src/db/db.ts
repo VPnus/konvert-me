@@ -21,6 +21,7 @@ import type {
   IncomeSource,
   InsurancePolicy,
   Link,
+  TaxAccount,
   TaxDocument,
   Transaction,
 } from '@/db/models';
@@ -36,6 +37,7 @@ export class KonvertDatabase extends Dexie {
   declare budgetPlans: Table<BudgetPlan, string>;
   declare incomeSources: Table<IncomeSource, string>;
   declare policies: Table<InsurancePolicy, string>;
+  declare taxAccounts: Table<TaxAccount, string>;
   declare deductionYears: Table<DeductionYear, number>;
   declare documents: Table<TaxDocument, string>;
   declare documentFiles: Table<DocumentFile, string>;
@@ -147,6 +149,12 @@ export class KonvertDatabase extends Dexie {
             }
           }),
       );
+
+    // v11 adds the tax advantaged accounts of the United States. Nothing is transformed: the table
+    // simply starts empty, and stays empty for anyone whose data lives in Russia.
+    this.version(11).stores({
+      taxAccounts: 'id, kind, sortOrder, archived',
+    });
   }
 }
 

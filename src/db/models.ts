@@ -9,13 +9,14 @@ import { z } from 'zod';
 
 import { COUNTRIES, CURRENCIES, DEFAULT_COUNTRY } from '@/core/country';
 import { RISK_PROFILES } from '@/core/portfolio';
+import { CATCH_UPS, TAX_ACCOUNT_KINDS } from '@/core/tax-accounts';
 import { isIsoDate, isIsoMonth } from '@/core/time';
 import { fill, strings } from '@/i18n';
 
 /** The refusals of the checks, in the language of the page. */
 const invalid = strings.data.validation;
 
-export const SCHEMA_VERSION = 10;
+export const SCHEMA_VERSION = 11;
 
 const isoDate = z.string().refine(isIsoDate, { message: invalid.date });
 const isoMonth = z.string().refine(isIsoMonth, { message: invalid.month });
@@ -228,6 +229,41 @@ export const insurancePolicySchema = z.object({
 });
 
 const taxYear = z.number().int(invalid.yearWhole).min(2000, invalid.yearDigits).max(2100, invalid.yearDigits);
+
+/** Schema 11: what went into a tax advantaged account of the United States in one year. */
+export const taxAccountYearSchema = z.object({
+  year: taxYear,
+  /** What the person put in themselves. */
+  ownMinor: nonNegativeMinor,
+  /** And what the employer added: a match of a 401(k), or money into an HSA. */
+  employerMinor: nonNegativeMinor.default(0),
+});
+
+/**
+ * Schema 11: an account the United States taxes differently — a 401(k), an IRA, a Roth IRA, an HSA
+ * or a 529. It holds no money of the app's own: the balance keeps the account, this keeps what the
+ * limits of the law have taken.
+ */
+export const taxAccountSchema = z.object({
+  id,
+  name,
+  kind: z.enum(TAX_ACCOUNT_KINDS),
+  /** Whether the person claims the larger limit of their age; they say so, the app does not ask. */
+  catchUp: z.enum(CATCH_UPS).default('none'),
+  /** An HSA under a family health plan has the larger limit. */
+  familyCoverage: z.boolean().default(false),
+  /** A 401(k): what share of the money of the person the employer adds, 0.5 for half. */
+  matchShare: rate.optional(),
+  /** And only up to this share of the pay: 0.06 for the first 6 % of it. */
+  matchUpToShareOfPay: rate.optional(),
+  /** The years the account has been filled in, one entry each. */
+  years: z.array(taxAccountYearSchema).max(60).default([]),
+  archived: z.boolean(),
+  sortOrder: z.number().int().nonnegative(),
+  note,
+  createdAt: timestamp,
+  updatedAt: timestamp,
+});
 
 export const DEDUCTION_STATUSES = ['draft', 'filed', 'refunded'] as const;
 
@@ -593,6 +629,8 @@ export type EducationPlan = z.infer<typeof educationPlanSchema>;
 export type PensionPlan = z.infer<typeof pensionPlanSchema>;
 export type FinancialPlan = z.infer<typeof financialPlanSchema>;
 export type AppSettings = z.infer<typeof settingsSchema>;
+export type TaxAccount = z.infer<typeof taxAccountSchema>;
+export type TaxAccountYear = z.infer<typeof taxAccountYearSchema>;
 export type AccountSide = Account['side'];
 export type AccountType = Account['type'];
 
@@ -624,6 +662,7 @@ export const TABLE_SCHEMAS = {
   goals: goalSchema,
   envelopes: envelopeSchema,
   policies: insurancePolicySchema,
+  taxAccounts: taxAccountSchema,
   deductionYears: deductionYearSchema,
   documents: documentSchema,
   documentFiles: documentFileSchema,

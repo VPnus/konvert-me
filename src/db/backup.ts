@@ -53,6 +53,8 @@ const backupDataSchema = z
       .default([]),
     // Added in schema 4.
     policies: z.array(TABLE_SCHEMAS.policies).default([]),
+    // Added in schema 11: the tax advantaged accounts of the United States.
+    taxAccounts: z.array(TABLE_SCHEMAS.taxAccounts).default([]),
     // Added in schema 5; a year of schemas 5 and 6 keeps what earlier returns took of a home as one sum.
     deductionYears: z.array(z.preprocess(upgradeDeductionYear, TABLE_SCHEMAS.deductionYears)).default([]),
     documents: z.array(TABLE_SCHEMAS.documents).default([]),
@@ -128,6 +130,7 @@ export async function collectBackup(now: number = Date.now()): Promise<BackupFil
     feedItems,
     incomeSources,
     policies,
+    taxAccounts,
     deductionYears,
     documents,
     documentFiles,
@@ -146,6 +149,7 @@ export async function collectBackup(now: number = Date.now()): Promise<BackupFil
     db.feedItems.toArray(),
     db.incomeSources.toArray(),
     db.policies.toArray(),
+    db.taxAccounts.toArray(),
     db.deductionYears.toArray(),
     db.documents.toArray(),
     db.documentFiles.toArray(),
@@ -170,6 +174,7 @@ export async function collectBackup(now: number = Date.now()): Promise<BackupFil
       feedItems,
       incomeSources,
       policies,
+      taxAccounts,
       deductionYears,
       documents,
       documentFiles: documentFiles.map((file) => ({
